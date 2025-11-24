@@ -1,58 +1,67 @@
-import mongoose from "mongoose";
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
+import Order from './Order.js';
+import MenuItem from './MenuItem.js';
 
-const ratingSchema = new mongoose.Schema(
-  {
-    orderId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Order",
-      required: true,
+const Rating = sequelize.define('Rating', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  orderId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'orders',
+      key: 'id',
     },
-    orderNumber: {
-      type: String,
-      required: true,
-    },
-    customerId: {
-      type: String,
-      default: null,
-    },
-    customerPhone: {
-      type: String,
-      default: null,
-    },
-    rating: {
-      type: Number,
-      required: true,
+  },
+  orderNumber: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  customerId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customerPhone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  rating: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    validate: {
       min: 1,
       max: 5,
     },
-    review: {
-      type: String,
-      default: "",
-      maxlength: 500,
-    },
-    itemRatings: [
-      {
-        menuItemId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "MenuItem",
-        },
-        itemName: String,
-        rating: {
-          type: Number,
-          min: 1,
-          max: 5,
-        },
-      },
-    ],
   },
-  {
-    timestamps: true,
-  }
-);
+  review: {
+    type: DataTypes.STRING(500),
+    defaultValue: '',
+  },
+  itemRatings: {
+    type: DataTypes.JSONB,
+    defaultValue: [],
+  },
+}, {
+  timestamps: true,
+  tableName: 'ratings',
+  indexes: [
+    {
+      fields: ['orderId'],
+    },
+    {
+      fields: ['rating'],
+    },
+    {
+      fields: ['createdAt'],
+    },
+  ],
+});
 
-// Index for faster queries
-ratingSchema.index({ orderId: 1 });
-ratingSchema.index({ rating: 1 });
-ratingSchema.index({ createdAt: -1 });
+// Define associations
+Rating.belongsTo(Order, { foreignKey: 'orderId' });
 
-export default mongoose.model("Rating", ratingSchema);
+export default Rating;

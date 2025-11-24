@@ -1,62 +1,57 @@
-import mongoose from "mongoose";
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
+import MenuItem from './MenuItem.js';
 
-const orderSchema = new mongoose.Schema(
-  {
-    orderNumber: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    tableId: {
-      type: String,
-      required: true,
-    },
-    tableNumber: {
-      type: Number,
-      required: true,
-    },
-    customerPhone: {
-      type: String,
-    },
-    items: [
-      {
-        menuItemId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "MenuItem",
-        },
-        name: String,
-        quantity: Number,
-        price: Number,
-        specialInstructions: String,
-      },
-    ],
-    status: {
-      type: String,
-      enum: ["pending", "preparing", "prepared", "delivered", "cancelled"],
-      default: "pending",
-    },
-    totalAmount: {
-      type: Number,
-      required: true,
-    },
-    paymentMethod: {
-      type: String,
-      enum: ["cash", "card", "upi"],
-      default: "cash",
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["pending", "paid", "failed"],
-      default: "pending",
-    },
-    transactionId: {
-      type: String,
-      default: null,
-    },
+const Order = sequelize.define('Order', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
   },
-  {
-    timestamps: true,
-  }
-);
+  orderNumber: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  tableId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  tableNumber: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  customerPhone: {
+    type: DataTypes.STRING,
+  },
+  items: {
+    type: DataTypes.JSONB,
+    allowNull: false,
+    defaultValue: [],
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'preparing', 'prepared', 'delivered', 'cancelled'),
+    defaultValue: 'pending',
+  },
+  totalAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+  },
+  paymentMethod: {
+    type: DataTypes.ENUM('cash', 'card', 'upi'),
+    defaultValue: 'cash',
+  },
+  paymentStatus: {
+    type: DataTypes.ENUM('pending', 'paid', 'failed'),
+    defaultValue: 'pending',
+  },
+  transactionId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+}, {
+  timestamps: true,
+  tableName: 'orders',
+});
 
-export default mongoose.model("Order", orderSchema);
+export default Order;

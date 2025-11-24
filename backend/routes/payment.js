@@ -86,26 +86,28 @@ router.post("/status", async (req, res) => {
     }
 
     // Find and update the order
-    const order = await Order.findById(orderId);
+    const order = await Order.findByPk(orderId);
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
     // Update payment details
-    order.paymentMethod = paymentMethod;
-    order.paymentStatus = paymentStatus;
-
+    const updateData = {
+      paymentMethod,
+      paymentStatus,
+    };
+    
     if (transactionId) {
-      order.transactionId = transactionId;
+      updateData.transactionId = transactionId;
     }
 
     // If payment is successful, update order status to preparing
     if (paymentStatus === "paid" && order.status === "pending") {
-      order.status = "preparing";
+      updateData.status = "preparing";
     }
 
-    await order.save();
+    await order.update(updateData);
 
     console.log(`[PAYMENT] ✓ Payment status updated for order: ${orderId}`, {
       paymentMethod,
@@ -117,7 +119,7 @@ router.post("/status", async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.emit("payment-updated", {
-        orderId: order._id,
+        orderId: order.id,
         paymentStatus: order.paymentStatus,
         paymentMethod: order.paymentMethod,
       });
@@ -127,7 +129,7 @@ router.post("/status", async (req, res) => {
       success: true,
       message: "Payment status updated successfully",
       order: {
-        id: order._id,
+        id: order.id,
         orderNumber: order.orderNumber,
         paymentMethod: order.paymentMethod,
         paymentStatus: order.paymentStatus,
@@ -149,7 +151,7 @@ router.get("/verify/:orderId", async (req, res) => {
   try {
     const { orderId } = req.params;
 
-    const order = await Order.findById(orderId);
+    const order = await Order.findByPk(orderId);
 
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -162,7 +164,7 @@ router.get("/verify/:orderId", async (req, res) => {
 
     res.json({
       success: true,
-      orderId: order._id,
+      orderId: order.id,
       orderNumber: order.orderNumber,
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,

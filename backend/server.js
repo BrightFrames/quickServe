@@ -2,7 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
-import mongoose from "mongoose";
+import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 
 import authRoutes from "./routes/auth.js";
 import menuRoutes from "./routes/menu.js";
@@ -86,13 +86,20 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // ============================
-// MongoDB Connection
+// PostgreSQL Connection
 // ============================
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+const connectDatabase = async () => {
+  const connected = await testConnection();
+  if (connected) {
+    await syncDatabase();
+  } else {
+    console.error("Failed to connect to PostgreSQL database");
+    process.exit(1);
+  }
+};
+
+connectDatabase();
 
 // ============================
 // Socket.IO Setup

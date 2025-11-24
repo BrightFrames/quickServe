@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 import User from "./models/User.js";
 import MenuItem from "./models/MenuItem.js";
 import Order from "./models/Order.js";
@@ -126,15 +126,21 @@ const sampleKitchenUsers = [
 
 async function seedDatabase() {
   try {
-    console.log("Connecting to MongoDB...");
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("Connected to MongoDB");
+    console.log("Connecting to PostgreSQL...");
+    const connected = await testConnection();
+    if (!connected) {
+      throw new Error("Failed to connect to PostgreSQL");
+    }
+    console.log("Connected to PostgreSQL");
+
+    console.log("Syncing database schema...");
+    await syncDatabase();
 
     // Clear existing data
     console.log("Clearing existing data...");
-    await User.deleteMany({ role: { $ne: "admin" } });
+    await User.destroy({ where: { role: ['kitchen', 'cook'] } });
     // Note: Menu items are NOT cleared - manage them through admin panel
-    await Order.deleteMany({});
+    await Order.destroy({ where: {} });
 
     // Note: Menu items are NOT seeded - add them through admin panel
     console.log(
@@ -147,13 +153,12 @@ async function seedDatabase() {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-      const user = new User({
+      await User.create({
         username: userData.username,
         password: hashedPassword,
         role: userData.role,
       });
 
-      await user.save();
       console.log(
         `✓ Created user: ${userData.username} (password: ${userData.password})`
       );
@@ -162,13 +167,14 @@ async function seedDatabase() {
     console.log("\n✅ Database seeded successfully!");
     console.log("\n📝 Default Credentials:");
     console.log("Admin:");
-    console.log(`  Username: ${process.env.ADMIN_USERNAME}`);
-    console.log(`  Password: ${process.env.ADMIN_PASSWORD}`);
+    console.log(`  Username: ${process.env.ADMIN_USERNAME || 'admin'}`);
+    console.log(`  Password: ${process.env.ADMIN_PASSWORD || '(set in .env)'}`);
     console.log("\nKitchen Users:");
     sampleKitchenUsers.forEach((user) => {
       console.log(`  Username: ${user.username}, Password: ${user.password}`);
     });
 
+    await sequelize.close();
     process.exit(0);
   } catch (error) {
     console.error("Error seeding database:", error);

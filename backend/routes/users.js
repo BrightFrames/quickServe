@@ -1,5 +1,6 @@
 import express from 'express'
 import bcrypt from 'bcryptjs'
+import { Op } from 'sequelize'
 import User from '../models/User.js'
 
 const router = express.Router()
@@ -7,9 +8,15 @@ const router = express.Router()
 // Get all kitchen users
 router.get('/kitchen', async (req, res) => {
   try {
-    const users = await User.find({ role: { $in: ['kitchen', 'cook'] } })
-      .select('-password')
-      .sort({ username: 1 })
+    const users = await User.findAll({
+      where: {
+        role: {
+          [Op.in]: ['kitchen', 'cook'],
+        },
+      },
+      attributes: { exclude: ['password'] },
+      order: [['username', 'ASC']],
+    })
     res.json(users)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -22,7 +29,7 @@ router.post('/kitchen', async (req, res) => {
     const { username, password, role } = req.body
 
     // Check if user already exists
-    const existingUser = await User.findOne({ username })
+    const existingUser = await User.findOne({ where: { username } })
     if (existingUser) {
       return res.status(400).json({ message: 'Username already exists' })
     }
@@ -31,15 +38,13 @@ router.post('/kitchen', async (req, res) => {
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
-    const user = new User({
+    const user = await User.create({
       username,
       password: hashedPassword,
       role: role || 'kitchen',
     })
 
-    await user.save()
-
-    const userResponse = user.toObject()
+    const userResponse = user.toJSON()
     delete userResponse.password
 
     res.status(201).json(userResponse)
@@ -59,17 +64,17 @@ router.put('/:id', async (req, res) => {
       updateData.password = await bcrypt.hash(password, salt)
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true }
-    ).select('-password')
-
+    const user = await User.findByPk(req.params.id)
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
 
-    res.json(user)
+    await user.update(updateData)
+    
+    const userResponse = user.toJSON()
+    delete userResponse.password
+
+    res.json(userResponse)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
   }
@@ -78,10 +83,11 @@ router.put('/:id', async (req, res) => {
 // Delete user
 router.delete('/:id', async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id)
+    const user = await User.findByPk(req.params.id)
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
+    await user.destroy()
     res.json({ message: 'User deleted successfully' })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })

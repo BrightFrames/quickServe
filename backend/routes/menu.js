@@ -6,7 +6,9 @@ const router = express.Router()
 // Get all menu items
 router.get('/', async (req, res) => {
   try {
-    const items = await MenuItem.find().sort({ category: 1, name: 1 })
+    const items = await MenuItem.findAll({
+      order: [['category', 'ASC'], ['name', 'ASC']],
+    })
     res.json(items)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -16,7 +18,7 @@ router.get('/', async (req, res) => {
 // Get single menu item
 router.get('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findById(req.params.id)
+    const item = await MenuItem.findByPk(req.params.id)
     if (!item) {
       return res.status(404).json({ message: 'Item not found' })
     }
@@ -29,8 +31,7 @@ router.get('/:id', async (req, res) => {
 // Create menu item
 router.post('/', async (req, res) => {
   try {
-    const item = new MenuItem(req.body)
-    await item.save()
+    const item = await MenuItem.create(req.body)
     res.status(201).json(item)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -40,14 +41,11 @@ router.post('/', async (req, res) => {
 // Update menu item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    )
+    const item = await MenuItem.findByPk(req.params.id)
     if (!item) {
       return res.status(404).json({ message: 'Item not found' })
     }
+    await item.update(req.body)
     res.json(item)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -58,14 +56,11 @@ router.put('/:id', async (req, res) => {
 router.put('/:id/inventory', async (req, res) => {
   try {
     const { inventoryCount } = req.body
-    const item = await MenuItem.findByIdAndUpdate(
-      req.params.id,
-      { inventoryCount },
-      { new: true }
-    )
+    const item = await MenuItem.findByPk(req.params.id)
     if (!item) {
       return res.status(404).json({ message: 'Item not found' })
     }
+    await item.update({ inventoryCount })
     res.json(item)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
@@ -75,10 +70,11 @@ router.put('/:id/inventory', async (req, res) => {
 // Delete menu item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findByIdAndDelete(req.params.id)
+    const item = await MenuItem.findByPk(req.params.id)
     if (!item) {
       return res.status(404).json({ message: 'Item not found' })
     }
+    await item.destroy()
     res.json({ message: 'Item deleted successfully' })
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })

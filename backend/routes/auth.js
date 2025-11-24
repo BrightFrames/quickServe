@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Op } from "sequelize";
 import User from "../models/User.js";
 
 const router = express.Router();
@@ -52,8 +53,12 @@ router.post("/login", async (req, res) => {
     // Kitchen/Cook login
     console.log("[AUTH] Processing kitchen/cook login...");
     const user = await User.findOne({
-      username,
-      role: { $in: ["kitchen", "cook"] },
+      where: {
+        username,
+        role: {
+          [Op.in]: ["kitchen", "cook"],
+        },
+      },
     });
     if (!user) {
       console.log("[AUTH] ✗ User not found");
@@ -74,14 +79,14 @@ router.post("/login", async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { id: user._id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
     res.json({
       user: {
-        id: user._id,
+        id: user.id,
         username: user.username,
         role: user.role,
       },
@@ -102,7 +107,10 @@ router.post("/logout", async (req, res) => {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       if (decoded.id !== "admin") {
-        await User.findByIdAndUpdate(decoded.id, { isOnline: false });
+        await User.update(
+          { isOnline: false },
+          { where: { id: decoded.id } }
+        );
       }
     }
     res.json({ message: "Logged out successfully" });

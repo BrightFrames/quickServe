@@ -1,4 +1,5 @@
 import express from "express";
+import { Op } from "sequelize";
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
@@ -14,9 +15,14 @@ router.get("/active", async (req, res) => {
       // Orders are not persisted — return empty list when persistence disabled
       return res.json([]);
     }
-    const orders = await Order.find({
-      status: { $in: ["pending", "preparing", "prepared"] },
-    }).sort({ createdAt: -1 });
+    const orders = await Order.findAll({
+      where: {
+        status: {
+          [Op.in]: ["pending", "preparing", "prepared"],
+        },
+      },
+      order: [['createdAt', 'DESC']],
+    });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -43,11 +49,14 @@ router.get("/", async (req, res) => {
 
     if (startDate || endDate) {
       filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (startDate) filter.createdAt[Op.gte] = new Date(startDate);
+      if (endDate) filter.createdAt[Op.lte] = new Date(endDate);
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    const orders = await Order.findAll({
+      where: filter,
+      order: [['createdAt', 'DESC']],
+    });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -60,9 +69,12 @@ router.get("/by-table/:tableId", async (req, res) => {
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
-    const orders = await Order.find({
-      tableId: req.params.tableId,
-    }).sort({ createdAt: -1 });
+    const orders = await Order.findAll({
+      where: {
+        tableId: req.params.tableId,
+      },
+      order: [['createdAt', 'DESC']],
+    });
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -86,7 +98,7 @@ router.post("/", async (req, res) => {
 
     if (tableId) {
       // Try to find the table in the database
-      const table = await Table.findOne({ tableId });
+      const table = await Table.findOne({ where: { tableId } });
       if (table) {
         // Table exists in database, use its information
         if (!table.isActive) {
@@ -112,7 +124,7 @@ router.post("/", async (req, res) => {
     }
 
     // Generate order number
-    const count = await Order.countDocuments();
+    const count = await Order.count();
     const orderNumber = `ORD${String(count + 1).padStart(5, "0")}`;
 
     // Calculate total and update inventory
@@ -121,7 +133,7 @@ router.post("/", async (req, res) => {
 
     for (const item of items) {
       console.log("Processing item:", item);
-      const menuItem = await MenuItem.findById(item.menuItemId);
+      const menuItem = await MenuItem.findByPk(item.menuItemId);
       console.log("Found menu item:", menuItem);
       if (!menuItem) {
         return res
@@ -139,17 +151,17 @@ router.post("/", async (req, res) => {
       menuItem.inventoryCount -= item.quantity;
       await menuItem.save();
 
-      totalAmount += menuItem.price * item.quantity;
+      totalAmount += parseFloat(menuItem.price) * item.quantity;
       orderItems.push({
-        menuItemId: menuItem._id,
+        menuItemId: menuItem.id,
         name: menuItem.name,
         quantity: item.quantity,
-        price: menuItem.price,
+        price: parseFloat(menuItem.price),
         specialInstructions: item.specialInstructions || "",
       });
     }
 
-    const order = new Order({
+    const orderData = {
       orderNumber,
       tableId: finalTableId,
       tableNumber: finalTableNumber,
@@ -159,21 +171,26 @@ router.post("/", async (req, res) => {
       status: "preparing",
       paymentMethod: paymentMethod || "cash",
       paymentStatus: paymentMethod === "upi" ? "pending" : "pending",
-    });
+    };
 
+    let order;
     // Persist order only when SAVE_ORDERS is enabled. Otherwise keep it transient.
     if (SAVE_ORDERS) {
-      await order.save();
+      order = await Order.create(orderData);
       console.log(
         "Order saved to DB:",
-        order._id,
+        order.id,
         "orderNumber:",
         order.orderNumber
       );
     } else {
       // Ensure transient order has timestamps
-      order.createdAt = order.createdAt || new Date();
-      order.updatedAt = new Date();
+      order = {
+        ...orderData,
+        id: `temp-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       console.log("Order processing transient (not saved):", order.orderNumber);
     }
 
@@ -194,19 +211,15 @@ router.put("/:id/status", async (req, res) => {
     const { status } = req.body;
     let order;
     if (SAVE_ORDERS) {
-      order = await Order.findByIdAndUpdate(
-        req.params.id,
-        { status },
-        { new: true }
-      );
-
+      order = await Order.findByPk(req.params.id);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+      await order.update({ status });
     } else {
       // Persistence disabled — construct a transient order object to emit
       order = {
-        _id: req.params.id,
+        id: req.params.id,
         status,
         updatedAt: new Date(),
       };
@@ -231,7 +244,7 @@ router.get("/:id", async (req, res) => {
         .json({ message: "Order not found (persistence disabled)" });
     }
 
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findByPk(req.params.id);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }

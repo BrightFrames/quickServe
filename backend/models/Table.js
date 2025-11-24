@@ -1,34 +1,38 @@
-import mongoose from "mongoose";
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/database.js';
 
-const tableSchema = new mongoose.Schema(
-  {
-    tableId: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    tableName: {
-      type: String,
-      required: true,
-    },
-    seats: {
-      type: Number,
-      default: 4,
-    },
-    qrCode: {
-      type: String, // Base64 encoded QR code image or URL
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    location: {
-      type: String, // e.g., "Ground Floor", "First Floor", "Outdoor"
-    },
+const Table = sequelize.define('Table', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
   },
-  {
-    timestamps: true,
-  }
-);
+  tableId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+  tableName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  seats: {
+    type: DataTypes.INTEGER,
+    defaultValue: 4,
+  },
+  qrCode: {
+    type: DataTypes.TEXT,
+  },
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+  },
+  location: {
+    type: DataTypes.STRING,
+  },
+}, {
+  timestamps: true,
+  tableName: 'tables',
+});
 
-export default mongoose.model("Table", tableSchema);
+export default Table;

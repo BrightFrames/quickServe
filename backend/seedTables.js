@@ -1,17 +1,24 @@
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import QRCode from "qrcode";
+import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 import Table from "./models/Table.js";
 
 dotenv.config();
 
 const seedTables = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log("MongoDB connected");
+    console.log("Connecting to PostgreSQL...");
+    const connected = await testConnection();
+    if (!connected) {
+      throw new Error("Failed to connect to PostgreSQL");
+    }
+    console.log("PostgreSQL connected");
+
+    console.log("Syncing database schema...");
+    await syncDatabase();
 
     // Clear existing tables
-    await Table.deleteMany({});
+    await Table.destroy({ where: {} });
     console.log("Cleared existing tables");
 
     // Create sample tables
@@ -76,12 +83,13 @@ const seedTables = async () => {
     console.log(`${customerAppUrl}?table=T1`);
     console.log(`${customerAppUrl}?table=T2`);
     console.log(`... etc.`);
+
+    await sequelize.close();
+    console.log("\nPostgreSQL disconnected");
+    process.exit(0);
   } catch (error) {
     console.error("Error seeding tables:", error);
-  } finally {
-    await mongoose.disconnect();
-    console.log("\nMongoDB disconnected");
-    process.exit(0);
+    process.exit(1);
   }
 };
 
