@@ -84,7 +84,7 @@ const OrderColumn = ({
         ) : (
           orders.map((order) => (
             <OrderCard
-              key={order._id}
+              key={order.id || order._id}
               order={order}
               nextStatus={nextStatus}
               onStatusChange={onStatusChange}
@@ -103,9 +103,11 @@ interface OrderCardProps {
 }
 
 const OrderCard = ({ order, nextStatus, onStatusChange }: OrderCardProps) => {
+  const orderId = order.id || order._id;
+  
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
-      id: order._id,
+      id: orderId,
     });
 
   const style = transform
@@ -163,7 +165,7 @@ const OrderCard = ({ order, nextStatus, onStatusChange }: OrderCardProps) => {
       {/* Order Items */}
       <div className="space-y-2 mb-3">
         {order.items.map((item, index) => (
-          <div key={index} className="flex justify-between text-sm">
+          <div key={`${orderId}-item-${index}`} className="flex justify-between text-sm">
             <span className="text-gray-700">
               {item.quantity}x {item.name}
             </span>
@@ -181,7 +183,7 @@ const OrderCard = ({ order, nextStatus, onStatusChange }: OrderCardProps) => {
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onStatusChange(order._id, nextStatus);
+            onStatusChange(orderId, nextStatus);
           }}
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center space-x-2"
         >

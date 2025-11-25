@@ -12,9 +12,11 @@ import OrderColumn from "../components/kitchen/OrderColumn";
 import { useSocket } from "../hooks/useSocket";
 import axios from "axios";
 import { toast } from "sonner";
+import { notificationSounds } from "../utils/notificationSounds";
 
 export interface Order {
-  _id: string;
+  id?: string;
+  _id?: string;
   orderNumber: string;
   tableId: string;
   tableNumber: number;
@@ -32,6 +34,7 @@ const KitchenHome = () => {
   const { logout, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedStatus, setSelectedStatus] = useState<"all" | Order["status"]>("all");
   const socket = useSocket();
 
   const sensors = useSensors(
@@ -48,16 +51,21 @@ const KitchenHome = () => {
     if (socket) {
       socket.on("new-order", (order: Order) => {
         setOrders((prev) => [...prev, order]);
+        
+        // Play notification sound
+        notificationSounds.playNewOrderSound();
+        
+        // Show toast notification
         toast.success(`New order #${order.orderNumber} received!`, {
-          description: `Table ${order.tableNumber}`,
+          description: `Table ${order.tableNumber} - ${order.items.length} items`,
+          duration: 5000,
         });
-        playNotificationSound();
       });
 
       socket.on("order-updated", (updatedOrder: Order) => {
         setOrders((prev) =>
           prev.map((order) =>
-            order._id === updatedOrder._id ? updatedOrder : order
+            (order.id || order._id) === (updatedOrder.id || updatedOrder._id) ? updatedOrder : order
           )
         );
       });
@@ -80,11 +88,6 @@ const KitchenHome = () => {
     }
   };
 
-  const playNotificationSound = () => {
-    const audio = new Audio("/notification.mp3");
-    audio.play().catch(() => {});
-  };
-
   const updateOrderStatus = async (
     orderId: string,
     newStatus: Order["status"]
@@ -93,9 +96,15 @@ const KitchenHome = () => {
       await axios.put(`/api/orders/${orderId}/status`, { status: newStatus });
       setOrders((prev) =>
         prev.map((order) =>
-          order._id === orderId ? { ...order, status: newStatus } : order
+          (order.id || order._id) === orderId ? { ...order, status: newStatus } : order
         )
       );
+      
+      // Play success sound when order is marked as delivered
+      if (newStatus === "delivered") {
+        notificationSounds.playSuccessSound();
+      }
+      
       toast.success(`Order moved to ${newStatus}`);
     } catch (error) {
       toast.error("Failed to update order status");
@@ -117,6 +126,11 @@ const KitchenHome = () => {
   const preparedOrders = orders.filter((o) => o.status === "prepared");
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
 
+  // Filter orders based on selected status
+  const filteredOrders = selectedStatus === "all" 
+    ? orders 
+    : orders.filter((o) => o.status === selectedStatus);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -126,63 +140,177 @@ const KitchenHome = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      {/* Header */}
-      <div className="bg-green-900 text-white p-4 shadow-lg">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-2xl font-bold">Kitchen Dashboard</h1>
-            <div className="flex items-center space-x-2 bg-green-800 px-3 py-1 rounded-full">
-              <Bell className="w-4 h-4" />
-              <span className="text-sm font-medium">
-                {orders.length} Active Orders
-              </span>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Mobile Header */}
+      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xl">🍳</span>
             </div>
+            <h1 className="text-lg font-bold text-gray-900">QuickServe Kitchen</h1>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm">Welcome, {user?.username}!</span>
-            <button
+          <div className="flex items-center space-x-2">
+            <button className="p-2 hover:bg-gray-100 rounded-lg relative">
+              <Bell className="w-6 h-6 text-gray-700" />
+              {orders.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              )}
+            </button>
+            <button 
               onClick={logout}
-              className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
+              className="flex items-center space-x-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+              title="Logout"
             >
-              <LogOut className="w-5 h-5" />
-              <span>Logout</span>
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Logout</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Order Columns */}
-      <div className="flex-1 overflow-auto p-6">
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            <OrderColumn
-              title="Preparing / In Queue"
-              status="preparing"
-              orders={preparingOrders}
-              icon={Clock}
-              color="yellow"
-              onStatusChange={updateOrderStatus}
-            />
-            <OrderColumn
-              title="Prepared / Ready"
-              status="prepared"
-              orders={preparedOrders}
-              icon={CheckCircle}
-              color="green"
-              onStatusChange={updateOrderStatus}
-            />
-            <OrderColumn
-              title="Delivered / Out"
-              status="delivered"
-              orders={deliveredOrders}
-              icon={Truck}
-              color="blue"
-              onStatusChange={updateOrderStatus}
-            />
-          </div>
-        </DndContext>
+      {/* Title */}
+      <div className="bg-white px-4 py-3 border-b">
+        <h2 className="text-xl font-bold text-gray-900">Kitchen Dashboard</h2>
       </div>
+
+      {/* Status Tabs */}
+      <div className="bg-white px-4 py-2 border-b flex space-x-2 overflow-x-auto">
+        <button 
+          onClick={() => setSelectedStatus("preparing")}
+          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+            selectedStatus === "preparing" 
+              ? "bg-yellow-100 text-yellow-800" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          In Queue {preparingOrders.length}
+        </button>
+        <button 
+          onClick={() => setSelectedStatus("prepared")}
+          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+            selectedStatus === "prepared" 
+              ? "bg-green-100 text-green-800" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Preparing {preparedOrders.length}
+        </button>
+        <button 
+          onClick={() => setSelectedStatus("delivered")}
+          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+            selectedStatus === "delivered" 
+              ? "bg-blue-100 text-blue-800" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          Prepared {deliveredOrders.length}
+        </button>
+      </div>
+
+      {/* Orders List - Mobile View */}
+      <div className="flex-1 overflow-auto p-4 space-y-3">
+        {filteredOrders.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No orders in this status</p>
+          </div>
+        ) : (
+          filteredOrders.map((order) => (
+            <MobileOrderCard
+              key={order.id || order._id}
+              order={order}
+              onStatusChange={updateOrderStatus}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface MobileOrderCardProps {
+  order: Order;
+  onStatusChange: (orderId: string, newStatus: Order["status"]) => void;
+}
+
+const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
+  const orderId = order.id || order._id;
+  
+  const getStatusBadge = (status: Order["status"]) => {
+    switch (status) {
+      case "preparing":
+        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Takeaway</span>;
+      case "prepared":
+        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Dine-In</span>;
+      case "delivered":
+        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Delivered</span>;
+      default:
+        return null;
+    }
+  };
+
+  const getTimeAgo = (createdAt: string) => {
+    const minutes = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
+    return `${minutes} min ago`;
+  };
+
+  const getNextStatus = (): Order["status"] | null => {
+    if (order.status === "preparing") return "prepared";
+    if (order.status === "prepared") return "delivered";
+    return null;
+  };
+
+  const nextStatus = getNextStatus();
+
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+      {/* Order Header */}
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-base font-bold text-gray-900">#{order.orderNumber}</h3>
+          <p className="text-sm text-gray-500">{getTimeAgo(order.createdAt)}</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
+            {Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)} min ago
+          </span>
+          {getStatusBadge(order.status)}
+        </div>
+      </div>
+
+      {/* Order Items */}
+      <div className="space-y-1 mb-3">
+        {order.items.map((item, index) => (
+          <div key={`${orderId}-item-${index}`} className="flex items-start">
+            <span className="text-sm text-gray-900">
+              <span className="font-medium">{item.quantity}×</span> {item.name}
+            </span>
+          </div>
+        ))}
+        {order.items.some(item => item.specialInstructions) && (
+          <div className="mt-2">
+            {order.items.filter(item => item.specialInstructions).map((item, index) => (
+              <p key={`spec-${index}`} className="text-xs text-orange-600">• {item.specialInstructions}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Action Button */}
+      {nextStatus && (
+        <button
+          onClick={() => onStatusChange(orderId, nextStatus)}
+          className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${
+            nextStatus === "prepared" 
+              ? "bg-blue-500 hover:bg-blue-600" 
+              : "bg-green-500 hover:bg-green-600"
+          }`}
+        >
+          {nextStatus === "prepared" && "Start Preparing"}
+          {nextStatus === "delivered" && "Mark as Prepared"}
+        </button>
+      )}
     </div>
   );
 };

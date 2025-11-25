@@ -36,14 +36,15 @@ export const CustomerApp = () => {
     <CartProvider>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/menu" element={<MenuPage />} />
+          <Route path="/" element={<Navigate to="/menu/table/t1" replace />} />
+          <Route path="/menu" element={<Navigate to="/menu/table/t1" replace />} />
           <Route path="/menu/table/:tableNumber" element={<MenuPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/upi-payment" element={<UpiPaymentPage />} />
           <Route path="/order-status" element={<OrderStatusPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="*" element={<Navigate to="/customer" replace />} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="/menu/table/t1" replace />} />
         </Routes>
       </Suspense>
     </CartProvider>

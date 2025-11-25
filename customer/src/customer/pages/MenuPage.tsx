@@ -12,30 +12,11 @@ import { useCart } from "../context/CartContext";
 
 // Predefined categories (same as admin)
 const MENU_CATEGORIES = [
-  "Breakfast",
-  "Lunch",
-  "Dinner",
-  "Snacks",
-  "Appetizers",
-  "Main Course",
-  "Desserts",
-  "Beverages",
-  "Drinks",
-  "Soups",
-  "Salads",
-  "Pizza",
-  "Burgers",
-  "Pasta",
-  "Rice & Biryani",
   "Chinese",
-  "Indian",
-  "Continental",
-  "Fast Food",
-  "Healthy Options",
-  "Vegan",
-  "Sides",
-  "Combos",
-  "Other",
+  "Beverages",
+  "Main Course",
+  "Snacks",
+  "Restaurant Special",
 ] as const;
 
 export const MenuPage = () => {
@@ -45,8 +26,6 @@ export const MenuPage = () => {
   const { tableNumber, setTableNumber } = useCart();
   const recommendations = getRecommendations();
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showTableInput, setShowTableInput] = useState(false);
-  const [manualTableNumber, setManualTableNumber] = useState("");
   const [hasCheckedTable, setHasCheckedTable] = useState(false);
 
   useEffect(() => {
@@ -55,10 +34,9 @@ export const MenuPage = () => {
     // Only check once
     if (hasCheckedTable) return;
     
-    // Priority: URL params > query params > localStorage
+    // Priority: URL params > query params > default to t1
     if (urlTableNumber) {
       setTableNumber(urlTableNumber);
-      setShowTableInput(false);
       setHasCheckedTable(true);
     } else {
       try {
@@ -66,34 +44,21 @@ export const MenuPage = () => {
         const queryTable = params.get("table");
         if (queryTable) {
           setTableNumber(queryTable);
-          setShowTableInput(false);
-          setHasCheckedTable(true);
-        } else if (!tableNumber) {
-          // No table number found - show input but still load menu
-          setShowTableInput(true);
           setHasCheckedTable(true);
         } else {
-          // tableNumber exists from previous session
+          // Default to table t1 and redirect
+          setTableNumber("t1");
+          navigate("/customer/menu/table/t1", { replace: true });
           setHasCheckedTable(true);
         }
       } catch (e) {
         console.error('Error reading query params:', e);
-        if (!tableNumber) {
-          setShowTableInput(true);
-        }
+        setTableNumber("t1");
+        navigate("/customer/menu/table/t1", { replace: true });
         setHasCheckedTable(true);
       }
     }
-  }, [urlTableNumber]);
-
-  const handleManualTableSubmit = () => {
-    if (manualTableNumber.trim()) {
-      setTableNumber(manualTableNumber.trim());
-      setShowTableInput(false);
-      // Update URL to reflect table number
-      navigate(`/customer/menu/table/${manualTableNumber.trim()}`, { replace: true });
-    }
-  };
+  }, [urlTableNumber, navigate, setTableNumber]);
 
   // Filter menu by category
   const filteredMenu =
@@ -142,40 +107,6 @@ export const MenuPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Table Number Input Modal */}
-      {showTableInput && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
-            <h2 className="text-2xl font-bold">Enter Table Number</h2>
-            <p className="text-muted-foreground">
-              Please enter your table number to continue ordering
-            </p>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Table Number</label>
-              <input
-                type="text"
-                value={manualTableNumber}
-                onChange={(e) => setManualTableNumber(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleManualTableSubmit()}
-                placeholder="e.g., T-2, 4, A1"
-                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary"
-                autoFocus
-              />
-            </div>
-            <Button 
-              onClick={handleManualTableSubmit} 
-              className="w-full"
-              disabled={!manualTableNumber.trim()}
-            >
-              Continue
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-              Tip: Scan the QR code on your table to automatically set your table number
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">

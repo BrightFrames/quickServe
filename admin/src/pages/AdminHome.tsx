@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   LogOut,
@@ -13,6 +13,7 @@ import MenuManagement from "../components/admin/MenuManagement";
 import InventoryManagement from "../components/admin/InventoryManagement";
 import UserManagement from "../components/admin/UserManagement";
 import TableManagement from "../components/admin/TableManagement";
+import axios from "axios";
 
 type Tab = "dashboard" | "menu" | "inventory" | "users" | "tables";
 
@@ -20,6 +21,31 @@ const AdminHome = () => {
   const { logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [lowStockCount, setLowStockCount] = useState(0);
+
+  useEffect(() => {
+    fetchLowStockCount();
+    
+    // Check every minute
+    const interval = setInterval(() => {
+      fetchLowStockCount();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchLowStockCount = async () => {
+    try {
+      const response = await axios.get('/api/menu');
+      const items = response.data;
+      const lowStock = items.filter(
+        (item: any) => item.inventoryCount <= item.lowStockThreshold
+      ).length;
+      setLowStockCount(lowStock);
+    } catch (error) {
+      console.error('Failed to fetch inventory status');
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -59,7 +85,7 @@ const AdminHome = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
+                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors relative ${
                   activeTab === tab.id
                     ? "bg-blue-700 text-white"
                     : "text-blue-100 hover:bg-blue-800"
@@ -67,6 +93,11 @@ const AdminHome = () => {
               >
                 <tab.icon className="w-5 h-5" />
                 {sidebarOpen && <span>{tab.name}</span>}
+                {tab.id === "inventory" && lowStockCount > 0 && (
+                  <span className="absolute right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                    {lowStockCount}
+                  </span>
+                )}
               </button>
             ))}
           </nav>

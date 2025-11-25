@@ -33,7 +33,7 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            <Route path="/" element={<Navigate to="/customer" replace />} />
+            <Route path="/" element={<Navigate to="/customer/menu/table/t1" replace />} />
             <Route path="/customer/*" element={<CustomerApp />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

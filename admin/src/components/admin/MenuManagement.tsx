@@ -19,30 +19,11 @@ interface MenuItem {
 
 // Predefined categories
 const MENU_CATEGORIES = [
-  "Breakfast",
-  "Lunch",
-  "Dinner",
-  "Snacks",
-  "Appetizers",
-  "Main Course",
-  "Desserts",
-  "Beverages",
-  "Drinks",
-  "Soups",
-  "Salads",
-  "Pizza",
-  "Burgers",
-  "Pasta",
-  "Rice & Biryani",
   "Chinese",
-  "Indian",
-  "Continental",
-  "Fast Food",
-  "Healthy Options",
-  "Vegan",
-  "Sides",
-  "Combos",
-  "Other",
+  "Beverages",
+  "Main Course",
+  "Snacks",
+  "Restaurant Special",
 ] as const;
 
 const MenuManagement = () => {

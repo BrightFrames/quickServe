@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { AlertTriangle, Package, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
+import { notificationSounds } from '../../utils/notificationSounds'
 
 interface InventoryItem {
   _id: string
@@ -16,15 +17,53 @@ const InventoryManagement = () => {
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'low'>('all')
+  const previousLowStockCount = useRef<number>(0)
 
   useEffect(() => {
     fetchInventory()
+    
+    // Check for low stock every 30 seconds
+    const interval = setInterval(() => {
+      fetchInventory()
+    }, 30000)
+    
+    return () => clearInterval(interval)
   }, [])
 
   const fetchInventory = async () => {
     try {
       const response = await axios.get('/api/menu')
-      setItems(response.data)
+      const fetchedItems = response.data
+      setItems(fetchedItems)
+      
+      // Check for low stock items
+      const lowStockItems = fetchedItems.filter(
+        (item: InventoryItem) => item.inventoryCount <= item.lowStockThreshold
+      )
+      
+      // Check for critically low stock (less than half of threshold)
+      const criticalStockItems = fetchedItems.filter(
+        (item: InventoryItem) => item.inventoryCount <= item.lowStockThreshold / 2
+      )
+      
+      // Only notify if low stock count increased (new items went low)
+      if (lowStockItems.length > previousLowStockCount.current && previousLowStockCount.current > 0) {
+        if (criticalStockItems.length > 0) {
+          notificationSounds.playCriticalAlert()
+          toast.error(`Critical: ${criticalStockItems.length} items critically low!`, {
+            description: criticalStockItems.map((i: InventoryItem) => i.name).join(', '),
+            duration: 8000,
+          })
+        } else {
+          notificationSounds.playLowStockAlert()
+          toast.warning(`${lowStockItems.length} items are running low`, {
+            description: 'Please restock soon',
+            duration: 5000,
+          })
+        }
+      }
+      
+      previousLowStockCount.current = lowStockItems.length
     } catch (error) {
       toast.error('Failed to fetch inventory')
     } finally {

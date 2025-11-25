@@ -20,10 +20,17 @@ export const OrderStatusPage = () => {
 
   // Initialize WebSocket connection for real-time updates
   useEffect(() => {
-    const apiUrl =
-      import.meta.env.VITE_API_URL || "https://project0-f2hv.onrender.com";
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
     const newSocket = io(apiUrl, {
       transports: ["websocket", "polling"],
+    });
+
+    newSocket.on("connect", () => {
+      console.log("[OrderStatus] Socket connected:", newSocket.id);
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("[OrderStatus] Socket disconnected");
     });
 
     setSocket(newSocket);

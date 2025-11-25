@@ -41,9 +41,20 @@ export const useSocket = (options: UseSocketOptions = {}) => {
       console.error("Socket connection error:", error);
     });
 
-    // Order status updates
+    // Order status updates - listen for both events for compatibility
+    socket.on("order-updated", (data) => {
+      console.log("[Socket] Order updated:", data);
+      if (options.onOrderStatusUpdate) {
+        options.onOrderStatusUpdate({
+          orderId: data.id || data._id,
+          status: data.status,
+          orderNumber: data.orderNumber
+        });
+      }
+    });
+    
     socket.on("orderStatusUpdated", (data) => {
-      console.log("Order status updated:", data);
+      console.log("[Socket] Order status updated:", data);
       if (options.onOrderStatusUpdate) {
         options.onOrderStatusUpdate(data);
       }
@@ -51,6 +62,8 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
     // Cleanup on unmount
     return () => {
+      socket.off("order-updated");
+      socket.off("orderStatusUpdated");
       socket.disconnect();
     };
   }, []);
