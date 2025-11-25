@@ -38,6 +38,7 @@ export const CustomerApp = () => {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/menu" element={<MenuPage />} />
+          <Route path="/menu/table/:tableNumber" element={<MenuPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/upi-payment" element={<UpiPaymentPage />} />
           <Route path="/order-status" element={<OrderStatusPage />} />

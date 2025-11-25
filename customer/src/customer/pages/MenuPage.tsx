@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { useNavigate, useParams } from "react-router-dom";
 import { useMenu } from "../hooks/useMenu";
 import { MenuList } from "../components/MenuList";
 import { CartDrawer } from "../components/CartDrawer";
 import { Recommendations } from "../components/Recommendations";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCart } from "../context/CartContext";
 
 // Predefined categories (same as admin)
 const MENU_CATEGORIES = [
@@ -38,27 +40,60 @@ const MENU_CATEGORIES = [
 
 export const MenuPage = () => {
   const navigate = useNavigate();
+  const { tableNumber: urlTableNumber } = useParams<{ tableNumber: string }>();
   const { menu, loading, error, getRecommendations } = useMenu();
+  const { tableNumber, setTableNumber } = useCart();
   const recommendations = getRecommendations();
-  const [tableId, setTableId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [showTableInput, setShowTableInput] = useState(false);
+  const [manualTableNumber, setManualTableNumber] = useState("");
+  const [hasCheckedTable, setHasCheckedTable] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    // Read table id from localStorage or URL (for direct links with ?table=)
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const t =
-        params.get("table") ||
-        localStorage.getItem("tableId") ||
-        localStorage.getItem("tableNumber");
-      if (t) setTableId(t);
-    } catch (e) {
-      const t =
-        localStorage.getItem("tableId") || localStorage.getItem("tableNumber");
-      if (t) setTableId(t);
+    
+    // Only check once
+    if (hasCheckedTable) return;
+    
+    // Priority: URL params > query params > localStorage
+    if (urlTableNumber) {
+      setTableNumber(urlTableNumber);
+      setShowTableInput(false);
+      setHasCheckedTable(true);
+    } else {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const queryTable = params.get("table");
+        if (queryTable) {
+          setTableNumber(queryTable);
+          setShowTableInput(false);
+          setHasCheckedTable(true);
+        } else if (!tableNumber) {
+          // No table number found - show input but still load menu
+          setShowTableInput(true);
+          setHasCheckedTable(true);
+        } else {
+          // tableNumber exists from previous session
+          setHasCheckedTable(true);
+        }
+      } catch (e) {
+        console.error('Error reading query params:', e);
+        if (!tableNumber) {
+          setShowTableInput(true);
+        }
+        setHasCheckedTable(true);
+      }
     }
-  }, []);
+  }, [urlTableNumber]);
+
+  const handleManualTableSubmit = () => {
+    if (manualTableNumber.trim()) {
+      setTableNumber(manualTableNumber.trim());
+      setShowTableInput(false);
+      // Update URL to reflect table number
+      navigate(`/customer/menu/table/${manualTableNumber.trim()}`, { replace: true });
+    }
+  };
 
   // Filter menu by category
   const filteredMenu =
@@ -107,28 +142,67 @@ export const MenuPage = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/customer")}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">Our Menu</h1>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              Choose from our delicious selection
-              {tableId && (
-                <span className="ml-3 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                  Table {tableId.toString().replace(/[^0-9]/g, "") || tableId}
-                </span>
-              )}
+      {/* Table Number Input Modal */}
+      {showTableInput && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg shadow-xl max-w-md w-full p-6 space-y-4">
+            <h2 className="text-2xl font-bold">Enter Table Number</h2>
+            <p className="text-muted-foreground">
+              Please enter your table number to continue ordering
+            </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Table Number</label>
+              <input
+                type="text"
+                value={manualTableNumber}
+                onChange={(e) => setManualTableNumber(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleManualTableSubmit()}
+                placeholder="e.g., T-2, 4, A1"
+                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary"
+                autoFocus
+              />
+            </div>
+            <Button 
+              onClick={handleManualTableSubmit} 
+              className="w-full"
+              disabled={!manualTableNumber.trim()}
+            >
+              Continue
+            </Button>
+            <p className="text-xs text-muted-foreground text-center">
+              Tip: Scan the QR code on your table to automatically set your table number
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/customer")}
+              className="rounded-full"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Our Menu</h1>
+              <p className="text-sm text-muted-foreground">
+                Choose from our delicious selection
+              </p>
+            </div>
+          </div>
+          {tableNumber && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-semibold shadow-lg">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              <span className="text-base">Table {tableNumber}</span>
+            </div>
+          )}
         </div>
       </div>
 

@@ -16,7 +16,7 @@ import { toast } from "sonner";
 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { cart, getCartTotal, setSplitBill, clearCart } = useCart();
+  const { cart, getCartTotal, setSplitBill, clearCart, tableNumber } = useCart();
   const { placeOrder, loading } = useOrder();
   const [promoCode, setPromoCode] = useState("");
   const [discount, setDiscount] = useState(0);
@@ -31,8 +31,6 @@ export const CheckoutPage = () => {
   const tax = subtotal * 0.09; // 9% tax
   const total = subtotal + tax - discount;
   const splitAmount = splitEnabled ? total / splitCount : total;
-
-  const tableNumber = localStorage.getItem("tableNumber") || undefined;
 
   const handleApplyPromo = () => {
     // Mock promo validation

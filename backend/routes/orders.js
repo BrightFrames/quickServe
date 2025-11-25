@@ -196,6 +196,11 @@ router.post("/", async (req, res) => {
 
     // Emit socket event for new order
     const io = req.app.get("io");
+    console.log("[SOCKET] Emitting new-order event:", {
+      orderNumber: order.orderNumber,
+      tableNumber: order.tableNumber,
+      status: order.status
+    });
     io.emit("new-order", order);
 
     res.status(201).json(order);

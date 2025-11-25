@@ -139,13 +139,15 @@ async function seedDatabase() {
     // Clear existing data
     console.log("Clearing existing data...");
     await User.destroy({ where: { role: ['kitchen', 'cook'] } });
-    // Note: Menu items are NOT cleared - manage them through admin panel
+    await MenuItem.destroy({ where: {} });
     await Order.destroy({ where: {} });
 
-    // Note: Menu items are NOT seeded - add them through admin panel
-    console.log(
-      "⚠️  Menu items NOT seeded - use admin panel to add your own menu items"
-    );
+    // Seed menu items
+    console.log("Seeding menu items...");
+    for (const item of sampleMenuItems) {
+      await MenuItem.create(item);
+    }
+    console.log(`✓ Created ${sampleMenuItems.length} menu items`);
 
     // Seed kitchen users
     console.log("Seeding kitchen users...");

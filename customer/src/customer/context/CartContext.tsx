@@ -28,11 +28,13 @@ export interface OrderDetails {
 interface CartContextType {
   cart: CartItem[];
   orderDetails: OrderDetails | null;
+  tableNumber: string | null;
   addToCart: (item: CartItem) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateInstructions: (itemId: string, instructions: string) => void;
   clearCart: () => void;
+  setTableNumber: (number: string) => void;
   setWhatsAppNumber: (number: string) => void;
   setSplitBill: (split: boolean, count?: number) => void;
   setOrderDetails: (details: OrderDetails) => void;
@@ -45,6 +47,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orderDetails, setOrderDetailsState] = useState<OrderDetails | null>(null);
+  const [tableNumber, setTableNumberState] = useState<string | null>(() => {
+    // Initialize from localStorage
+    return localStorage.getItem('tableNumber') || localStorage.getItem('tableId') || null;
+  });
 
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
@@ -99,6 +105,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     return cart.reduce((count, item) => count + item.quantity, 0);
   };
 
+  const setTableNumber = (number: string) => {
+    setTableNumberState(number);
+    localStorage.setItem('tableNumber', number);
+    setOrderDetailsState((prev) => ({
+      ...(prev || { items: [], subtotal: 0, tax: 0, discount: 0, total: 0 }),
+      tableNumber: number,
+    }));
+  };
+
   const setWhatsAppNumber = (number: string) => {
     setOrderDetailsState((prev) => ({
       ...(prev || { items: [], subtotal: 0, tax: 0, discount: 0, total: 0 }),
@@ -123,11 +138,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       value={{
         cart,
         orderDetails,
+        tableNumber,
         addToCart,
         removeFromCart,
         updateQuantity,
         updateInstructions,
         clearCart,
+        setTableNumber,
         setWhatsAppNumber,
         setSplitBill,
         setOrderDetails,

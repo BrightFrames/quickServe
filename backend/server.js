@@ -34,6 +34,8 @@ const allowedOrigins = [
   "http://localhost:5174",
   "http://localhost:5175",
   "http://localhost:8080", // Customer dev
+  "http://localhost:8081", // Customer dev (alternate port)
+  "http://localhost:8082", // Customer dev (alternate port)
   ...envOrigins, // Production frontends
 ];
 

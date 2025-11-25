@@ -18,7 +18,7 @@ export const Recommendations = ({ items }: RecommendationsProps) => {
     addToCart({
       id: `${item.id}-${Date.now()}`,
       name: item.name,
-      price: item.price,
+      price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
       quantity: 1,
       image: item.image,
     });
@@ -52,7 +52,9 @@ export const Recommendations = ({ items }: RecommendationsProps) => {
                   {item.name}
                 </h3>
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-primary">${item.price.toFixed(2)}</span>
+                  <span className="font-bold text-primary">
+                    ${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}
+                  </span>
                   <Button
                     size="sm"
                     onClick={() => handleQuickAdd(item)}
