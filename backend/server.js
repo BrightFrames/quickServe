@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 
 import authRoutes from "./routes/auth.js";
+import restaurantRoutes from "./routes/restaurant.js";
 import menuRoutes from "./routes/menu.js";
 import orderRoutes from "./routes/orders.js";
 import userRoutes from "./routes/users.js";
@@ -30,6 +31,8 @@ const envOrigins = process.env.ALLOWED_ORIGINS
   : [];
 
 const allowedOrigins = [
+  "http://localhost:3000", // Backend API
+  "http://localhost:3001", // Landing page dev
   "http://localhost:5173", // Admin dev
   "http://localhost:5174",
   "http://localhost:5175",
@@ -88,7 +91,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // ============================
-// PostgreSQL Connection
+// Database Connection (SQLite)
 // ============================
 
 const connectDatabase = async () => {
@@ -96,7 +99,7 @@ const connectDatabase = async () => {
   if (connected) {
     await syncDatabase();
   } else {
-    console.error("Failed to connect to PostgreSQL database");
+    console.error("Failed to connect to database");
     process.exit(1);
   }
 };
@@ -133,6 +136,9 @@ app.set("io", io);
 console.log("Registering routes...");
 app.use("/api/auth", authRoutes);
 console.log("✓ Auth routes registered at /api/auth");
+
+app.use("/api/restaurant", restaurantRoutes);
+console.log("✓ Restaurant routes registered at /api/restaurant");
 
 app.use("/api/menu", menuRoutes);
 console.log("✓ Menu routes registered at /api/menu");
@@ -179,7 +185,7 @@ app.use((req, res, next) => {
 // Start Server
 // ============================
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
