@@ -38,7 +38,6 @@ export const RestaurantProvider: React.FC<{ children: ReactNode }> = ({ children
     </RestaurantContext.Provider>
   );
 };
-};
 
 export const useRestaurant = () => {
   const context = useContext(RestaurantContext);

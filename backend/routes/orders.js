@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
+import Restaurant from "../models/Restaurant.js";
 import { optionalRestaurantAuth } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -17,8 +18,16 @@ router.get("/active", optionalRestaurantAuth, async (req, res) => {
       return res.json([]);
     }
     
-    const { restaurantId: queryRestaurantId } = req.query;
-    const restaurantId = queryRestaurantId || req.restaurantId;
+    const { slug } = req.query;
+    let restaurantId = req.restaurantId;
+    
+    // Resolve restaurant from slug if provided
+    if (slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug } });
+      if (restaurant) {
+        restaurantId = restaurant.id;
+      }
+    }
     
     const whereClause = {
       status: {
@@ -47,8 +56,16 @@ router.get("/", optionalRestaurantAuth, async (req, res) => {
       // Persistence disabled — no historical orders available
       return res.json([]);
     }
-    const { status, startDate, endDate, tableId, restaurantId: queryRestaurantId } = req.query;
-    const restaurantId = queryRestaurantId || req.restaurantId;
+    const { status, startDate, endDate, tableId, slug } = req.query;
+    let restaurantId = req.restaurantId;
+    
+    // Resolve restaurant from slug if provided
+    if (slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug } });
+      if (restaurant) {
+        restaurantId = restaurant.id;
+      }
+    }
     
     const filter = {};
     
@@ -101,14 +118,22 @@ router.get("/by-table/:tableId", async (req, res) => {
 // Create order
 router.post("/", optionalRestaurantAuth, async (req, res) => {
   try {
-    const { tableNumber, tableId, items, customerPhone, paymentMethod, restaurantId: bodyRestaurantId } =
+    const { tableNumber, tableId, items, customerPhone, paymentMethod, restaurantId: bodyRestaurantId, slug } =
       req.body;
       
-    // Get restaurantId from token, query, or body
-    const restaurantId = req.restaurantId || bodyRestaurantId || req.query.restaurantId;
+    // Get restaurantId from token, query, body, or resolve from slug
+    let restaurantId = req.restaurantId || bodyRestaurantId || req.query.restaurantId;
+    
+    // Resolve restaurant from slug if provided
+    if (slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug } });
+      if (restaurant) {
+        restaurantId = restaurant.id;
+      }
+    }
     
     if (!restaurantId) {
-      return res.status(400).json({ message: "Restaurant ID is required" });
+      return res.status(400).json({ message: "Restaurant ID or slug is required" });
     }
 
     // Validate payment method if provided

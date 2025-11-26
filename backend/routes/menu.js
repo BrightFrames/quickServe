@@ -1,5 +1,6 @@
 import express from 'express'
 import MenuItem from '../models/MenuItem.js'
+import Restaurant from '../models/Restaurant.js'
 import { authenticateRestaurant, optionalRestaurantAuth } from '../middleware/auth.js'
 
 const router = express.Router()
@@ -7,14 +8,16 @@ const router = express.Router()
 // Get all menu items (with optional restaurant filter for customer view)
 router.get('/', optionalRestaurantAuth, async (req, res) => {
   try {
-    const { restaurantId } = req.query;
+    const { slug } = req.query;
     
     const whereClause = {};
     
-    // If restaurantId is provided in query or from token, filter by it
-    // Admin can see all items if no restaurantId specified
-    if (restaurantId) {
-      whereClause.restaurantId = parseInt(restaurantId);
+    // If slug is provided, resolve to restaurantId
+    if (slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug } });
+      if (restaurant) {
+        whereClause.restaurantId = restaurant.id;
+      }
     } else if (req.restaurantId) {
       whereClause.restaurantId = req.restaurantId;
     }
@@ -48,13 +51,23 @@ router.post('/', async (req, res) => {
   try {
     console.log('[MENU] Create menu item request:', req.body);
     
-    // Validate restaurantId is provided
-    if (!req.body.restaurantId) {
-      console.error('[MENU] restaurantId is required');
-      return res.status(400).json({ message: 'restaurantId is required to create menu item' });
+    let restaurantId = req.body.restaurantId;
+    
+    // If slug is provided instead of restaurantId, resolve it
+    if (req.body.slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug: req.body.slug } });
+      if (restaurant) {
+        restaurantId = restaurant.id;
+      }
     }
     
-    const item = await MenuItem.create(req.body)
+    // Validate restaurantId is provided or resolved
+    if (!restaurantId) {
+      console.error('[MENU] restaurantId or slug is required');
+      return res.status(400).json({ message: 'restaurantId or slug is required to create menu item' });
+    }
+    
+    const item = await MenuItem.create({ ...req.body, restaurantId })
     console.log('[MENU] Menu item created:', item.id);
     res.status(201).json(item)
   } catch (error) {
