@@ -76,14 +76,17 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Create Account</CardTitle>
-        <CardDescription className="text-center">
+    <Card className="w-full max-w-md mx-auto shadow-2xl border-0">
+      <CardHeader className="space-y-1 text-center pb-6">
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <Building className="h-8 w-8 text-white" />
+        </div>
+        <CardTitle className="text-3xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Create Account</CardTitle>
+        <CardDescription className="text-center text-base">
           Register your restaurant with QuickServe
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Restaurant Name</Label>
@@ -202,13 +205,13 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="text-red-600 text-sm text-center bg-red-50 border border-red-200 rounded-lg p-3">
               {error}
             </div>
           )}
           
           {success && (
-            <div className="text-green-600 text-sm text-center bg-green-50 border border-green-200 rounded-md p-3">
+            <div className="text-green-600 text-sm text-center bg-green-50 border border-green-200 rounded-lg p-3">
               {success}
               <div className="mt-2">
                 <button
@@ -221,17 +224,17 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
             </div>
           )}
           
-          <Button type="submit" className="w-full" disabled={isLoading || !!success}>
+          <Button type="submit" className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg" disabled={isLoading || !!success}>
             {isLoading ? 'Creating Account...' : success ? 'Account Created!' : 'Create Account'}
           </Button>
         </form>
       </CardContent>
-      <CardFooter className="justify-center">
+      <CardFooter className="justify-center px-6 pb-6">
         <p className="text-sm text-muted-foreground">
           Already have an account?{' '}
           <button
             onClick={onSwitchToLogin}
-            className="text-primary hover:underline font-medium"
+            className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
           >
             Sign in
           </button>

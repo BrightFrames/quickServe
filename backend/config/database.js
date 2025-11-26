@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Use Supabase PostgreSQL
+// Use Supabase PostgreSQL for production/shared development
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   dialectOptions: {
@@ -11,6 +11,12 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
       require: true,
       rejectUnauthorized: false // Required for Supabase
     }
+  },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
   },
   logging: false, // Set to console.log to see SQL queries
 });
@@ -22,6 +28,10 @@ export const testConnection = async () => {
     return true;
   } catch (error) {
     console.error('Unable to connect to database:', error);
+    console.error('\n⚠️  Connection failed. Please check:');
+    console.error('1. Your internet connection');
+    console.error('2. Supabase project is not paused (visit https://supabase.com/dashboard)');
+    console.error('3. DATABASE_URL in .env is correct');
     return false;
   }
 };

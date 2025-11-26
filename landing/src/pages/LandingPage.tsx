@@ -55,12 +55,12 @@ const LandingPage: React.FC = () => {
 
   if (authMode === 'login') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full space-y-8">
           <div className="text-center">
             <button
               onClick={() => setAuthMode('landing')}
-              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 mb-6 transition-colors"
             >
               <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
               Back to home
@@ -74,12 +74,12 @@ const LandingPage: React.FC = () => {
 
   if (authMode === 'signup') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full space-y-8">
           <div className="text-center">
             <button
               onClick={() => setAuthMode('landing')}
-              className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800 mb-6 transition-colors"
             >
               <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
               Back to home
@@ -92,24 +92,31 @@ const LandingPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
+      <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
+ 
               <img 
                 src="/icon of the quick serve.png" 
                 alt="QuickServe Logo" 
                 className="w-12 h-12 object-contain"
               />
               <span className="text-2xl font-bold text-gray-900">QuickServe</span>
+
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <ChefHat className="h-7 w-7 text-white" />
+              </div>
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">QuickServe</span>
+
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" onClick={() => setAuthMode('login')}>
+              <Button variant="ghost" onClick={() => setAuthMode('login')} className="hover:bg-blue-50">
                 Sign In
               </Button>
-              <Button onClick={() => setAuthMode('signup')}>
+              <Button onClick={() => setAuthMode('signup')} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
                 Get Started
               </Button>
             </div>
@@ -118,30 +125,35 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden hero-gradient">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fadeIn">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-50 opacity-70"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 shadow-2xl mb-8 animate-scale-in">
+              <ChefHat className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent animate-fadeIn">
               Revolutionize Your
               <br />
-              <span className="text-green-200">Restaurant Management</span>
+              Restaurant Management
             </h1>
-            <p className="text-xl md:text-2xl mb-8 text-green-50 max-w-3xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 text-gray-700 max-w-3xl mx-auto">
               Streamline orders, manage customers, and boost your restaurant's efficiency 
               with our comprehensive management platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
                 size="lg" 
-                className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-3"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-lg px-8 py-6 shadow-xl"
                 onClick={() => setAuthMode('signup')}
               >
                 Start Free Trial
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="border-white text-white hover:bg-white hover:text-primary text-lg px-8 py-3"
+                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 text-lg px-8 py-6"
                 onClick={() => setAuthMode('login')}
               >
                 Sign In
@@ -152,10 +164,10 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
               Everything You Need to Run Your Restaurant
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -168,10 +180,10 @@ const LandingPage: React.FC = () => {
             {features.map((feature, index) => (
               <div 
                 key={index}
-                className="feature-card bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all"
+                className="group bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-blue-100 hover:scale-105"
               >
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                  <feature.icon className="h-6 w-6 text-primary" />
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                  <feature.icon className="h-7 w-7 text-white" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {feature.title}
@@ -186,10 +198,10 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
               Simple Setup, Powerful Results
             </h2>
             <p className="text-xl text-gray-600">
@@ -198,22 +210,22 @@ const LandingPage: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-xl group-hover:scale-110 transition-transform">
                 1
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Sign Up</h3>
               <p className="text-gray-600">Create your restaurant account and set up your profile in minutes</p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-xl group-hover:scale-110 transition-transform">
                 2
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Configure</h3>
               <p className="text-gray-600">Add your menu items, tables, and customize your restaurant settings</p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4">
+            <div className="text-center group">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 shadow-xl group-hover:scale-110 transition-transform">
                 3
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Launch</h3>
@@ -224,10 +236,10 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
               Loved by Restaurant Owners
             </h2>
             <p className="text-xl text-gray-600">
@@ -237,13 +249,13 @@ const LandingPage: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
+              <div key={index} className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-lg border border-blue-100 hover:shadow-2xl transition-all hover:scale-105">
                 <div className="flex mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
                   ))}
                 </div>
-                <p className="text-gray-600 mb-4 italic">"{testimonial.quote}"</p>
+                <p className="text-gray-700 mb-4 italic">"{testimonial.quote}"</p>
                 <div>
                   <p className="font-semibold text-gray-900">{testimonial.name}</p>
                   <p className="text-sm text-gray-500">{testimonial.restaurant}</p>
@@ -255,20 +267,22 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 hero-gradient">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
+      <section className="py-24 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
             Ready to Transform Your Restaurant?
           </h2>
-          <p className="text-xl text-green-50 mb-8">
+          <p className="text-xl text-white/90 mb-8">
             Join thousands of restaurants already using QuickServe to streamline their operations
           </p>
           <Button 
             size="lg" 
-            className="bg-white text-primary hover:bg-gray-100 text-lg px-8 py-3"
+            className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-10 py-6 shadow-2xl hover:scale-105 transition-transform"
             onClick={() => setAuthMode('signup')}
           >
             Get Started Today
+            <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
       </section>
@@ -278,11 +292,17 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
+
               <img 
                 src="/icon of the quick serve.png" 
                 alt="QuickServe Logo" 
                 className="w-10 h-10 object-contain"
               />
+
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                <ChefHat className="h-6 w-6 text-white" />
+              </div>
+
               <span className="text-xl font-bold">QuickServe</span>
             </div>
             <p className="text-gray-400 text-center md:text-left">
