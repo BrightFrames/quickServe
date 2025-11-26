@@ -3,24 +3,35 @@ import { Op } from "sequelize";
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
+import { optionalRestaurantAuth } from "../middleware/auth.js";
 
 const router = express.Router();
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
 const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
 
 // Get all active orders (not delivered or cancelled)
-router.get("/active", async (req, res) => {
+router.get("/active", optionalRestaurantAuth, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       // Orders are not persisted — return empty list when persistence disabled
       return res.json([]);
     }
-    const orders = await Order.findAll({
-      where: {
-        status: {
-          [Op.in]: ["pending", "preparing", "prepared"],
-        },
+    
+    const { restaurantId: queryRestaurantId } = req.query;
+    const restaurantId = queryRestaurantId || req.restaurantId;
+    
+    const whereClause = {
+      status: {
+        [Op.in]: ["pending", "preparing", "prepared"],
       },
+    };
+    
+    if (restaurantId) {
+      whereClause.restaurantId = restaurantId;
+    }
+    
+    const orders = await Order.findAll({
+      where: whereClause,
       order: [['createdAt', 'DESC']],
     });
     res.json(orders);
@@ -30,14 +41,20 @@ router.get("/active", async (req, res) => {
 });
 
 // Get all orders
-router.get("/", async (req, res) => {
+router.get("/", optionalRestaurantAuth, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       // Persistence disabled — no historical orders available
       return res.json([]);
     }
-    const { status, startDate, endDate, tableId } = req.query;
+    const { status, startDate, endDate, tableId, restaurantId: queryRestaurantId } = req.query;
+    const restaurantId = queryRestaurantId || req.restaurantId;
+    
     const filter = {};
+    
+    if (restaurantId) {
+      filter.restaurantId = restaurantId;
+    }
 
     if (status) {
       filter.status = status;
@@ -82,10 +99,17 @@ router.get("/by-table/:tableId", async (req, res) => {
 });
 
 // Create order
-router.post("/", async (req, res) => {
+router.post("/", optionalRestaurantAuth, async (req, res) => {
   try {
-    const { tableNumber, tableId, items, customerPhone, paymentMethod } =
+    const { tableNumber, tableId, items, customerPhone, paymentMethod, restaurantId: bodyRestaurantId } =
       req.body;
+      
+    // Get restaurantId from token, query, or body
+    const restaurantId = req.restaurantId || bodyRestaurantId || req.query.restaurantId;
+    
+    if (!restaurantId) {
+      return res.status(400).json({ message: "Restaurant ID is required" });
+    }
 
     // Validate payment method if provided
     if (paymentMethod && !["cash", "card", "upi"].includes(paymentMethod)) {
@@ -171,6 +195,7 @@ router.post("/", async (req, res) => {
       status: "preparing",
       paymentMethod: paymentMethod || "cash",
       paymentStatus: paymentMethod === "upi" ? "pending" : "pending",
+      restaurantId: restaurantId,
     };
 
     let order;

@@ -64,10 +64,28 @@ router.post("/signup", async (req, res) => {
       counter++;
     }
 
+    // Generate unique restaurant code (QS + 4 digits)
+    let restaurantCode;
+    let isCodeUnique = false;
+    while (!isCodeUnique) {
+      // Generate random 4-digit number (1000-9999)
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      restaurantCode = `QS${randomNum}`;
+      
+      // Check if code already exists
+      const existingCode = await Restaurant.findOne({ where: { restaurantCode } });
+      if (!existingCode) {
+        isCodeUnique = true;
+      }
+    }
+
+    console.log(`[RESTAURANT AUTH] Generated unique code: ${restaurantCode}`);
+
     // Create new restaurant (password will be hashed by Sequelize hook)
     const restaurant = await Restaurant.create({
       name: name.trim(),
       slug: uniqueSlug,
+      restaurantCode: restaurantCode,
       email: email.toLowerCase().trim(),
       password: password,
       phone: phone.trim(),
@@ -92,6 +110,7 @@ router.post("/signup", async (req, res) => {
       id: restaurant.id,
       name: restaurant.name,
       slug: restaurant.slug,
+      restaurantCode: restaurant.restaurantCode,
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
@@ -174,6 +193,7 @@ router.post("/login", async (req, res) => {
       id: restaurant.id,
       name: restaurant.name,
       slug: restaurant.slug,
+      restaurantCode: restaurant.restaurantCode,
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
@@ -225,6 +245,7 @@ router.get("/profile", async (req, res) => {
         id: restaurant.id,
         name: restaurant.name,
         slug: restaurant.slug,
+        restaurantCode: restaurant.restaurantCode,
         email: restaurant.email,
         phone: restaurant.phone,
         address: restaurant.address,
@@ -252,6 +273,57 @@ router.post("/logout", async (req, res) => {
   } catch (error) {
     console.error("[RESTAURANT AUTH] Logout error:", error);
     res.status(500).json({ message: "Server error during logout" });
+  }
+});
+
+// ============================
+// Verify Restaurant by Slug and Code
+// Route: GET /api/restaurant/verify/:slug/:code
+// Example: /api/restaurant/verify/sourabh-upadhyay/QS2453
+// ============================
+router.get("/verify/:slug/:code", async (req, res) => {
+  try {
+    const { slug, code } = req.params;
+    
+    console.log(`[RESTAURANT AUTH] Verification request for slug: ${slug}, code: ${code}`);
+
+    // Find restaurant by slug and code
+    const restaurant = await Restaurant.findOne({
+      where: {
+        slug: slug.toLowerCase(),
+        restaurantCode: code.toUpperCase(),
+        isActive: true
+      }
+    });
+
+    if (!restaurant) {
+      console.log("[RESTAURANT AUTH] ✗ Restaurant not found or code mismatch");
+      return res.status(404).json({ 
+        verified: false,
+        message: "Restaurant not found or invalid code" 
+      });
+    }
+
+    console.log("[RESTAURANT AUTH] ✓ Restaurant verified successfully");
+
+    res.json({
+      verified: true,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        restaurantCode: restaurant.restaurantCode,
+        phone: restaurant.phone,
+        address: restaurant.address,
+      }
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Verification error:", error);
+    res.status(500).json({ 
+      verified: false,
+      message: "Server error during verification" 
+    });
   }
 });
 
