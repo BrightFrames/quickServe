@@ -77,6 +77,18 @@ function App() {
             } 
           />
 
+          {/* Kitchen Login with Restaurant Slug */}
+          <Route 
+            path="/:restaurantSlug/kitchen/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <KitchenLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
           {/* Admin Dashboard - Protected */}
           <Route
             path="/admin/dashboard"
@@ -94,6 +106,20 @@ function App() {
           {/* Kitchen Dashboard - Protected */}
           <Route
             path="/kitchen/dashboard"
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ProtectedRoute role="kitchen">
+                    <KitchenHome />
+                  </ProtectedRoute>
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            }
+          />
+
+          {/* Kitchen Dashboard with Restaurant Slug - Protected */}
+          <Route
+            path="/:restaurantSlug/kitchen/dashboard"
             element={
               <AdminAuthProvider>
                 <AdminRestaurantProvider>

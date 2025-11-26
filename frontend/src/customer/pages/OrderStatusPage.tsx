@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/shared/lib/utils";
 import { useOrder } from "../hooks/useOrder";
 import { OrderStatusBanner } from "../components/OrderStatusBanner";
 import { OrderTrackingProgress } from "../components/OrderTrackingProgress";

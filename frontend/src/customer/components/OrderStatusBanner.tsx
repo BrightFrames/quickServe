@@ -1,6 +1,6 @@
 import { CheckCircle2, Clock, Flame, Bell, Check } from "lucide-react";
 import { OrderStatus } from "../services/orderService";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface OrderStatusBannerProps {
   status: OrderStatus;

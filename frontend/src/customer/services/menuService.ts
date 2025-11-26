@@ -30,10 +30,10 @@ export interface MenuCategory {
 class MenuService {
   private apiUrl = "/api/menu";
 
-  async getMenu(restaurantId?: string): Promise<MenuCategory[]> {
+  async getMenu(restaurantSlug?: string): Promise<MenuCategory[]> {
     try {
-      const url = restaurantId 
-        ? `${this.apiUrl}?restaurantId=${restaurantId}` 
+      const url = restaurantSlug 
+        ? `${this.apiUrl}?slug=${restaurantSlug}` 
         : this.apiUrl;
       
       const response = await axios.get(url);

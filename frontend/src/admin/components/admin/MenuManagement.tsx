@@ -28,7 +28,7 @@ const MENU_CATEGORIES = [
 ] as const;
 
 const MenuManagement = () => {
-  const { restaurantId } = useRestaurant();
+  const { restaurantSlug } = useRestaurant();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -52,7 +52,7 @@ const MenuManagement = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const url = restaurantId ? `/api/menu?restaurantId=${restaurantId}` : '/api/menu';
+      const url = restaurantSlug ? `/api/menu?slug=${restaurantSlug}` : '/api/menu';
       const response = await axios.get(url);
       setMenuItems(response.data);
     } catch (error) {
@@ -72,13 +72,13 @@ const MenuManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!restaurantId) {
-      toast.error("Restaurant ID is missing. Please login again.");
+    if (!restaurantSlug) {
+      toast.error("Restaurant slug is missing. Please login again.");
       return;
     }
     
     try {
-      const menuData = { ...formData, restaurantId: parseInt(restaurantId) };
+      const menuData = { ...formData, slug: restaurantSlug };
       
       if (editingItem?._id) {
         await axios.put(`/api/menu/${editingItem._id}`, menuData);

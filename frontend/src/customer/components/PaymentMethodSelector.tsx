@@ -1,6 +1,6 @@
 import { Banknote, CreditCard, Smartphone } from "lucide-react";
 import { Card } from "@/shared/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface PaymentMethodSelectorProps {
   selectedMethod: "cash" | "card" | "upi" | null;

@@ -4,7 +4,7 @@ import { Star, Send, Sparkles } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Textarea } from "@/shared/ui/textarea";
 import { Card } from "@/shared/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 import { toast } from "sonner";
 import axios from "axios";
 

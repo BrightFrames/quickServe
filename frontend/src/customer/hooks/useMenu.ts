@@ -6,13 +6,13 @@ export const useMenu = () => {
   const [menu, setMenu] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { restaurantId } = useRestaurant();
+  const { restaurantSlug } = useRestaurant();
 
   const fetchMenu = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await menuService.getMenu(restaurantId || undefined);
+      const data = await menuService.getMenu(restaurantSlug || undefined);
       setMenu(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load menu');
@@ -22,19 +22,19 @@ export const useMenu = () => {
   };
 
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantSlug) {
       fetchMenu();
     }
     
     // Simulate real-time updates
     const interval = setInterval(() => {
-      if (restaurantId) {
+      if (restaurantSlug) {
         fetchMenu();
       }
     }, 60000); // Refresh every minute
     
     return () => clearInterval(interval);
-  }, [restaurantId]);
+  }, [restaurantSlug]);
 
   const searchItems = (query: string): MenuItem[] => {
     const lowerQuery = query.toLowerCase();

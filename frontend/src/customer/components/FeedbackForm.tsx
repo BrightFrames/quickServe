@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Textarea } from '@/shared/ui/textarea';
 import { Label } from '@/shared/ui/label';
 import { Card } from '@/shared/ui/card';
-import { cn } from '@/lib/utils';
+import { cn } from '@/shared/lib/utils';
 import { toast } from 'sonner';
 
 interface FeedbackFormProps {

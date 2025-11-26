@@ -1,6 +1,6 @@
 import { ShoppingCart, Plus, Minus, Trash2, X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/shared/lib/utils";
 import {
   Sheet,
   SheetContent,

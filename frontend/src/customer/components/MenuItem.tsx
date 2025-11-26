@@ -5,7 +5,7 @@ import { Card } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
 import { useCart } from "../context/CartContext";
 import { MenuItem as MenuItemType } from "../services/menuService";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/shared/lib/utils";
 import {
   Dialog,
   DialogContent,

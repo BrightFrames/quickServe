@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ChefHat, ArrowLeft, Lock, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ const KitchenLogin = () => {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { restaurantSlug } = useParams()
   const { login } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -18,11 +19,25 @@ const KitchenLogin = () => {
     try {
       await login(username, password, 'kitchen')
       toast.success('Login successful!')
-      navigate('/kitchen/dashboard')
+      // Navigate with restaurant slug if available
+      if (restaurantSlug) {
+        navigate(`/${restaurantSlug}/kitchen/dashboard`)
+      } else {
+        navigate('/kitchen/dashboard')
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Invalid credentials')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleBack = () => {
+    // Go back to restaurant dashboard if slug is available
+    if (restaurantSlug) {
+      navigate(`/${restaurantSlug}/dashboard`)
+    } else {
+      navigate('/')
     }
   }
 
@@ -32,7 +47,7 @@ const KitchenLogin = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center mb-8">
             <button
-              onClick={() => navigate('/')}
+              onClick={handleBack}
               className="mr-4 text-gray-600 hover:text-gray-800"
             >
               <ArrowLeft className="w-6 h-6" />

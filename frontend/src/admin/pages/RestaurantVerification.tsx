@@ -13,36 +13,29 @@ const RestaurantVerification = () => {
   useEffect(() => {
     const verifyRestaurant = async () => {
       try {
-        // Parse URL: /:slug?code=QS1234/admin or /:slug?code=QS1234/kitchen
+        // Parse URL: /:slug?code=QS1234&type=admin or /:slug?code=QS1234&type=kitchen
         const searchParams = new URLSearchParams(location.search);
-        const fullPath = location.search.slice(1); // Remove the '?'
+        const restaurantCode = searchParams.get('code');
+        const panelType = searchParams.get('type');
         
-        // Extract code and panel type from the query string
-        // Format: code=QS1234/admin or code=QS1234/kitchen
-        const match = fullPath.match(/code=([A-Z]{2}\d{4})\/(admin|kitchen)/i);
-        
-        if (!match) {
+        if (!restaurantCode || !panelType) {
           setStatus('error');
-          setMessage('Invalid URL format. Please use: /:slug?code=QS1234/admin');
+          setMessage('Invalid URL format. Please use: /:slug?code=QS1234&type=admin');
           return;
         }
-
-        const restaurantCode = match[1].toUpperCase();
-        const panelType = match[2].toLowerCase();
 
         console.log('Verifying:', { restaurantSlug, restaurantCode, panelType });
 
         // Verify restaurant with backend
         const response = await axios.get(
-          `/api/restaurant/verify/${restaurantSlug}/${restaurantCode}`
+          `/api/restaurant/verify/${restaurantSlug}/${restaurantCode.toUpperCase()}`
         );
 
         if (response.data.verified) {
           setStatus('success');
           setMessage(`Welcome to ${response.data.restaurant.name}!`);
           
-          // Store restaurant data
-          localStorage.setItem('restaurantId', response.data.restaurant.id);
+          // Store restaurant data (no restaurantId stored)
           localStorage.setItem('restaurantName', response.data.restaurant.name);
           localStorage.setItem('restaurantCode', response.data.restaurant.restaurantCode);
           localStorage.setItem('restaurantSlug', response.data.restaurant.slug);

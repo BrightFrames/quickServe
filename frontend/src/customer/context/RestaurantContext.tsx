@@ -2,17 +2,15 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 
 interface RestaurantContextType {
-  restaurantId: string | null;
   restaurantName: string | null;
   restaurantSlug: string | null;
   token: string | null;
-  setRestaurantData: (data: { restaurantId: string; restaurantName: string; restaurantSlug: string; token: string }) => void;
+  setRestaurantData: (data: { restaurantName: string; restaurantSlug: string; token: string }) => void;
 }
 
 const RestaurantContext = createContext<RestaurantContextType | undefined>(undefined);
 
 export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [restaurantSlug, setRestaurantSlug] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -23,20 +21,17 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     // Check URL parameters first
     const urlParams = new URLSearchParams(window.location.search);
-    const paramRestaurantId = urlParams.get('restaurantId');
     const paramRestaurantName = urlParams.get('restaurantName');
     const paramToken = urlParams.get('token');
 
-    if (paramRestaurantId && paramRestaurantName && paramToken && urlSlug) {
+    if (paramRestaurantName && paramToken && urlSlug) {
       // Store in state and localStorage
       const restaurantData = {
-        restaurantId: paramRestaurantId,
         restaurantName: paramRestaurantName,
         restaurantSlug: urlSlug,
         token: paramToken,
       };
       
-      setRestaurantId(paramRestaurantId);
       setRestaurantName(paramRestaurantName);
       setRestaurantSlug(urlSlug);
       setToken(paramToken);
@@ -51,7 +46,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const savedData = localStorage.getItem('customer_restaurant_data');
       if (savedData) {
         const data = JSON.parse(savedData);
-        setRestaurantId(data.restaurantId);
         setRestaurantName(data.restaurantName);
         setRestaurantSlug(data.restaurantSlug);
         setToken(data.token);
@@ -64,8 +58,7 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [urlSlug, navigate]);
 
-  const setRestaurantData = (data: { restaurantId: string; restaurantName: string; restaurantSlug: string; token: string }) => {
-    setRestaurantId(data.restaurantId);
+  const setRestaurantData = (data: { restaurantName: string; restaurantSlug: string; token: string }) => {
     setRestaurantName(data.restaurantName);
     setRestaurantSlug(data.restaurantSlug);
     setToken(data.token);
@@ -75,7 +68,6 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   return (
     <RestaurantContext.Provider
       value={{
-        restaurantId,
         restaurantName,
         restaurantSlug,
         token,

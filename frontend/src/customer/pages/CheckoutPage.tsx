@@ -7,7 +7,7 @@ import { Label } from "@/shared/ui/label";
 import { Card } from "@/shared/ui/card";
 import { Separator } from "@/shared/ui/separator";
 import { Switch } from "@/shared/ui/switch";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/shared/lib/utils";
 import { useCart } from "../context/CartContext";
 import { useOrder } from "../hooks/useOrder";
 import { PaymentMethodSelector } from "../components/PaymentMethodSelector";

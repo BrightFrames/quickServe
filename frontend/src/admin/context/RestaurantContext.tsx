@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 
 interface RestaurantContextType {
-  restaurantId: string | null;
   restaurantName: string | null;
   restaurantSlug: string | null;
   restaurantCode: string | null;
@@ -15,18 +14,15 @@ export const RestaurantProvider: React.FC<{ children: ReactNode }> = ({ children
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [restaurantCode, setRestaurantCode] = useState<string | null>(null);
 
   useEffect(() => {
     // Get restaurant data from localStorage (set by verification page)
-    const storedRestaurantId = localStorage.getItem('restaurantId');
     const storedRestaurantName = localStorage.getItem('restaurantName');
     const storedRestaurantCode = localStorage.getItem('restaurantCode');
     
-    if (storedRestaurantId && storedRestaurantName && storedRestaurantCode) {
-      setRestaurantId(storedRestaurantId);
+    if (storedRestaurantName && storedRestaurantCode) {
       setRestaurantName(storedRestaurantName);
       setRestaurantCode(storedRestaurantCode);
     }
@@ -34,7 +30,6 @@ export const RestaurantProvider: React.FC<{ children: ReactNode }> = ({ children
 
   return (
     <RestaurantContext.Provider value={{ 
-      restaurantId, 
       restaurantName, 
       restaurantSlug: restaurantSlug || null,
       restaurantCode 
@@ -42,6 +37,7 @@ export const RestaurantProvider: React.FC<{ children: ReactNode }> = ({ children
       {children}
     </RestaurantContext.Provider>
   );
+};
 };
 
 export const useRestaurant = () => {

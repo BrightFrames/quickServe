@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, Clock, ChefHat, BellRing, Star } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface OrderStatus {
   status: "pending" | "preparing" | "prepared" | "delivered";

@@ -39,14 +39,16 @@ const Dashboard: React.FC = () => {
   const handleNavigateToAdmin = () => {
     if (restaurant && restaurant.restaurantCode) {
       // Navigate to restaurant verification page with code
-      // URL format: /slug?code=QS1234/admin
-      navigate(`/${restaurant.slug}?code=${restaurant.restaurantCode}/admin`);
+      // URL format: /slug?code=QS1234&type=admin
+      navigate(`/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
     }
   };
 
   const handleNavigateToKitchen = () => {
-    // Navigate to kitchen login
-    navigate('/kitchen/login');
+    if (restaurant) {
+      // Navigate to kitchen login with restaurant slug
+      navigate(`/${restaurant.slug}/kitchen/login`);
+    }
   };
 
   const handleNavigateToCustomer = () => {

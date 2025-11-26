@@ -34,8 +34,17 @@ class OrderService {
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {
-      // Get restaurantId from localStorage (set by RestaurantContext)
-      const restaurantId = localStorage.getItem("restaurantId");
+      // Get restaurantSlug from localStorage (set by RestaurantContext)
+      const savedData = localStorage.getItem("customer_restaurant_data");
+      let restaurantSlug;
+      if (savedData) {
+        try {
+          const data = JSON.parse(savedData);
+          restaurantSlug = data.restaurantSlug;
+        } catch (e) {
+          console.error('Failed to parse restaurant data:', e);
+        }
+      }
       
       // Get tableId from localStorage (set by QR code scan or manual entry)
       const storedTableId = localStorage.getItem("tableId");
@@ -61,7 +70,7 @@ class OrderService {
         };
       });
 
-      // Create order payload with tableId (only if valid) and restaurantId
+      // Create order payload with tableId (only if valid) and restaurantSlug
       const orderPayload: any = {
         tableNumber: orderData.tableNumber
           ? typeof orderData.tableNumber === "string"
@@ -71,7 +80,7 @@ class OrderService {
         customerPhone:
           orderData.whatsappNumber || orderData.customerPhone || "",
         items: backendItems,
-        restaurantId: restaurantId ? parseInt(restaurantId) : undefined,
+        slug: restaurantSlug,
       };
 
       // Only add tableId if it's a valid QR code table

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2, Smartphone } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/shared/lib/utils";
 import { useCart } from "../context/CartContext";
 import { useOrder } from "../hooks/useOrder";
 import { paymentService } from "../services/paymentService";
