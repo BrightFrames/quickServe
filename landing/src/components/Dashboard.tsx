@@ -1,5 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card';
@@ -16,17 +16,71 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { restaurant, logout } = useAuth();
+  const { restaurant, token, logout } = useAuth();
   const navigate = useNavigate();
+  const { restaurantSlug } = useParams();
+
+  // Validate that the URL slug matches the logged-in restaurant
+  useEffect(() => {
+    // If restaurant doesn't have slug, force logout and re-login
+    if (restaurant && !restaurant.slug) {
+      alert('Your session is outdated. Please log in again.');
+      logout();
+      navigate('/', { replace: true });
+      return;
+    }
+
+    if (restaurant && restaurantSlug !== restaurant.slug) {
+      // Redirect to correct slug
+      navigate(`/${restaurant.slug}/dashboard`, { replace: true });
+    }
+  }, [restaurant, restaurantSlug, navigate, logout]);
+
+  // Get app URLs from environment variables
+  const ADMIN_URL = import.meta.env.VITE_ADMIN_URL;
+  const CUSTOMER_URL = import.meta.env.VITE_CUSTOMER_URL;
+  const KITCHEN_URL = import.meta.env.VITE_KITCHEN_URL;
 
   const handleNavigateToAdmin = () => {
-    // Navigate to admin panel within the same app
-    navigate('/admin');
+    if (ADMIN_URL && restaurant && token) {
+      // Pass restaurant data and token via URL parameters
+      const params = new URLSearchParams({
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        token: token,
+      });
+      window.open(`${ADMIN_URL}?${params.toString()}`, '_blank');
+    } else {
+      alert('Admin Panel URL is not configured. Please set VITE_ADMIN_URL in your .env file.');
+    }
   };
 
   const handleNavigateToCustomer = () => {
-    // Navigate to customer app within the same app
-    navigate('/customer');
+    if (CUSTOMER_URL && restaurant && token) {
+      // Pass restaurant data via URL parameters
+      const params = new URLSearchParams({
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        token: token,
+      });
+      window.open(`${CUSTOMER_URL}?${params.toString()}`, '_blank');
+    } else {
+      alert('Customer App URL is not configured. Please set VITE_CUSTOMER_URL in your .env file.');
+    }
+  };
+
+  const handleNavigateToKitchen = () => {
+    if (KITCHEN_URL && restaurant && token) {
+      // Pass restaurant data and token via URL parameters
+      const params = new URLSearchParams({
+        restaurantId: restaurant.id,
+        restaurantName: restaurant.name,
+        token: token,
+      });
+      window.open(`${KITCHEN_URL}?${params.toString()}`, '_blank');
+    } else {
+      alert('Kitchen Panel URL is not configured. Please set VITE_KITCHEN_URL in your .env file.');
+    }
   };
 
   return (
@@ -36,9 +90,11 @@ const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <ChefHat className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="/icon of the quick serve.png" 
+                alt="QuickServe Logo" 
+                className="w-12 h-12 object-contain"
+              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">QuickServe</h1>
                 <p className="text-sm text-gray-500">Restaurant Management</p>
@@ -92,7 +148,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin Panel */}
           <Card className="feature-card cursor-pointer transition-all hover:shadow-lg" onClick={handleNavigateToAdmin}>
             <CardHeader>
@@ -102,7 +158,7 @@ const Dashboard: React.FC = () => {
                 <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
               </CardTitle>
               <CardDescription>
-                Manage your restaurant operations, menu, orders, and staff
+                Manage restaurant operations, menu, and staff
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -113,15 +169,49 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <ChefHat className="h-4 w-4" />
-                  <span>Manage menu items and inventory</span>
+                  <span>Manage menu and inventory</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <Users className="h-4 w-4" />
-                  <span>Manage tables and staff</span>
+                  <span>Manage tables and users</span>
                 </div>
               </div>
-              <Button className="w-full mt-4" onClick={handleNavigateToAdmin}>
+              <Button className="w-full mt-4">
                 Open Admin Panel
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Kitchen Panel */}
+          <Card className="feature-card cursor-pointer transition-all hover:shadow-lg" onClick={handleNavigateToKitchen}>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <ChefHat className="h-5 w-5 text-primary" />
+                <span>Kitchen Panel</span>
+                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+              </CardTitle>
+              <CardDescription>
+                Real-time order management for kitchen staff
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 text-sm text-gray-600">
+                  <ChefHat className="h-4 w-4" />
+                  <span>View incoming orders</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm text-gray-600">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Update order status</span>
+                </div>
+                <div className="flex items-center space-x-3 text-sm text-gray-600">
+                  <Users className="h-4 w-4" />
+                  <span>Manage preparation queue</span>
+                </div>
+              </div>
+              <Button className="w-full mt-4" variant="outline">
+                Open Kitchen Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
@@ -136,7 +226,7 @@ const Dashboard: React.FC = () => {
                 <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
               </CardTitle>
               <CardDescription>
-                View your restaurant from the customer perspective
+                View your restaurant from customer perspective
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -147,14 +237,14 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <BarChart3 className="h-4 w-4" />
-                  <span>View order status and history</span>
+                  <span>Track order status</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <Users className="h-4 w-4" />
-                  <span>Table-based ordering system</span>
+                  <span>QR code table ordering</span>
                 </div>
               </div>
-              <Button className="w-full mt-4" variant="outline" onClick={handleNavigateToCustomer}>
+              <Button className="w-full mt-4" variant="outline">
                 Open Customer App
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

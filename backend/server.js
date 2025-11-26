@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import sequelize, { testConnection, syncDatabase } from "./config/database.js";
+import { setupAssociations } from "./models/index.js";
 
 import authRoutes from "./routes/auth.js";
 import restaurantRoutes from "./routes/restaurant.js";
@@ -38,7 +39,8 @@ const allowedOrigins = [
   "http://localhost:5175",
   "http://localhost:8080", // Customer dev
   "http://localhost:8081", // Customer dev (alternate port)
-  "http://localhost:8082", // Customer dev (alternate port)
+  "http://localhost:8082",
+  "http://localhost:3001", // Customer dev (alternate port)
   ...envOrigins, // Production frontends
 ];
 
@@ -97,6 +99,8 @@ app.use(express.json());
 const connectDatabase = async () => {
   const connected = await testConnection();
   if (connected) {
+    // Setup model associations before syncing
+    setupAssociations();
     await syncDatabase();
   } else {
     console.error("Failed to connect to database");

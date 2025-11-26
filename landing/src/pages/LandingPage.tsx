@@ -98,9 +98,11 @@ const LandingPage: React.FC = () => {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <ChefHat className="h-6 w-6 text-white" />
-              </div>
+              <img 
+                src="/icon of the quick serve.png" 
+                alt="QuickServe Logo" 
+                className="w-12 h-12 object-contain"
+              />
               <span className="text-2xl font-bold text-gray-900">QuickServe</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -276,9 +278,11 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <ChefHat className="h-5 w-5 text-white" />
-              </div>
+              <img 
+                src="/icon of the quick serve.png" 
+                alt="QuickServe Logo" 
+                className="w-10 h-10 object-contain"
+              />
               <span className="text-xl font-bold">QuickServe</span>
             </div>
             <p className="text-gray-400 text-center md:text-left">

@@ -49,9 +49,25 @@ router.post("/signup", async (req, res) => {
 
     console.log(`[RESTAURANT AUTH] Creating new restaurant: ${name}`);
 
+    // Generate unique slug from restaurant name
+    let slug = name.toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
+    
+    // Check if slug already exists and make it unique
+    let uniqueSlug = slug;
+    let counter = 1;
+    while (await Restaurant.findOne({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
     // Create new restaurant (password will be hashed by Sequelize hook)
     const restaurant = await Restaurant.create({
       name: name.trim(),
+      slug: uniqueSlug,
       email: email.toLowerCase().trim(),
       password: password,
       phone: phone.trim(),
@@ -75,6 +91,7 @@ router.post("/signup", async (req, res) => {
     const restaurantData = {
       id: restaurant.id,
       name: restaurant.name,
+      slug: restaurant.slug,
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
@@ -156,6 +173,7 @@ router.post("/login", async (req, res) => {
     const restaurantData = {
       id: restaurant.id,
       name: restaurant.name,
+      slug: restaurant.slug,
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
@@ -206,6 +224,7 @@ router.get("/profile", async (req, res) => {
       restaurant: {
         id: restaurant.id,
         name: restaurant.name,
+        slug: restaurant.slug,
         email: restaurant.email,
         phone: restaurant.phone,
         address: restaurant.address,

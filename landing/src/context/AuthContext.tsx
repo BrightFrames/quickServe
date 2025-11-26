@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface Restaurant {
   id: string;
   name: string;
+  slug: string;
   email: string;
   phone: string;
   address: string;

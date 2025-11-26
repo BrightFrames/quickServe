@@ -17,17 +17,17 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 15%;
 
-    --primary: 14 85% 58%;
+    --primary: 0 84% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 180 45% 35%;
+    --secondary: 0 70% 55%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 42 95% 55%;
-    --accent-foreground: 0 0% 15%;
+    --accent: 0 90% 65%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -37,13 +37,13 @@ All colors MUST be HSL.
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 14 85% 58%;
+    --ring: 0 84% 60%;
 
     --radius: 0.75rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(14 85% 58%), hsl(25 90% 62%));
-    --gradient-secondary: linear-gradient(135deg, hsl(180 45% 35%), hsl(170 50% 40%));
-    --gradient-accent: linear-gradient(135deg, hsl(42 95% 55%), hsl(35 90% 60%));
+    --gradient-primary: linear-gradient(135deg, hsl(0 84% 60%), hsl(0 84% 50%));
+    --gradient-secondary: linear-gradient(135deg, hsl(0 70% 55%), hsl(0 70% 45%));
+    --gradient-accent: linear-gradient(135deg, hsl(0 90% 65%), hsl(0 90% 55%));
 
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.1);
     --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1);
@@ -64,17 +64,17 @@ All colors MUST be HSL.
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 14 85% 58%;
+    --primary: 0 84% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 180 45% 35%;
+    --secondary: 0 70% 55%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 18%;
     --muted-foreground: 0 0% 60%;
 
-    --accent: 42 95% 55%;
-    --accent-foreground: 0 0% 15%;
+    --accent: 0 90% 65%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -84,7 +84,7 @@ All colors MUST be HSL.
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 14 85% 58%;
+    --ring: 0 84% 60%;
   }
 }
 

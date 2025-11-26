@@ -7,6 +7,15 @@ const MenuItem = sequelize.define('MenuItem', {
     primaryKey: true,
     autoIncrement: true,
   },
+  restaurantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Restaurants',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,

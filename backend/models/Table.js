@@ -7,10 +7,18 @@ const Table = sequelize.define('Table', {
     primaryKey: true,
     autoIncrement: true,
   },
+  restaurantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Restaurants',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   tableId: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
   },
   tableName: {
     type: DataTypes.STRING,
@@ -33,6 +41,12 @@ const Table = sequelize.define('Table', {
 }, {
   timestamps: true,
   tableName: 'tables',
+  indexes: [
+    {
+      unique: true,
+      fields: ['restaurantId', 'tableId'],
+    },
+  ],
 });
 
 export default Table;

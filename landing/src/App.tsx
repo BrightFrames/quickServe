@@ -25,19 +25,11 @@ const AppContent: React.FC = () => {
     <Routes>
       <Route 
         path="/" 
-        element={restaurant ? <Navigate to="/dashboard" replace /> : <LandingPage />} 
+        element={restaurant ? <Navigate to={`/${restaurant.slug}/dashboard`} replace /> : <LandingPage />} 
       />
       <Route 
-        path="/dashboard" 
+        path="/:restaurantSlug/dashboard" 
         element={restaurant ? <Dashboard /> : <Navigate to="/" replace />} 
-      />
-      <Route 
-        path="/admin/*" 
-        element={restaurant ? <iframe src="http://localhost:5174" className="w-full h-screen border-0" title="Admin Panel" /> : <Navigate to="/" replace />} 
-      />
-      <Route 
-        path="/customer/*" 
-        element={restaurant ? <iframe src="http://localhost:8080" className="w-full h-screen border-0" title="Customer App" /> : <Navigate to="/" replace />} 
       />
       <Route 
         path="*" 

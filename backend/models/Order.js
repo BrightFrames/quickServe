@@ -8,10 +8,18 @@ const Order = sequelize.define('Order', {
     primaryKey: true,
     autoIncrement: true,
   },
+  restaurantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Restaurants',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   orderNumber: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
   },
   tableId: {
     type: DataTypes.STRING,
@@ -52,6 +60,12 @@ const Order = sequelize.define('Order', {
 }, {
   timestamps: true,
   tableName: 'orders',
+  indexes: [
+    {
+      unique: true,
+      fields: ['restaurantId', 'orderNumber'],
+    },
+  ],
 });
 
 export default Order;

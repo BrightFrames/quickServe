@@ -7,10 +7,18 @@ const User = sequelize.define('User', {
     primaryKey: true,
     autoIncrement: true,
   },
+  restaurantId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Restaurants',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   username: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
   },
   password: {
     type: DataTypes.STRING,
@@ -31,6 +39,12 @@ const User = sequelize.define('User', {
 }, {
   timestamps: true,
   tableName: 'users',
+  indexes: [
+    {
+      unique: true,
+      fields: ['restaurantId', 'username'],
+    },
+  ],
 });
 
 export default User;

@@ -9,6 +9,15 @@ const Rating = sequelize.define('Rating', {
     primaryKey: true,
     autoIncrement: true,
   },
+  restaurantId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Restaurants',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
   orderId: {
     type: DataTypes.INTEGER,
     allowNull: false,

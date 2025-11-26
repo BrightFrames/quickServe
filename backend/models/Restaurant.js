@@ -12,6 +12,11 @@ const Restaurant = sequelize.define('Restaurant', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  slug: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -75,6 +80,10 @@ const Restaurant = sequelize.define('Restaurant', {
     {
       unique: true,
       fields: ['email'],
+    },
+    {
+      unique: true,
+      fields: ['slug'],
     },
   ],
 });
