@@ -1,5 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { useState, useEffect } from 'react';
+
+// Shared Components
+import LoadingScreen from './shared/components/LoadingScreen';
 
 // Landing Pages
 import LandingPage from './landing/pages/LandingPage';
@@ -27,6 +31,26 @@ import { CartProvider } from './customer/context/CartContext';
 import ProtectedRoute from './admin/components/ProtectedRoute';
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if this is the first visit in this session
+    const hasSeenLoading = sessionStorage.getItem('hasSeenLoading');
+    
+    if (hasSeenLoading) {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleLoadingComplete = () => {
+    sessionStorage.setItem('hasSeenLoading', 'true');
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <LoadingScreen onLoadingComplete={handleLoadingComplete} minDuration={2500} />;
+  }
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">

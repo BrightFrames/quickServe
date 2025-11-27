@@ -45,7 +45,7 @@ router.get("/by-table-id/:tableId", async (req, res) => {
 // Create new table
 router.post("/", async (req, res) => {
   try {
-    const { tableId, tableName, seats, location } = req.body;
+    const { tableId, tableName, seats, location, restaurantSlug } = req.body;
 
     // Check if table ID already exists
     const existingTable = await Table.findOne({ where: { tableId } });
@@ -53,10 +53,12 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Table ID already exists" });
     }
 
-    // Generate QR code URL - points to customer app with table parameter
-    const orderUrl = `${
-      process.env.CUSTOMER_APP_URL || "http://localhost:8080"
-    }?table=${tableId}`;
+    // Generate QR code URL - use environment variable or default to localhost
+    // The URL should point to the customer frontend with restaurant slug and table
+    const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
+    const orderUrl = restaurantSlug 
+      ? `${baseUrl}/${restaurantSlug}?table=${tableId}`
+      : `${baseUrl}?table=${tableId}`;
 
     // Generate QR code as base64 image
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
@@ -108,15 +110,19 @@ router.put("/:id", async (req, res) => {
 // Regenerate QR code for a table
 router.post("/:id/regenerate-qr", async (req, res) => {
   try {
+    const { restaurantSlug } = req.body;
+    
     const table = await Table.findByPk(req.params.id);
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    // Generate new QR code
-    const orderUrl = `${
-      process.env.CUSTOMER_APP_URL || "http://localhost:8080"
-    }?table=${table.tableId}`;
+    // Generate new QR code with proper URL structure
+    const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
+    const orderUrl = restaurantSlug 
+      ? `${baseUrl}/${restaurantSlug}?table=${table.tableId}`
+      : `${baseUrl}?table=${table.tableId}`;
+      
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
       errorCorrectionLevel: "H",
       type: "image/png",

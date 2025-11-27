@@ -63,7 +63,13 @@ const TableManagement = () => {
         return;
       }
 
-      await axios.post("/api/tables", formData);
+      // Get restaurant slug from localStorage
+      const restaurantSlug = localStorage.getItem('restaurantSlug');
+
+      await axios.post("/api/tables", {
+        ...formData,
+        restaurantSlug,
+      });
       toast.success("Table added successfully");
       setIsAddDialogOpen(false);
       resetForm();
@@ -116,7 +122,12 @@ const TableManagement = () => {
 
   const handleRegenerateQR = async (table: Table) => {
     try {
-      await axios.post(`/api/tables/${table._id}/regenerate-qr`);
+      // Get restaurant slug from localStorage
+      const restaurantSlug = localStorage.getItem('restaurantSlug');
+      
+      await axios.post(`/api/tables/${table._id}/regenerate-qr`, {
+        restaurantSlug,
+      });
       toast.success("QR code regenerated successfully");
       fetchTables();
     } catch (error: any) {

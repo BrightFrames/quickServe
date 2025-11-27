@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { useState, useEffect } from 'react'
+import LoadingScreen from './components/LoadingScreen'
 import LoginSelection from './pages/LoginSelection'
 import AdminLogin from './pages/AdminLogin'
 import KitchenLogin from './pages/KitchenLogin'
@@ -11,6 +13,26 @@ import { RestaurantProvider } from './context/RestaurantContext'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if this is the first visit in this session
+    const hasSeenLoading = sessionStorage.getItem('hasSeenLoadingAdmin');
+    
+    if (hasSeenLoading) {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleLoadingComplete = () => {
+    sessionStorage.setItem('hasSeenLoadingAdmin', 'true');
+    setIsLoading(false);
+  };
+
+  if (isLoading) {
+    return <LoadingScreen onLoadingComplete={handleLoadingComplete} minDuration={2500} />;
+  }
+
   return (
     <AuthProvider>
       <Router>
