@@ -13,7 +13,7 @@ import {
 import { toast } from "sonner";
 
 interface KitchenUser {
-  _id?: string;
+  id?: string;
   username: string;
   password?: string;
   role: string;
@@ -24,6 +24,7 @@ interface KitchenUser {
 const UserManagement = () => {
   const [users, setUsers] = useState<KitchenUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const [showForm, setShowForm] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [editingUser, setEditingUser] = useState<KitchenUser | null>(null);
@@ -43,7 +44,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("/api/users/kitchen");
+      const response = await axios.get(`${apiUrl}/api/users/kitchen`);
       setUsers(response.data);
     } catch (error) {
       toast.error("Failed to fetch kitchen users");
@@ -55,11 +56,11 @@ const UserManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      if (editingUser?._id) {
-        await axios.put(`/api/users/${editingUser._id}`, formData);
+      if (editingUser?.id) {
+        await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData);
         toast.success("User updated successfully");
       } else {
-        await axios.post("/api/users/kitchen", formData);
+        await axios.post(`${apiUrl}/api/users/kitchen`, formData);
         toast.success("User added successfully");
       }
       fetchUsers();
@@ -118,7 +119,7 @@ const UserManagement = () => {
     }
 
     try {
-      await axios.put(`/api/users/${passwordChangeUser?._id}`, {
+      await axios.put(`${apiUrl}/api/users/${passwordChangeUser?.id}`, {
         username: passwordChangeUser?.username,
         role: passwordChangeUser?.role,
         password: newPassword,
@@ -445,7 +446,7 @@ const UserManagement = () => {
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user._id} className="border-b hover:bg-gray-50">
+              <tr key={user.id} className="border-b hover:bg-gray-50">
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
                     <div
@@ -490,7 +491,7 @@ const UserManagement = () => {
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(user._id!)}
+                      onClick={() => handleDelete(user.id!)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
                       title="Delete User"
                     >

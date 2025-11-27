@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import axios from 'axios'
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 interface User {
   id: string
   username: string
@@ -37,12 +39,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role,
       };
       
-      // Add restaurantCode for admin login
-      if (role === 'admin' && restaurantCode) {
+      // Add restaurantCode for admin/kitchen login
+      if (restaurantCode) {
         payload.restaurantCode = restaurantCode;
       }
       
-      const response = await axios.post('/api/auth/login', payload)
+      const response = await axios.post(`${apiUrl}/api/auth/login`, payload)
       
       const { user, token } = response.data
       setUser(user)

@@ -6,7 +6,7 @@ import { formatCurrency } from '@/shared/lib/utils';
 import { useRestaurant } from "../../context/RestaurantContext";
 
 interface MenuItem {
-  _id?: string;
+  id?: string;
   name: string;
   description: string;
   price: number;
@@ -31,6 +31,7 @@ const MenuManagement = () => {
   const { restaurantSlug } = useRestaurant();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -52,7 +53,7 @@ const MenuManagement = () => {
 
   const fetchMenuItems = async () => {
     try {
-      const url = restaurantSlug ? `/api/menu?slug=${restaurantSlug}` : '/api/menu';
+      const url = restaurantSlug ? `${apiUrl}/api/menu?slug=${restaurantSlug}` : `${apiUrl}/api/menu`;
       const response = await axios.get(url);
       setMenuItems(response.data);
     } catch (error) {
@@ -80,11 +81,11 @@ const MenuManagement = () => {
     try {
       const menuData = { ...formData, slug: restaurantSlug };
       
-      if (editingItem?._id) {
-        await axios.put(`/api/menu/${editingItem._id}`, menuData);
+      if (editingItem?.id) {
+        await axios.put(`${apiUrl}/api/menu/${editingItem.id}`, menuData);
         toast.success("Menu item updated successfully");
       } else {
-        await axios.post("/api/menu", menuData);
+        await axios.post(`${apiUrl}/api/menu`, menuData);
         toast.success("Menu item added successfully");
       }
       fetchMenuItems();
@@ -99,7 +100,7 @@ const MenuManagement = () => {
     if (!confirm("Are you sure you want to delete this item?")) return;
 
     try {
-      await axios.delete(`/api/menu/${id}`);
+      await axios.delete(`${apiUrl}/api/menu/${id}`);
       toast.success("Menu item deleted successfully");
       fetchMenuItems();
     } catch (error) {
@@ -109,7 +110,7 @@ const MenuManagement = () => {
 
   const toggleAvailability = async (item: MenuItem) => {
     try {
-      await axios.put(`/api/menu/${item._id}`, {
+      await axios.put(`${apiUrl}/api/menu/${item.id}`, {
         ...item,
         available: !item.available,
       });
@@ -470,7 +471,7 @@ const MenuManagement = () => {
           </thead>
           <tbody>
             {filteredMenuItems.map((item) => (
-              <tr key={item._id} className="border-b hover:bg-gray-50">
+              <tr key={item.id} className="border-b hover:bg-gray-50">
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-3">
                     {item.image && (
@@ -507,7 +508,7 @@ const MenuManagement = () => {
                       type="number"
                       value={item.inventoryCount || ""}
                       onChange={(e) =>
-                        updateInventory(item._id!, parseInt(e.target.value) || 0)
+                        updateInventory(item.id!, parseInt(e.target.value) || 0)
                       }
                       className="w-20 px-2 py-1 border rounded"
                       min="0"
@@ -540,7 +541,7 @@ const MenuManagement = () => {
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(item._id!)}
+                      onClick={() => handleDelete(item.id!)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded"
                     >
                       <Trash2 className="w-5 h-5" />

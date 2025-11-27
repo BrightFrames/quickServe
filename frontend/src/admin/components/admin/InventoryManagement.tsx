@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { notificationSounds } from '../../utils/notificationSounds'
 
 interface InventoryItem {
-  _id: string
+  id: string
   name: string
   category: string
   inventoryCount: number
@@ -18,6 +18,7 @@ const InventoryManagement = () => {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'low'>('all')
   const previousLowStockCount = useRef<number>(0)
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
   useEffect(() => {
     fetchInventory()
@@ -32,7 +33,7 @@ const InventoryManagement = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await axios.get('/api/menu')
+      const response = await axios.get(`${apiUrl}/api/menu`)
       const fetchedItems = response.data
       setItems(fetchedItems)
       
@@ -73,7 +74,7 @@ const InventoryManagement = () => {
 
   const updateStock = async (id: string, newCount: number) => {
     try {
-      await axios.put(`/api/menu/${id}/inventory`, { inventoryCount: newCount })
+      await axios.put(`${apiUrl}/api/menu/${id}/inventory`, { inventoryCount: newCount })
       toast.success('Stock updated successfully')
       fetchInventory()
     } catch (error) {
@@ -184,7 +185,7 @@ const InventoryManagement = () => {
             {filteredItems.map((item) => {
               const isLowStock = item.inventoryCount <= item.lowStockThreshold
               return (
-                <tr key={item._id} className={`border-b hover:bg-gray-50 ${isLowStock ? 'bg-red-50' : ''}`}>
+                <tr key={item.id} className={`border-b hover:bg-gray-50 ${isLowStock ? 'bg-red-50' : ''}`}>
                   <td className="py-3 px-4 font-medium">{item.name}</td>
                   <td className="py-3 px-4">{item.category}</td>
                   <td className="py-3 px-4">
@@ -195,11 +196,11 @@ const InventoryManagement = () => {
                         const newValue = parseInt(e.target.value) || 0
                         setItems((prev) =>
                           prev.map((i) =>
-                            i._id === item._id ? { ...i, inventoryCount: newValue } : i
+                            i.id === item.id ? { ...i, inventoryCount: newValue } : i
                           )
                         )
                       }}
-                      onBlur={(e) => updateStock(item._id, parseInt(e.target.value) || 0)}
+                      onBlur={(e) => updateStock(item.id, parseInt(e.target.value) || 0)}
                       className={`w-24 px-3 py-1 border rounded ${
                         isLowStock ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -220,13 +221,13 @@ const InventoryManagement = () => {
                   <td className="py-3 px-4">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => updateStock(item._id, item.inventoryCount + 10)}
+                        onClick={() => updateStock(item.id, item.inventoryCount + 10)}
                         className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                       >
                         +10
                       </button>
                       <button
-                        onClick={() => updateStock(item._id, item.inventoryCount + 50)}
+                        onClick={() => updateStock(item.id, item.inventoryCount + 50)}
                         className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
                       >
                         +50

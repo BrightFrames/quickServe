@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChefHat, ArrowLeft, Lock, User } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { useRestaurant } from '../context/RestaurantContext'
 import { toast } from 'sonner'
 
 const KitchenLogin = () => {
@@ -11,13 +12,15 @@ const KitchenLogin = () => {
   const navigate = useNavigate()
   const { restaurantSlug } = useParams()
   const { login } = useAuth()
+  const { restaurantCode } = useRestaurant()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      await login(username, password, 'kitchen')
+      // Pass restaurantCode for restaurant-specific kitchen access
+      await login(username, password, 'kitchen', restaurantCode || undefined)
       toast.success('Login successful!')
       // Navigate with restaurant slug if available
       if (restaurantSlug) {

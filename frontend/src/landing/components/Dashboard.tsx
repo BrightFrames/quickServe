@@ -1,8 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/shared/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { toast } from 'sonner';
+import axios from 'axios';
 import { 
   Users, 
   ChefHat, 
@@ -12,13 +16,22 @@ import {
   Building,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  UserPlus,
+  Key
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { restaurant, token, logout } = useAuth();
   const navigate = useNavigate();
   const { restaurantSlug } = useParams();
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  // Account creation states
+  const [showAdminForm, setShowAdminForm] = useState(false);
+  const [showKitchenForm, setShowKitchenForm] = useState(false);
+  const [adminFormData, setAdminFormData] = useState({ username: '', password: '' });
+  const [kitchenFormData, setKitchenFormData] = useState({ username: '', password: '' });
 
   // Validate that the URL slug matches the logged-in restaurant
   useEffect(() => {
@@ -57,6 +70,46 @@ const Dashboard: React.FC = () => {
       // Pass restaurant data via URL params which CustomerRestaurantProvider expects
       const token = localStorage.getItem('token') || '';
       navigate(`/${restaurant.slug}/customer/menu/table/t1?restaurantName=${encodeURIComponent(restaurant.name)}&token=${encodeURIComponent(token)}`);
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurant?.restaurantCode) {
+      toast.error('Restaurant code not found');
+      return;
+    }
+    try {
+      await axios.put(`${apiUrl}/api/restaurant/update-credentials/${restaurant.restaurantCode}`, {
+        type: 'admin',
+        username: adminFormData.username || undefined,
+        password: adminFormData.password || undefined
+      });
+      toast.success('Admin credentials updated successfully!');
+      setShowAdminForm(false);
+      setAdminFormData({ username: '', password: '' });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update admin credentials');
+    }
+  };
+
+  const handleCreateKitchen = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!restaurant?.restaurantCode) {
+      toast.error('Restaurant code not found');
+      return;
+    }
+    try {
+      await axios.put(`${apiUrl}/api/restaurant/update-credentials/${restaurant.restaurantCode}`, {
+        type: 'kitchen',
+        username: kitchenFormData.username || undefined,
+        password: kitchenFormData.password || undefined
+      });
+      toast.success('Kitchen credentials updated successfully!');
+      setShowKitchenForm(false);
+      setKitchenFormData({ username: '', password: '' });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update kitchen credentials');
     }
   };
 
@@ -129,6 +182,118 @@ const Dashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Account Management Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Management</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Update Admin Password */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Key className="h-5 w-5 text-blue-600" />
+                  <span>Update Admin Credentials</span>
+                </CardTitle>
+                <CardDescription>
+                  Set a unique admin username and password for your restaurant
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!showAdminForm ? (
+                  <div className="space-y-3">
+                    <Button onClick={() => setShowAdminForm(true)} className="w-full">
+                      <Key className="h-4 w-4 mr-2" />
+                      Change Admin Credentials
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreateAdmin} className="space-y-4">
+                    <div>
+                      <Label htmlFor="admin-username">New Admin Username (Optional)</Label>
+                      <Input
+                        id="admin-username"
+                        type="text"
+                        placeholder="Enter new admin username"
+                        value={adminFormData.username}
+                        onChange={(e) => setAdminFormData({ ...adminFormData, username: e.target.value })}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Leave blank to keep current username</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="admin-password">New Admin Password (Optional)</Label>
+                      <Input
+                        id="admin-password"
+                        type="password"
+                        placeholder="Enter new admin password"
+                        value={adminFormData.password}
+                        onChange={(e) => setAdminFormData({ ...adminFormData, password: e.target.value })}
+                        minLength={6}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit" className="flex-1">Update Credentials</Button>
+                      <Button type="button" variant="outline" onClick={() => setShowAdminForm(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Update Kitchen Password */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <ChefHat className="h-5 w-5 text-orange-600" />
+                  <span>Update Kitchen Credentials</span>
+                </CardTitle>
+                <CardDescription>
+                  Set a unique kitchen staff username and password for your restaurant
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!showKitchenForm ? (
+                  <div className="space-y-3">
+                    <Button onClick={() => setShowKitchenForm(true)} className="w-full" variant="outline">
+                      <Key className="h-4 w-4 mr-2" />
+                      Change Kitchen Credentials
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleCreateKitchen} className="space-y-4">
+                    <div>
+                      <Label htmlFor="kitchen-username">New Kitchen Username (Optional)</Label>
+                      <Input
+                        id="kitchen-username"
+                        type="text"
+                        placeholder="Enter new kitchen username"
+                        value={kitchenFormData.username}
+                        onChange={(e) => setKitchenFormData({ ...kitchenFormData, username: e.target.value })}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Leave blank to keep current username</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="kitchen-password">New Kitchen Password (Optional)</Label>
+                      <Input
+                        id="kitchen-password"
+                        type="password"
+                        placeholder="Enter new kitchen password"
+                        value={kitchenFormData.password}
+                        onChange={(e) => setKitchenFormData({ ...kitchenFormData, password: e.target.value })}
+                        minLength={6}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button type="submit" className="flex-1" variant="outline">Update Credentials</Button>
+                      <Button type="button" variant="outline" onClick={() => setShowKitchenForm(false)}>Cancel</Button>
+                    </div>
+                  </form>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Action Cards */}

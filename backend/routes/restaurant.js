@@ -424,4 +424,96 @@ router.get("/verify/:slug/:code", async (req, res) => {
   }
 });
 
+// ============================
+// Update Admin/Kitchen Passwords Route
+// ============================
+router.put("/update-credentials/:restaurantCode", async (req, res) => {
+  console.log("[RESTAURANT AUTH] Update credentials request");
+  
+  try {
+    const { restaurantCode } = req.params;
+    const { type, username, password } = req.body; // type can be 'admin' or 'kitchen'
+
+    if (!type) {
+      return res.status(400).json({ 
+        message: "Type (admin/kitchen) is required" 
+      });
+    }
+
+    if (!username && !password) {
+      return res.status(400).json({ 
+        message: "At least username or password must be provided" 
+      });
+    }
+
+    if (password && password.length < 6) {
+      return res.status(400).json({ 
+        message: "Password must be at least 6 characters long" 
+      });
+    }
+
+    if (username && username.length < 3) {
+      return res.status(400).json({ 
+        message: "Username must be at least 3 characters long" 
+      });
+    }
+
+    // Find restaurant by code
+    const restaurant = await Restaurant.findOne({ 
+      where: { restaurantCode } 
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Update settings with new credentials
+    const currentSettings = restaurant.settings || {};
+    const credentials = currentSettings.credentials || {};
+
+    if (type === 'admin') {
+      // Update admin credentials
+      if (username) {
+        credentials.adminUsername = username;
+      }
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        credentials.adminPassword = await bcrypt.hash(password, salt);
+      }
+    } else if (type === 'kitchen') {
+      // Update kitchen credentials
+      if (username) {
+        credentials.kitchenUsername = username;
+      }
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        credentials.kitchenPassword = await bcrypt.hash(password, salt);
+      }
+    } else {
+      return res.status(400).json({ message: "Invalid type. Use 'admin' or 'kitchen'" });
+    }
+
+    currentSettings.credentials = credentials;
+    
+    // Use set() to properly mark JSONB field as changed
+    restaurant.set('settings', currentSettings);
+    restaurant.changed('settings', true);
+    await restaurant.save();
+
+    const updates = [];
+    if (username) updates.push('username');
+    if (password) updates.push('password');
+    
+    console.log(`[RESTAURANT AUTH] ✓ ${type} ${updates.join(' and ')} updated for restaurant: ${restaurantCode}`);
+
+    res.json({ 
+      message: `${type === 'admin' ? 'Admin' : 'Kitchen'} ${updates.join(' and ')} updated successfully` 
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Update credentials error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;

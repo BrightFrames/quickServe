@@ -12,9 +12,10 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
+import { useRestaurant } from "../../context/RestaurantContext";
 
 interface Table {
-  _id: string;
+  id: string;
   tableId: string;
   tableName: string;
   seats: number;
@@ -26,6 +27,7 @@ interface Table {
 }
 
 const TableManagement = () => {
+  const { restaurantSlug } = useRestaurant();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -33,6 +35,8 @@ const TableManagement = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   const [formData, setFormData] = useState({
     tableId: "",
@@ -47,7 +51,7 @@ const TableManagement = () => {
 
   const fetchTables = async () => {
     try {
-      const response = await axios.get("/api/tables");
+      const response = await axios.get(`${apiUrl}/api/tables`);
       setTables(response.data);
     } catch (error: any) {
       toast.error("Failed to fetch tables");
@@ -63,12 +67,17 @@ const TableManagement = () => {
         return;
       }
 
-      // Get restaurant slug from localStorage
-      const restaurantSlug = localStorage.getItem('restaurantSlug');
+      // Get restaurant slug from context or localStorage
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      
+      if (!slug) {
+        toast.error("Restaurant information not found. Please login again.");
+        return;
+      }
 
-      await axios.post("/api/tables", {
+      await axios.post(`${apiUrl}/api/tables`, {
         ...formData,
-        restaurantSlug,
+        restaurantSlug: slug,
       });
       toast.success("Table added successfully");
       setIsAddDialogOpen(false);
@@ -83,7 +92,7 @@ const TableManagement = () => {
     if (!selectedTable) return;
 
     try {
-      await axios.put(`/api/tables/${selectedTable._id}`, formData);
+      await axios.put(`${apiUrl}/api/tables/${selectedTable.id}`, formData);
       toast.success("Table updated successfully");
       setIsEditDialogOpen(false);
       setSelectedTable(null);
@@ -98,7 +107,7 @@ const TableManagement = () => {
     if (!selectedTable) return;
 
     try {
-      await axios.delete(`/api/tables/${selectedTable._id}`);
+      await axios.delete(`${apiUrl}/api/tables/${selectedTable.id}`);
       toast.success("Table deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedTable(null);
@@ -110,7 +119,7 @@ const TableManagement = () => {
 
   const handleToggleActive = async (table: Table) => {
     try {
-      await axios.put(`/api/tables/${table._id}`, {
+      await axios.put(`${apiUrl}/api/tables/${table.id}`, {
         isActive: !table.isActive,
       });
       toast.success(`Table ${table.isActive ? "deactivated" : "activated"}`);
@@ -122,11 +131,11 @@ const TableManagement = () => {
 
   const handleRegenerateQR = async (table: Table) => {
     try {
-      // Get restaurant slug from localStorage
-      const restaurantSlug = localStorage.getItem('restaurantSlug');
+      // Get restaurant slug from context or localStorage
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
       
-      await axios.post(`/api/tables/${table._id}/regenerate-qr`, {
-        restaurantSlug,
+      await axios.post(`${apiUrl}/api/tables/${table.id}/regenerate-qr`, {
+        restaurantSlug: slug,
       });
       toast.success("QR code regenerated successfully");
       fetchTables();
@@ -207,7 +216,7 @@ const TableManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tables.map((table) => (
           <div
-            key={table._id}
+            key={table.id}
             className={`bg-white rounded-lg shadow-md border p-6 ${
               !table.isActive ? "opacity-60" : ""
             }`}
