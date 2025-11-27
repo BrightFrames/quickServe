@@ -68,8 +68,9 @@ const AdminHome = () => {
       <div
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-blue-900 text-white transition-all duration-300`}
+        } bg-blue-900 text-white transition-all duration-300 flex flex-col`}
       >
+        {/* Top Section */}
         <div className="p-4">
           <div className="flex items-center justify-between mb-8">
             {sidebarOpen && (
@@ -106,15 +107,19 @@ const AdminHome = () => {
           </nav>
         </div>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        {/* Spacer to push logout to bottom */}
+        <div className="flex-grow"></div>
+
+        {/* Logout Button - Fixed at Bottom */}
+        <div className="p-4">
           <button
             onClick={handleLogout}
             className={`${
-              sidebarOpen ? "w-full" : "w-10"
-            } flex items-center justify-center gap-2 px-2 py-1.5 bg-red-600 hover:bg-red-700 rounded text-xs transition-colors`}
+              sidebarOpen ? "w-full" : "w-12"
+            } flex items-center ${sidebarOpen ? 'justify-start' : 'justify-center'} gap-2 px-3 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-all duration-300`}
             title="Logout"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4" />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>

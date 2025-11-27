@@ -53,8 +53,10 @@ const Dashboard: React.FC = () => {
 
   const handleNavigateToCustomer = () => {
     if (restaurant) {
-      // Navigate to customer app with restaurant slug
-      navigate(`/${restaurant.slug}/customer/menu/table/t1`);
+      // Navigate to customer app with restaurant slug and data
+      // Pass restaurant data via URL params which CustomerRestaurantProvider expects
+      const token = localStorage.getItem('token') || '';
+      navigate(`/${restaurant.slug}/customer/menu/table/t1?restaurantName=${encodeURIComponent(restaurant.name)}&token=${encodeURIComponent(token)}`);
     }
   };
 

@@ -14,7 +14,7 @@ const RestaurantInfo = () => {
     address: '',
     gstNumber: '',
     restaurantCode: '',
-    subscription: '',
+    subscription: { plan: 'Free', startDate: null, endDate: null },
   });
 
   useEffect(() => {
@@ -42,7 +42,7 @@ const RestaurantInfo = () => {
         address: restaurant.address || 'Not provided',
         gstNumber: restaurant.gstNumber || 'Not registered',
         restaurantCode: restaurant.restaurantCode || '',
-        subscription: restaurant.subscription || 'Free',
+        subscription: restaurant.subscription || { plan: 'free', startDate: null, endDate: null },
       });
     } catch (error: any) {
       console.error('Error fetching restaurant info:', error);
@@ -179,10 +179,40 @@ const RestaurantInfo = () => {
             Subscription
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-base">
-            <span className="font-semibold">Plan:</span> {restaurantData.subscription}
-          </p>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Info className="w-4 h-4" />
+              <span className="font-medium">Plan</span>
+            </div>
+            <p className="text-base">
+              <span className="font-semibold capitalize">{restaurantData.subscription.plan}</span>
+            </p>
+          </div>
+          
+          {restaurantData.subscription.startDate && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Info className="w-4 h-4" />
+                <span className="font-medium">Start Date</span>
+              </div>
+              <p className="text-base">
+                {new Date(restaurantData.subscription.startDate).toLocaleDateString()}
+              </p>
+            </div>
+          )}
+          
+          {restaurantData.subscription.endDate && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Info className="w-4 h-4" />
+                <span className="font-medium">End Date</span>
+              </div>
+              <p className="text-base">
+                {new Date(restaurantData.subscription.endDate).toLocaleDateString()}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
