@@ -215,6 +215,41 @@ router.post("/login", async (req, res) => {
 });
 
 // ============================
+// Get Restaurant Info by Code (for admin view)
+// ============================
+router.get("/info/:restaurantCode", async (req, res) => {
+  try {
+    const { restaurantCode } = req.params;
+    
+    const restaurant = await Restaurant.findOne({
+      where: { restaurantCode }
+    });
+    
+    if (!restaurant || !restaurant.isActive) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    res.json({
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        restaurantCode: restaurant.restaurantCode,
+        email: restaurant.email,
+        phone: restaurant.phone,
+        address: restaurant.address,
+        gstNumber: restaurant.gstNumber,
+        subscription: restaurant.subscription,
+      },
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT] Info fetch error:", error);
+    res.status(500).json({ message: "Failed to fetch restaurant information" });
+  }
+});
+
+// ============================
 // Restaurant Profile Route
 // ============================
 router.get("/profile", async (req, res) => {
@@ -249,6 +284,7 @@ router.get("/profile", async (req, res) => {
         email: restaurant.email,
         phone: restaurant.phone,
         address: restaurant.address,
+        gstNumber: restaurant.gstNumber,
         settings: restaurant.settings,
         subscription: restaurant.subscription,
         createdAt: restaurant.createdAt,
@@ -258,6 +294,67 @@ router.get("/profile", async (req, res) => {
   } catch (error) {
     console.error("[RESTAURANT AUTH] Profile error:", error);
     res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+// ============================
+// Update Restaurant Profile
+// ============================
+router.put("/profile", async (req, res) => {
+  try {
+    // Extract token from Authorization header
+    const token = req.headers.authorization?.split(" ")[1];
+    
+    if (!token) {
+      return res.status(401).json({ message: "Access token required" });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    if (decoded.type !== 'restaurant') {
+      return res.status(403).json({ message: "Invalid token type" });
+    }
+
+    // Find restaurant
+    const restaurant = await Restaurant.findByPk(decoded.id);
+    
+    if (!restaurant || !restaurant.isActive) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Update allowed fields
+    const { phone, address, gstNumber } = req.body;
+    
+    if (phone) restaurant.phone = phone;
+    if (address) restaurant.address = address;
+    if (gstNumber !== undefined) {
+      // Validate GST format if provided
+      if (gstNumber && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(gstNumber)) {
+        return res.status(400).json({ message: "Invalid GST number format" });
+      }
+      restaurant.gstNumber = gstNumber ? gstNumber.toUpperCase() : null;
+    }
+
+    await restaurant.save();
+
+    res.json({
+      message: "Profile updated successfully",
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        restaurantCode: restaurant.restaurantCode,
+        email: restaurant.email,
+        phone: restaurant.phone,
+        address: restaurant.address,
+        gstNumber: restaurant.gstNumber,
+      },
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Profile update error:", error);
+    res.status(500).json({ message: "Failed to update profile" });
   }
 });
 

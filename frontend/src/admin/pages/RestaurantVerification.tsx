@@ -43,9 +43,9 @@ const RestaurantVerification = () => {
           // Redirect to appropriate login page after 1 second
           setTimeout(() => {
             if (panelType === 'admin') {
-              navigate('/admin/login', { replace: true });
+              navigate(`/${restaurantSlug}/admin/login`, { replace: true });
             } else if (panelType === 'kitchen') {
-              navigate('/kitchen/login', { replace: true });
+              navigate(`/${restaurantSlug}/kitchen/login`, { replace: true });
             }
           }, 1000);
         } else {

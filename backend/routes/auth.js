@@ -14,7 +14,7 @@ router.post("/login", async (req, res) => {
   console.log("[AUTH] Body:", req.body);
 
   try {
-    const { username, password, role } = req.body;
+    const { username, password, role, restaurantCode } = req.body;
 
     // Validate required fields
     if (!username || !password || !role) {
@@ -29,19 +29,27 @@ router.post("/login", async (req, res) => {
     // Check if it's admin login
     if (role === "admin") {
       console.log("[AUTH] Processing admin login...");
+      
+      // Admin login requires restaurant code for restaurant-specific access
+      if (!restaurantCode) {
+        console.log("[AUTH] ✗ Restaurant code required for admin login");
+        return res.status(400).json({ message: "Restaurant code is required for admin access" });
+      }
+      
+      // Use global admin credentials from .env
       if (
         username === process.env.ADMIN_USERNAME &&
         password === process.env.ADMIN_PASSWORD
       ) {
-        console.log("[AUTH] ✓ Admin credentials valid");
+        console.log("[AUTH] ✓ Admin credentials valid for restaurant:", restaurantCode);
         const token = jwt.sign(
-          { id: "admin", username, role: "admin" },
+          { id: "admin", username, role: "admin", restaurantCode },
           process.env.JWT_SECRET,
           { expiresIn: "24h" }
         );
 
         return res.json({
-          user: { id: "admin", username, role: "admin" },
+          user: { id: "admin", username, role: "admin", restaurantCode },
           token,
         });
       } else {

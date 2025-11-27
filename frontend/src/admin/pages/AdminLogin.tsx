@@ -18,7 +18,8 @@ const AdminLogin = () => {
     setLoading(true)
 
     try {
-      await login(username, password, 'admin')
+      // Pass restaurantCode for restaurant-specific admin access
+      await login(username, password, 'admin', restaurantCode || undefined)
       toast.success('Login successful!')
       navigate('/admin/dashboard')
     } catch (error: any) {
@@ -28,13 +29,22 @@ const AdminLogin = () => {
     }
   }
 
+  const handleBack = () => {
+    // Go back to restaurant dashboard if slug is available
+    if (restaurantSlug) {
+      navigate(`/${restaurantSlug}/dashboard`)
+    } else {
+      navigate(-1) // Go back in history
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-md w-full p-8">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="flex items-center mb-8">
             <button
-              onClick={() => navigate('/')}
+              onClick={handleBack}
               className="mr-4 text-gray-600 hover:text-gray-800"
             >
               <ArrowLeft className="w-6 h-6" />

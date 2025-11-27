@@ -16,22 +16,28 @@ export const RestaurantProvider: React.FC<{ children: ReactNode }> = ({ children
   
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [restaurantCode, setRestaurantCode] = useState<string | null>(null);
+  const [storedSlug, setStoredSlug] = useState<string | null>(null);
 
   useEffect(() => {
     // Get restaurant data from localStorage (set by verification page)
     const storedRestaurantName = localStorage.getItem('restaurantName');
     const storedRestaurantCode = localStorage.getItem('restaurantCode');
+    const storedRestaurantSlug = localStorage.getItem('restaurantSlug');
     
     if (storedRestaurantName && storedRestaurantCode) {
       setRestaurantName(storedRestaurantName);
       setRestaurantCode(storedRestaurantCode);
+    }
+    
+    if (storedRestaurantSlug) {
+      setStoredSlug(storedRestaurantSlug);
     }
   }, []);
 
   return (
     <RestaurantContext.Provider value={{ 
       restaurantName, 
-      restaurantSlug: restaurantSlug || null,
+      restaurantSlug: restaurantSlug || storedSlug,
       restaurantCode 
     }}>
       {children}

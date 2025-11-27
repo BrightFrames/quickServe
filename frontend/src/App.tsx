@@ -53,7 +53,19 @@ function App() {
             } 
           />
 
-          {/* Admin Login */}
+          {/* Admin Login with Restaurant Slug */}
+          <Route 
+            path="/:restaurantSlug/admin/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <AdminLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
+          {/* Admin Login (fallback without slug) */}
           <Route 
             path="/admin/login" 
             element={
@@ -65,9 +77,9 @@ function App() {
             } 
           />
 
-          {/* Kitchen Login */}
+          {/* Kitchen Login with Restaurant Slug */}
           <Route 
-            path="/kitchen/login" 
+            path="/:restaurantSlug/kitchen/login" 
             element={
               <AdminAuthProvider>
                 <AdminRestaurantProvider>
@@ -77,9 +89,9 @@ function App() {
             } 
           />
 
-          {/* Kitchen Login with Restaurant Slug */}
+          {/* Kitchen Login (fallback without slug) */}
           <Route 
-            path="/:restaurantSlug/kitchen/login" 
+            path="/kitchen/login" 
             element={
               <AdminAuthProvider>
                 <AdminRestaurantProvider>

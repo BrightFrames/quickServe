@@ -5,6 +5,7 @@ import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
 import Restaurant from "../models/Restaurant.js";
 import { optionalRestaurantAuth } from "../middleware/auth.js";
+import { sendInvoiceViaWhatsApp } from "../services/invoiceService.js";
 
 const router = express.Router();
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
@@ -252,6 +253,19 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
       status: order.status
     });
     io.emit("new-order", order);
+
+    // Send invoice via WhatsApp if phone number provided and order was saved
+    if (SAVE_ORDERS && customerPhone && order.id) {
+      try {
+        console.log(`[INVOICE] Attempting to send invoice for order ${order.id} to ${customerPhone}`);
+        await sendInvoiceViaWhatsApp(order.id);
+        console.log(`[INVOICE] Invoice sent successfully to ${customerPhone}`);
+      } catch (invoiceError) {
+        // Log error but don't fail the order creation
+        console.error("[INVOICE] Failed to send invoice:", invoiceError.message);
+        // Invoice sending is optional, so we continue
+      }
+    }
 
     res.status(201).json(order);
   } catch (error) {

@@ -9,7 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string, role: 'admin' | 'kitchen') => Promise<void>
+  login: (username: string, password: string, role: 'admin' | 'kitchen', restaurantCode?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
 }
@@ -29,13 +29,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [])
 
-  const login = async (username: string, password: string, role: 'admin' | 'kitchen') => {
+  const login = async (username: string, password: string, role: 'admin' | 'kitchen', restaurantCode?: string) => {
     try {
-      const response = await axios.post('/api/auth/login', {
+      const payload: any = {
         username,
         password,
         role,
-      })
+      };
+      
+      // Add restaurantCode for admin login
+      if (role === 'admin' && restaurantCode) {
+        payload.restaurantCode = restaurantCode;
+      }
+      
+      const response = await axios.post('/api/auth/login', payload)
       
       const { user, token } = response.data
       setUser(user)

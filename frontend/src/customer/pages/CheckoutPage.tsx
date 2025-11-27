@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Tag, Users } from "lucide-react";
+import { ArrowLeft, CreditCard, Tag, Users, Phone } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -22,6 +22,7 @@ export const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "cash" | "card" | "upi" | null
   >(null);
@@ -50,6 +51,12 @@ export const CheckoutPage = () => {
   };
 
   const handlePlaceOrder = async () => {
+    // Validate phone number
+    if (!phoneNumber || phoneNumber.length < 10) {
+      toast.error("Please enter a valid 10-digit phone number");
+      return;
+    }
+
     // Validate payment method selection
     if (!paymentMethod) {
       toast.error("Please select a payment method");
@@ -66,6 +73,7 @@ export const CheckoutPage = () => {
         discount,
         total,
         tableNumber,
+        customerPhone: phoneNumber,
         splitBill: splitEnabled,
         splitCount: splitEnabled ? splitCount : undefined,
         promoCode: promoCode || undefined,
@@ -220,6 +228,33 @@ export const CheckoutPage = () => {
           )}
         </Card>
 
+        {/* Phone Number for Invoice */}
+        <Card className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Phone className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold">Contact Details</h2>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="Enter 10-digit mobile number"
+              value={phoneNumber}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setPhoneNumber(value);
+              }}
+              maxLength={10}
+              className="h-12"
+              required
+            />
+            <p className="text-sm text-muted-foreground">
+              Invoice will be sent to this number via SMS
+            </p>
+          </div>
+        </Card>
+
         {/* Split Bill */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
@@ -312,7 +347,7 @@ export const CheckoutPage = () => {
           onClick={handlePlaceOrder}
           size="lg"
           className="w-full h-14 text-base"
-          disabled={loading || processingPayment || !paymentMethod}
+          disabled={loading || processingPayment || !paymentMethod || phoneNumber.length < 10}
         >
           {processingPayment
             ? "Processing..."

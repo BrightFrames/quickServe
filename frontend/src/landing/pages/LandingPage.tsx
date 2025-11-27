@@ -1,13 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChefHat, Star, Clock, Shield, Users, ArrowRight } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import LoginForm from '../components/LoginForm';
 import SignupForm from '../components/SignupForm';
+import { useAuth } from '../context/AuthContext';
 
 type AuthMode = 'landing' | 'login' | 'signup';
 
 const LandingPage: React.FC = () => {
   const [authMode, setAuthMode] = useState<AuthMode>('landing');
+  const { restaurant } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (restaurant && restaurant.slug) {
+      navigate(`/${restaurant.slug}/dashboard`, { replace: true });
+    }
+  }, [restaurant, navigate]);
 
   const features = [
     {
