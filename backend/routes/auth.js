@@ -90,61 +90,15 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    // Kitchen/Cook login
+    // Kitchen/Cook login - ONLY from User table, NOT admin credentials
     console.log("[AUTH] Processing kitchen/cook login...");
     
-    // Check if restaurant code is provided for restaurant-specific kitchen access
-    if (restaurantCode) {
-      const restaurant = await Restaurant.findOne({ 
-        where: { restaurantCode } 
-      });
-
-      if (!restaurant) {
-        console.log("[AUTH] ✗ Restaurant not found");
-        return res.status(401).json({ message: "Invalid restaurant code" });
-      }
-
-      const customKitchenUsername = restaurant.settings?.credentials?.kitchenUsername;
-      const customKitchenPassword = restaurant.settings?.credentials?.kitchenPassword;
-      let isValidCredentials = false;
-      
-      if (customKitchenPassword || customKitchenUsername) {
-        console.log("[AUTH] Checking custom kitchen credentials...");
-        
-        // Check username if custom username is set
-        const isUsernameValid = customKitchenUsername ? username === customKitchenUsername : true;
-        // Check password if custom password is set
-        const isPasswordValid = customKitchenPassword
-          ? await bcrypt.compare(password, customKitchenPassword)
-          : (password === process.env.KITCHEN_PASSWORD || password === "kitchen123");
-        
-        isValidCredentials = isUsernameValid && isPasswordValid;
-        console.log("[AUTH] Custom kitchen credentials check - username:", isUsernameValid, "password:", isPasswordValid);
-      } else {
-        // Fallback to default kitchen credentials
-        console.log("[AUTH] Using default kitchen credentials...");
-        isValidCredentials = (username === "kitchen" && (password === process.env.KITCHEN_PASSWORD || password === "kitchen123"));
-      }
-      
-      if (isValidCredentials) {
-        console.log("[AUTH] ✓ Kitchen credentials valid for restaurant:", restaurantCode);
-        const token = jwt.sign(
-          { id: "kitchen", username, role: "kitchen", restaurantCode },
-          process.env.JWT_SECRET,
-          { expiresIn: "24h" }
-        );
-
-        return res.json({
-          user: { id: "kitchen", username, role: "kitchen", restaurantCode },
-          token,
-        });
-      } else {
-        console.log("[AUTH] ✗ Invalid kitchen credentials");
-        return res.status(401).json({ message: "Invalid kitchen credentials" });
-      }
+    // Prevent admin credentials from accessing kitchen dashboard
+    if (username === process.env.ADMIN_USERNAME) {
+      console.log("[AUTH] ✗ Admin credentials cannot be used for kitchen login");
+      return res.status(401).json({ message: "Invalid credentials. Please use kitchen staff credentials." });
     }
     
-    // Check for kitchen staff in Users table
     const user = await User.findOne({
       where: {
         username,
