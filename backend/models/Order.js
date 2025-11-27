@@ -32,6 +32,10 @@ const Order = sequelize.define('Order', {
   customerPhone: {
     type: DataTypes.STRING,
   },
+  customerEmail: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   items: {
     type: DataTypes.JSONB,
     allowNull: false,

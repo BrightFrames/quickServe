@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, Bell, Clock, CheckCircle, Truck } from "lucide-react";
 import {
@@ -35,7 +35,33 @@ const KitchenHome = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<"all" | Order["status"]>("all");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    message: string;
+    time: string;
+    read: boolean;
+  }>>([]);
   const socket = useSocket();
+  const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -51,6 +77,16 @@ const KitchenHome = () => {
     if (socket) {
       socket.on("new-order", (order: Order) => {
         setOrders((prev) => [...prev, order]);
+        
+        // Add notification
+        const newNotification = {
+          id: order.id || order._id || `${Date.now()}`,
+          message: `New order #${order.orderNumber} from Table ${order.tableNumber}`,
+          time: new Date().toLocaleTimeString(),
+          read: false
+        };
+        setNotifications((prev) => [newNotification, ...prev].slice(0, 10)); // Keep last 10
+        setUnreadCount((prev) => prev + 1);
         
         // Play notification sound
         notificationSounds.playNewOrderSound();
@@ -131,6 +167,20 @@ const KitchenHome = () => {
     ? orders 
     : orders.filter((o) => o.status === selectedStatus);
 
+  const handleNotificationClick = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      // Mark all as read when opening
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    }
+  };
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -151,12 +201,56 @@ const KitchenHome = () => {
             <h1 className="text-lg font-bold text-gray-900">QuickServe Kitchen</h1>
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg relative">
-              <Bell className="w-6 h-6 text-gray-700" />
-              {orders.length > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={handleNotificationClick}
+                className="p-2 hover:bg-gray-100 rounded-lg relative"
+              >
+                <Bell className="w-6 h-6 text-gray-700" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h3 className="font-semibold text-gray-900">Notifications</h3>
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={clearNotifications}
+                        className="text-xs text-blue-600 hover:text-blue-700"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-8 text-center text-gray-400">
+                        <Bell className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm">No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-4 border-b hover:bg-gray-50 ${
+                            !notification.read ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <p className="text-sm text-gray-900">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
             <button 
               onClick={logout}
               className="flex items-center space-x-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"

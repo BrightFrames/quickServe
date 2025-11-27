@@ -21,6 +21,7 @@ export interface Order {
   tableNumber?: string | number;
   whatsappNumber?: string;
   customerPhone?: string;
+  customerEmail?: string;
   splitBill?: boolean;
   splitCount?: number;
   status: OrderStatus;
@@ -79,6 +80,7 @@ class OrderService {
           : 1,
         customerPhone:
           orderData.whatsappNumber || orderData.customerPhone || "",
+        customerEmail: orderData.customerEmail || "",
         items: backendItems,
         slug: restaurantSlug,
       };
@@ -106,6 +108,7 @@ class OrderService {
         tableNumber: backendOrder.tableNumber,
         whatsappNumber: orderData.whatsappNumber,
         customerPhone: backendOrder.customerPhone,
+        customerEmail: backendOrder.customerEmail || orderData.customerEmail,
         status: backendOrder.status,
         createdAt: new Date(backendOrder.createdAt),
         updatedAt: new Date(backendOrder.updatedAt),

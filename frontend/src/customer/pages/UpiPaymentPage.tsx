@@ -30,7 +30,7 @@ export const UpiPaymentPage = () => {
       const pendingOrderData = sessionStorage.getItem("pendingOrder");
       if (!pendingOrderData) {
         toast.error("No order data found");
-        navigate("/customer/checkout");
+        navigate("../checkout");
         return;
       }
 
@@ -111,7 +111,7 @@ export const UpiPaymentPage = () => {
     // Don't place order, just go back
     sessionStorage.removeItem("pendingOrder");
     toast.info("Payment cancelled");
-    navigate("/customer/checkout");
+    navigate("../checkout");
   };
 
   const handleRetryPayment = () => {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 // Shared Components
 import LoadingScreen from './shared/components/LoadingScreen';
+import DashboardAccessGuard from './shared/components/DashboardAccessGuard';
 
 // Landing Pages
 import LandingPage from './landing/pages/LandingPage';
@@ -52,7 +53,7 @@ function App() {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gray-50">
         <Routes>
           {/* Landing Routes - Public */}
@@ -167,13 +168,15 @@ function App() {
             }
           />
 
-          {/* Restaurant Dashboard - Protected */}
+          {/* Restaurant Dashboard - Protected with password */}
           <Route 
             path="/:restaurantSlug/dashboard" 
             element={
-              <LandingAuthProvider>
-                <Dashboard />
-              </LandingAuthProvider>
+              <DashboardAccessGuard>
+                <LandingAuthProvider>
+                  <Dashboard />
+                </LandingAuthProvider>
+              </DashboardAccessGuard>
             } 
           />
 

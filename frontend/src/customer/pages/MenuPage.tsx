@@ -48,13 +48,13 @@ export const MenuPage = () => {
         } else {
           // Default to table t1 and redirect
           setTableNumber("t1");
-          navigate("/customer/menu/table/t1", { replace: true });
+          navigate("../menu/table/t1", { replace: true });
           setHasCheckedTable(true);
         }
       } catch (e) {
         console.error('Error reading query params:', e);
         setTableNumber("t1");
-        navigate("/customer/menu/table/t1", { replace: true });
+        navigate("../menu/table/t1", { replace: true });
         setHasCheckedTable(true);
       }
     }
@@ -114,7 +114,7 @@ export const MenuPage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate("/customer")}
+              onClick={() => navigate("../")}
               className="rounded-full"
             >
               <ArrowLeft className="w-5 h-5" />

@@ -127,4 +127,55 @@ router.post("/logout", async (req, res) => {
   }
 });
 
+// Verify dashboard access from customer pages
+router.post("/verify-dashboard-access", async (req, res) => {
+  try {
+    const { slug, password } = req.body;
+
+    if (!slug || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Restaurant slug and password are required",
+      });
+    }
+
+    // Find restaurant by slug
+    const restaurant = await Restaurant.findOne({
+      where: { slug },
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    // Verify password
+    const isValidPassword = await restaurant.comparePassword(password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Access granted",
+      restaurant: {
+        name: restaurant.name,
+        slug: restaurant.slug,
+      },
+    });
+  } catch (error) {
+    console.error("Dashboard access verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to verify access",
+    });
+  }
+});
+
 export default router;

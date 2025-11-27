@@ -6,8 +6,13 @@ import Restaurant from '../models/Restaurant.js';
  */
 export const generateInvoiceMessage = (orderDetails, restaurantInfo) => {
   const itemsList = orderDetails.items
-    .map(item => `${item.quantity}x ${item.name} - ₹${(item.price * item.quantity).toFixed(2)}`)
+    .map(item => `${item.quantity}x ${item.name} - ₹${(parseFloat(item.price) * item.quantity).toFixed(2)}`)
     .join('\n');
+
+  const subtotal = parseFloat(orderDetails.subtotal) || 0;
+  const discount = parseFloat(orderDetails.discount) || 0;
+  const tax = parseFloat(orderDetails.tax) || 0;
+  const total = parseFloat(orderDetails.total) || 0;
 
   const message = `
 ╔═══════════════════════════════╗
@@ -40,11 +45,11 @@ ${itemsList}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 💰 *BILL SUMMARY*
-Subtotal      : ₹${orderDetails.subtotal.toFixed(2)}
-${orderDetails.discount > 0 ? `Discount      : -₹${orderDetails.discount.toFixed(2)}\n` : ''}CGST (4.5%)   : ₹${(orderDetails.tax / 2).toFixed(2)}
-SGST (4.5%)   : ₹${(orderDetails.tax / 2).toFixed(2)}
+Subtotal      : ₹${subtotal.toFixed(2)}
+${discount > 0 ? `Discount      : -₹${discount.toFixed(2)}\n` : ''}CGST (4.5%)   : ₹${(tax / 2).toFixed(2)}
+SGST (4.5%)   : ₹${(tax / 2).toFixed(2)}
 ────────────────────────────────
-*TOTAL         : ₹${orderDetails.total.toFixed(2)}*
+*TOTAL         : ₹${total.toFixed(2)}*
 
 💳 Payment: ${orderDetails.paymentMethod.toUpperCase()}
 Status: ${orderDetails.paymentStatus === 'paid' ? '✅ PAID' : '⏳ PENDING'}
@@ -62,11 +67,16 @@ Powered by QuickServe
 };
 
 /**
- * Send invoice via WhatsApp using CallMeBot API (FREE)
- * Setup: Send "I allow callmebot to send me messages" to +34 644 51 89 45 on WhatsApp
+ * Send invoice via Email using Brevo API (formerly Sendinblue) - FREE
+ * Simple HTTP-based email sending - 300 emails/day free
+ * Sign up at: https://www.brevo.com/
  */
-export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaurantId) => {
+export const sendInvoiceViaEmail = async (email, orderDetails, restaurantId) => {
   try {
+    console.log(`[EMAIL] Starting email invoice send process...`);
+    console.log(`[EMAIL] Email address: ${email}`);
+    console.log(`[EMAIL] Restaurant ID: ${restaurantId}`);
+    
     // Get restaurant details
     const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
@@ -80,6 +90,87 @@ export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaura
       gstNumber: restaurant.gstNumber || null,
     };
 
+    console.log(`[EMAIL] Restaurant found: ${restaurant.name}`);
+
+    // Generate HTML invoice
+    const htmlInvoice = generateHTMLInvoice(orderDetails, restaurantInfo);
+
+    // Brevo API endpoint
+    const apiKey = process.env.BREVO_API_KEY;
+    
+    if (!apiKey) {
+      console.warn('[EMAIL] Brevo API key not configured. Skipping email invoice.');
+      return { success: false, message: 'Email not configured' };
+    }
+
+    console.log(`[EMAIL] API Key configured`);
+
+    // Send email via Brevo API
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          name: restaurantInfo.name,
+          email: 'noreply@quickserve.com' // Will use verified sender from Brevo
+        },
+        to: [
+          {
+            email: email,
+            name: 'Customer'
+          }
+        ],
+        subject: `Invoice ${orderDetails.orderNumber} - ${restaurantInfo.name}`,
+        htmlContent: htmlInvoice,
+      },
+      {
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        },
+        timeout: 10000,
+      }
+    );
+
+    console.log(`[EMAIL] API Response:`, response.data);
+    console.log(`[EMAIL] ✅ Invoice email sent successfully to ${email}`);
+    return { success: true, message: 'Invoice email sent successfully', messageId: response.data.messageId };
+
+  } catch (error) {
+    console.error('[EMAIL] ❌ Failed to send invoice email:', error.message);
+    if (error.response) {
+      console.error('[EMAIL] API Error Response:', error.response.data);
+      console.error('[EMAIL] API Error Status:', error.response.status);
+    }
+    return { success: false, message: error.message };
+  }
+};
+
+/**
+ * Send invoice via WhatsApp using CallMeBot API (FREE)
+ * Setup: Send "I allow callmebot to send me messages" to +34 644 51 89 45 on WhatsApp
+ */
+export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaurantId) => {
+  try {
+    console.log(`[INVOICE] Starting invoice send process...`);
+    console.log(`[INVOICE] Phone number received: ${phoneNumber}`);
+    console.log(`[INVOICE] Restaurant ID: ${restaurantId}`);
+    
+    // Get restaurant details
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      throw new Error('Restaurant not found');
+    }
+
+    const restaurantInfo = {
+      name: restaurant.name,
+      address: restaurant.address,
+      phone: restaurant.phone,
+      gstNumber: restaurant.gstNumber || null,
+    };
+
+    console.log(`[INVOICE] Restaurant found: ${restaurant.name}`);
+
     // Generate invoice message
     const message = generateInvoiceMessage(orderDetails, restaurantInfo);
 
@@ -87,16 +178,21 @@ export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaura
     const apiKey = process.env.CALLMEBOT_API_KEY;
     
     if (!apiKey) {
-      console.warn('CallMeBot API key not configured. Skipping WhatsApp invoice.');
+      console.warn('[INVOICE] CallMeBot API key not configured. Skipping WhatsApp invoice.');
       return { success: false, message: 'WhatsApp not configured' };
     }
+
+    console.log(`[INVOICE] API Key configured: ${apiKey.substring(0, 3)}...`);
 
     // Format phone number (remove +91 if present)
     const formattedPhone = phoneNumber.replace(/^\+?91/, '');
     const fullPhone = `91${formattedPhone}`; // Add country code
 
+    console.log(`[INVOICE] Formatted phone: ${fullPhone}`);
+
     const apiUrl = `https://api.callmebot.com/whatsapp.php`;
     
+    console.log(`[INVOICE] Sending request to CallMeBot API...`);
     const response = await axios.get(apiUrl, {
       params: {
         phone: fullPhone,
@@ -106,11 +202,17 @@ export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaura
       timeout: 10000, // 10 second timeout
     });
 
-    console.log(`[INVOICE] WhatsApp invoice sent to ${fullPhone}`);
+    console.log(`[INVOICE] API Response status: ${response.status}`);
+    console.log(`[INVOICE] API Response data:`, response.data);
+    console.log(`[INVOICE] ✅ WhatsApp invoice sent successfully to ${fullPhone}`);
     return { success: true, message: 'Invoice sent successfully' };
 
   } catch (error) {
-    console.error('[INVOICE] Failed to send WhatsApp invoice:', error.message);
+    console.error('[INVOICE] ❌ Failed to send WhatsApp invoice:', error.message);
+    if (error.response) {
+      console.error('[INVOICE] API Error Response:', error.response.data);
+      console.error('[INVOICE] API Error Status:', error.response.status);
+    }
     return { success: false, message: error.message };
   }
 };
@@ -119,15 +221,23 @@ export const sendInvoiceViaWhatsApp = async (phoneNumber, orderDetails, restaura
  * Generate HTML invoice for web view
  */
 export const generateHTMLInvoice = (orderDetails, restaurantInfo) => {
+  const subtotal = parseFloat(orderDetails.subtotal) || 0;
+  const discount = parseFloat(orderDetails.discount) || 0;
+  const tax = parseFloat(orderDetails.tax) || 0;
+  const total = parseFloat(orderDetails.total) || 0;
+  
   const itemsHTML = orderDetails.items
-    .map(item => `
+    .map(item => {
+      const price = parseFloat(item.price) || 0;
+      return `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
         <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹${item.price.toFixed(2)}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹${(item.price * item.quantity).toFixed(2)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹${price.toFixed(2)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">₹${(price * item.quantity).toFixed(2)}</td>
       </tr>
-    `)
+    `;
+    })
     .join('');
 
   return `
@@ -184,11 +294,11 @@ export const generateHTMLInvoice = (orderDetails, restaurantInfo) => {
       </table>
 
       <div class="totals">
-        <div>Subtotal: ₹${orderDetails.subtotal.toFixed(2)}</div>
-        ${orderDetails.discount > 0 ? `<div style="color: green;">Discount: -₹${orderDetails.discount.toFixed(2)}</div>` : ''}
-        <div>CGST (4.5%): ₹${(orderDetails.tax / 2).toFixed(2)}</div>
-        <div>SGST (4.5%): ₹${(orderDetails.tax / 2).toFixed(2)}</div>
-        <div class="total-row">Total: ₹${orderDetails.total.toFixed(2)}</div>
+        <div>Subtotal: ₹${subtotal.toFixed(2)}</div>
+        ${discount > 0 ? `<div style="color: green;">Discount: -₹${discount.toFixed(2)}</div>` : ''}
+        <div>CGST (4.5%): ₹${(tax / 2).toFixed(2)}</div>
+        <div>SGST (4.5%): ₹${(tax / 2).toFixed(2)}</div>
+        <div class="total-row">Total: ₹${total.toFixed(2)}</div>
       </div>
 
       <div style="text-align: center; margin-top: 40px; color: #666;">
@@ -202,6 +312,7 @@ export const generateHTMLInvoice = (orderDetails, restaurantInfo) => {
 
 export default {
   sendInvoiceViaWhatsApp,
+  sendInvoiceViaEmail,
   generateHTMLInvoice,
   generateInvoiceMessage,
 };

@@ -14,6 +14,7 @@ import { Label } from "@/shared/ui/label";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/shared/ui/badge";
+import { useState } from "react";
 
 export const CartDrawer = () => {
   const {
@@ -26,13 +27,18 @@ export const CartDrawer = () => {
   } = useCart();
   const navigate = useNavigate();
   const itemCount = getItemCount();
+  const [open, setOpen] = useState(false);
 
   const handleCheckout = () => {
-    navigate("/customer/checkout");
+    console.log("Navigating to checkout...");
+    setOpen(false); // Close the sheet first
+    setTimeout(() => {
+      navigate("../checkout");
+    }, 100); // Small delay to ensure sheet closes
   };
 
   return (
-    <Sheet>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           size="lg"

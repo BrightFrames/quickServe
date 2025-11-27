@@ -18,7 +18,7 @@ export const LandingPage = () => {
       localStorage.setItem("tableId", tableParam);
       localStorage.setItem("tableNumber", tableParam);
       // Auto-navigate to menu if table is from QR code
-      navigate("/customer/menu");
+      navigate("../menu");
     }
   }, [searchParams, navigate]);
 
@@ -27,7 +27,7 @@ export const LandingPage = () => {
       localStorage.setItem("tableId", tableNumber);
       localStorage.setItem("tableNumber", tableNumber);
     }
-    navigate("/customer/menu");
+    navigate("../menu");
   };
 
   return (

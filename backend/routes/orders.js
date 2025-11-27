@@ -5,7 +5,7 @@ import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
 import Restaurant from "../models/Restaurant.js";
 import { optionalRestaurantAuth } from "../middleware/auth.js";
-import { sendInvoiceViaWhatsApp } from "../services/invoiceService.js";
+import { sendInvoiceViaWhatsApp, sendInvoiceViaEmail } from "../services/invoiceService.js";
 
 const router = express.Router();
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
@@ -119,7 +119,7 @@ router.get("/by-table/:tableId", async (req, res) => {
 // Create order
 router.post("/", optionalRestaurantAuth, async (req, res) => {
   try {
-    const { tableNumber, tableId, items, customerPhone, paymentMethod, restaurantId: bodyRestaurantId, slug } =
+    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, restaurantId: bodyRestaurantId, slug } =
       req.body;
       
     // Get restaurantId from token, query, body, or resolve from slug
@@ -216,6 +216,7 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
       tableId: finalTableId,
       tableNumber: finalTableNumber,
       customerPhone,
+      customerEmail,
       items: orderItems,
       totalAmount,
       status: "preparing",
@@ -254,17 +255,65 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
     });
     io.emit("new-order", order);
 
-    // Send invoice via WhatsApp if phone number provided and order was saved
-    if (SAVE_ORDERS && customerPhone && order.id) {
+    // Send invoice via Email if email provided and order was saved
+    if (SAVE_ORDERS && customerEmail && order.id) {
       try {
-        console.log(`[INVOICE] Attempting to send invoice for order ${order.id} to ${customerPhone}`);
-        await sendInvoiceViaWhatsApp(order.id);
-        console.log(`[INVOICE] Invoice sent successfully to ${customerPhone}`);
+        console.log(`[INVOICE] Attempting to send email invoice for order ${order.id} to ${customerEmail}`);
+        console.log(`[INVOICE] Order restaurantId: ${order.restaurantId}`);
+        
+        // Prepare order details for invoice
+        const orderDetails = {
+          orderNumber: order.orderNumber,
+          createdAt: order.createdAt,
+          tableNumber: order.tableNumber,
+          items: order.items,
+          subtotal: order.totalAmount,
+          discount: 0,
+          tax: order.totalAmount * 0.09,
+          total: order.totalAmount * 1.09,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus
+        };
+
+        const result = await sendInvoiceViaEmail(customerEmail, orderDetails, order.restaurantId);
+        if (result.success) {
+          console.log(`[INVOICE] ✅ Email invoice sent successfully to ${customerEmail}`);
+        } else {
+          console.log(`[INVOICE] ⚠️ Email invoice send failed: ${result.message}`);
+        }
       } catch (invoiceError) {
-        // Log error but don't fail the order creation
-        console.error("[INVOICE] Failed to send invoice:", invoiceError.message);
-        // Invoice sending is optional, so we continue
+        console.error("[INVOICE] ❌ Failed to send email invoice:", invoiceError.message);
       }
+    } else if (SAVE_ORDERS && customerPhone && order.id) {
+      // Fallback to WhatsApp if only phone provided
+      try {
+        console.log(`[INVOICE] Attempting to send WhatsApp invoice for order ${order.id} to ${customerPhone}`);
+        console.log(`[INVOICE] Order restaurantId: ${order.restaurantId}`);
+        
+        const orderDetails = {
+          orderNumber: order.orderNumber,
+          createdAt: order.createdAt,
+          tableNumber: order.tableNumber,
+          items: order.items,
+          subtotal: order.totalAmount,
+          discount: 0,
+          tax: order.totalAmount * 0.09,
+          total: order.totalAmount * 1.09,
+          paymentMethod: order.paymentMethod,
+          paymentStatus: order.paymentStatus
+        };
+
+        const result = await sendInvoiceViaWhatsApp(customerPhone, orderDetails, order.restaurantId);
+        if (result.success) {
+          console.log(`[INVOICE] ✅ WhatsApp invoice sent successfully to ${customerPhone}`);
+        } else {
+          console.log(`[INVOICE] ⚠️ WhatsApp invoice send failed: ${result.message}`);
+        }
+      } catch (invoiceError) {
+        console.error("[INVOICE] ❌ Failed to send WhatsApp invoice:", invoiceError.message);
+      }
+    } else {
+      console.log(`[INVOICE] Skipping invoice send - SAVE_ORDERS: ${SAVE_ORDERS}, customerEmail: ${customerEmail}, customerPhone: ${customerPhone}, order.id: ${order.id}`);
     }
 
     res.status(201).json(order);
@@ -319,6 +368,53 @@ router.get("/:id", async (req, res) => {
     }
     res.json(order);
   } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// Download invoice for an order
+router.get("/:id/invoice/download", async (req, res) => {
+  try {
+    if (!SAVE_ORDERS) {
+      return res.status(404).json({ message: "Invoice not available (persistence disabled)" });
+    }
+
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Get restaurant details
+    const restaurant = await Restaurant.findByPk(order.restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Prepare order details for invoice
+    const orderDetails = {
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      tableNumber: order.tableNumber,
+      items: order.items,
+      subtotal: order.totalAmount,
+      discount: 0,
+      tax: order.totalAmount * 0.09,
+      total: order.totalAmount * 1.09,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus
+    };
+
+    // Generate invoice HTML (reuse from invoiceService)
+    const { generateHTMLInvoice } = await import("../services/invoiceService.js");
+    const htmlContent = generateHTMLInvoice(orderDetails, restaurant);
+
+    // Set headers for HTML download
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${order.orderNumber}.html"`);
+    res.send(htmlContent);
+
+  } catch (error) {
+    console.error('[INVOICE DOWNLOAD] Error:', error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

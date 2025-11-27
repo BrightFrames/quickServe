@@ -58,7 +58,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null)
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    localStorage.removeItem('restaurantSlug')
+    localStorage.removeItem('restaurantCode')
+    localStorage.removeItem('restaurantName')
     delete axios.defaults.headers.common['Authorization']
+    
+    // Redirect to login selection page
+    window.location.href = '/login'
   }
 
   return (

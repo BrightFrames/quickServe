@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Tag, Users, Phone } from "lucide-react";
+import { ArrowLeft, CreditCard, Tag, Users, Mail } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
@@ -22,7 +22,7 @@ export const CheckoutPage = () => {
   const [discount, setDiscount] = useState(0);
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitCount, setSplitCount] = useState(2);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "cash" | "card" | "upi" | null
   >(null);
@@ -51,9 +51,14 @@ export const CheckoutPage = () => {
   };
 
   const handlePlaceOrder = async () => {
-    // Validate phone number
-    if (!phoneNumber || phoneNumber.length < 10) {
-      toast.error("Please enter a valid 10-digit phone number");
+    // Validate email
+    if (!email) {
+      toast.error("Please enter your email address for invoice");
+      return;
+    }
+
+    if (!email.includes('@')) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -73,7 +78,7 @@ export const CheckoutPage = () => {
         discount,
         total,
         tableNumber,
-        customerPhone: phoneNumber,
+        customerEmail: email,
         splitBill: splitEnabled,
         splitCount: splitEnabled ? splitCount : undefined,
         promoCode: promoCode || undefined,
@@ -98,7 +103,7 @@ export const CheckoutPage = () => {
         sessionStorage.setItem("pendingOrder", JSON.stringify(orderData));
 
         // Navigate to UPI payment page
-        navigate("/customer/upi-payment");
+        navigate("../upi-payment");
       } else if (paymentMethod === "cash") {
         // Place order immediately for cash payment
         const order = await placeOrder(orderData);
@@ -108,7 +113,7 @@ export const CheckoutPage = () => {
 
         clearCart();
         toast.success("Order placed! Pay at the counter");
-        navigate(`/customer/order-status?orderId=${order.id}`);
+        navigate(`../order-status?orderId=${order.id}`);
       } else if (paymentMethod === "card") {
         // Place order immediately for card payment
         const order = await placeOrder(orderData);
@@ -118,7 +123,7 @@ export const CheckoutPage = () => {
 
         clearCart();
         toast.success("Order placed! Pay with card at the counter");
-        navigate(`/customer/order-status?orderId=${order.id}`);
+        navigate(`../order-status?orderId=${order.id}`);
       }
     } catch (error) {
       console.error("Order placement failed:", error);
@@ -143,7 +148,7 @@ export const CheckoutPage = () => {
       setShowWhatsAppModal(false);
       
       toast.success('Order placed successfully!');
-      navigate(`/customer/order-status?orderId=${order.id}`);
+      navigate(`../order-status?orderId=${order.id}`);
     } catch (error) {
       console.error('Order placement failed:', error);
       toast.error('Failed to place order. Please try again.');
@@ -158,7 +163,7 @@ export const CheckoutPage = () => {
         <div className="text-center space-y-4">
           <h2 className="text-2xl font-bold">Your cart is empty</h2>
           <p className="text-muted-foreground">Add some items to get started</p>
-          <Button onClick={() => navigate("/customer/menu")}>View Menu</Button>
+          <Button onClick={() => navigate("../menu")}>View Menu</Button>
         </div>
       </div>
     );
@@ -172,7 +177,7 @@ export const CheckoutPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/customer/menu")}
+            onClick={() => navigate("../menu")}
             className="rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -228,29 +233,25 @@ export const CheckoutPage = () => {
           )}
         </Card>
 
-        {/* Phone Number for Invoice */}
+        {/* Contact Details for Invoice */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Phone className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">Contact Details</h2>
+            <Mail className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold">Email for Invoice</h2>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
+            <Label htmlFor="email">Email Address *</Label>
             <Input
-              id="phone"
-              type="tel"
-              placeholder="Enter 10-digit mobile number"
-              value={phoneNumber}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                setPhoneNumber(value);
-              }}
-              maxLength={10}
+              id="email"
+              type="email"
+              placeholder="your.email@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="h-12"
               required
             />
             <p className="text-sm text-muted-foreground">
-              Invoice will be sent to this number via SMS
+              📧 Invoice will be sent to this email address
             </p>
           </div>
         </Card>
@@ -347,7 +348,7 @@ export const CheckoutPage = () => {
           onClick={handlePlaceOrder}
           size="lg"
           className="w-full h-14 text-base"
-          disabled={loading || processingPayment || !paymentMethod || phoneNumber.length < 10}
+          disabled={loading || processingPayment || !paymentMethod || !email || !email.includes('@')}
         >
           {processingPayment
             ? "Processing..."

@@ -123,6 +123,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRestaurant(null);
     localStorage.removeItem('restaurant_token');
     localStorage.removeItem('restaurant_data');
+    
+    // Redirect to landing page
+    window.location.href = '/';
   };
 
   return (

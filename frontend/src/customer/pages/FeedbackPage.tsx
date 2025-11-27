@@ -13,7 +13,7 @@ export const FeedbackPage = () => {
     
     // Navigate back to menu after 2 seconds
     setTimeout(() => {
-      navigate('/customer/menu');
+      navigate('../menu');
     }, 2000);
   };
 
@@ -25,7 +25,7 @@ export const FeedbackPage = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/customer/menu')}
+            onClick={() => navigate('../menu')}
             className="rounded-full"
           >
             <ArrowLeft className="w-5 h-5" />
