@@ -1,34 +1,26 @@
 import express from "express";
 import { Op } from "sequelize";
-import Order from "../models/Order.js";
-import MenuItem from "../models/MenuItem.js";
-import Table from "../models/Table.js";
-import Restaurant from "../models/Restaurant.js";
 import { optionalRestaurantAuth } from "../middleware/auth.js";
 import { sendInvoiceViaWhatsApp, sendInvoiceViaEmail } from "../services/invoiceService.js";
+import { tenantMiddleware, requireTenant } from "../middleware/tenantMiddleware.js";
+import Restaurant from "../models/Restaurant.js";
 
 const router = express.Router();
+
+// Apply tenant middleware to all routes
+router.use(tenantMiddleware);
+
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
 const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
 
 // Get all active orders (not delivered or cancelled)
-router.get("/active", optionalRestaurantAuth, async (req, res) => {
+router.get("/active", requireTenant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
-      // Orders are not persisted — return empty list when persistence disabled
       return res.json([]);
     }
     
-    const { slug } = req.query;
-    let restaurantId = req.restaurantId;
-    
-    // Resolve restaurant from slug if provided
-    if (slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug } });
-      if (restaurant) {
-        restaurantId = restaurant.id;
-      }
-    }
+    const { Order: TenantOrder } = req.tenant.models;
     
     const whereClause = {
       status: {
@@ -36,14 +28,12 @@ router.get("/active", optionalRestaurantAuth, async (req, res) => {
       },
     };
     
-    if (restaurantId) {
-      whereClause.restaurantId = restaurantId;
-    }
-    
-    const orders = await Order.findAll({
+    const orders = await TenantOrder.findAll({
       where: whereClause,
       order: [['createdAt', 'DESC']],
     });
+    
+    console.log(`[ORDERS] Retrieved ${orders.length} active orders for ${req.tenant.slug}`);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -51,28 +41,16 @@ router.get("/active", optionalRestaurantAuth, async (req, res) => {
 });
 
 // Get all orders
-router.get("/", optionalRestaurantAuth, async (req, res) => {
+router.get("/", requireTenant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
-      // Persistence disabled — no historical orders available
       return res.json([]);
     }
-    const { status, startDate, endDate, tableId, slug } = req.query;
-    let restaurantId = req.restaurantId;
     
-    // Resolve restaurant from slug if provided
-    if (slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug } });
-      if (restaurant) {
-        restaurantId = restaurant.id;
-      }
-    }
+    const { Order: TenantOrder } = req.tenant.models;
+    const { status, startDate, endDate, tableId } = req.query;
     
     const filter = {};
-    
-    if (restaurantId) {
-      filter.restaurantId = restaurantId;
-    }
 
     if (status) {
       filter.status = status;
@@ -88,10 +66,12 @@ router.get("/", optionalRestaurantAuth, async (req, res) => {
       if (endDate) filter.createdAt[Op.lte] = new Date(endDate);
     }
 
-    const orders = await Order.findAll({
+    const orders = await TenantOrder.findAll({
       where: filter,
       order: [['createdAt', 'DESC']],
     });
+    
+    console.log(`[ORDERS] Retrieved ${orders.length} orders for ${req.tenant.slug}`);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -99,12 +79,15 @@ router.get("/", optionalRestaurantAuth, async (req, res) => {
 });
 
 // Get orders by tableId
-router.get("/by-table/:tableId", async (req, res) => {
+router.get("/by-table/:tableId", requireTenant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
-    const orders = await Order.findAll({
+    
+    const { Order: TenantOrder } = req.tenant.models;
+    
+    const orders = await TenantOrder.findAll({
       where: {
         tableId: req.params.tableId,
       },
@@ -117,25 +100,10 @@ router.get("/by-table/:tableId", async (req, res) => {
 });
 
 // Create order
-router.post("/", optionalRestaurantAuth, async (req, res) => {
+router.post("/", requireTenant, async (req, res) => {
   try {
-    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, restaurantId: bodyRestaurantId, slug } =
-      req.body;
-      
-    // Get restaurantId from token, query, body, or resolve from slug
-    let restaurantId = req.restaurantId || bodyRestaurantId || req.query.restaurantId;
-    
-    // Resolve restaurant from slug if provided
-    if (slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug } });
-      if (restaurant) {
-        restaurantId = restaurant.id;
-      }
-    }
-    
-    if (!restaurantId) {
-      return res.status(400).json({ message: "Restaurant ID or slug is required" });
-    }
+    const { Order: TenantOrder, MenuItem: TenantMenuItem, Table: TenantTable } = req.tenant.models;
+    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod } = req.body;
 
     // Validate payment method if provided
     if (paymentMethod && !["cash", "card", "upi"].includes(paymentMethod)) {
@@ -147,34 +115,24 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
     let finalTableNumber = tableNumber;
 
     if (tableId) {
-      // Try to find the table in the database
-      const table = await Table.findOne({ where: { tableId } });
+      const table = await TenantTable.findOne({ where: { tableId } });
       if (table) {
-        // Table exists in database, use its information
         if (!table.isActive) {
-          return res
-            .status(400)
-            .json({ message: `Table ${tableId} is not active` });
+          return res.status(400).json({ message: `Table ${tableId} is not active` });
         }
         finalTableId = table.tableId;
-        // Extract number from tableId (e.g., T1 -> 1, T10 -> 10)
-        finalTableNumber =
-          parseInt(table.tableId.replace(/\D/g, "")) || tableNumber || 1;
+        finalTableNumber = parseInt(table.tableId.replace(/\D/g, "")) || tableNumber || 1;
       } else {
-        // Table doesn't exist in database, but allow order anyway
-        // This handles manual table entry or old orders
         finalTableId = tableId;
-        finalTableNumber =
-          parseInt(tableId.replace(/\D/g, "")) || tableNumber || 1;
+        finalTableNumber = parseInt(tableId.replace(/\D/g, "")) || tableNumber || 1;
       }
     } else {
-      // For backward compatibility, if no tableId provided, use default
       finalTableId = `T${tableNumber || 1}`;
       finalTableNumber = tableNumber || 1;
     }
 
     // Generate order number
-    const count = await Order.count();
+    const count = await TenantOrder.count();
     const orderNumber = `ORD${String(count + 1).padStart(5, "0")}`;
 
     // Calculate total and update inventory
@@ -182,13 +140,9 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
     const orderItems = [];
 
     for (const item of items) {
-      console.log("Processing item:", item);
-      const menuItem = await MenuItem.findByPk(item.menuItemId);
-      console.log("Found menu item:", menuItem);
+      const menuItem = await TenantMenuItem.findByPk(item.menuItemId);
       if (!menuItem) {
-        return res
-          .status(404)
-          .json({ message: `Menu item ${item.name} not found` });
+        return res.status(404).json({ message: `Menu item ${item.name} not found` });
       }
 
       if (!menuItem.available || menuItem.inventoryCount < item.quantity) {
@@ -197,7 +151,6 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
         });
       }
 
-      // Update inventory
       menuItem.inventoryCount -= item.quantity;
       await menuItem.save();
 
@@ -222,46 +175,30 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
       status: "preparing",
       paymentMethod: paymentMethod || "cash",
       paymentStatus: paymentMethod === "upi" ? "pending" : "pending",
-      restaurantId: restaurantId,
     };
 
     let order;
-    // Persist order only when SAVE_ORDERS is enabled. Otherwise keep it transient.
     if (SAVE_ORDERS) {
-      order = await Order.create(orderData);
-      console.log(
-        "Order saved to DB:",
-        order.id,
-        "orderNumber:",
-        order.orderNumber
-      );
+      order = await TenantOrder.create(orderData);
+      console.log(`[ORDERS] ✓ Order saved for ${req.tenant.slug}: ${order.orderNumber}`);
     } else {
-      // Ensure transient order has timestamps
       order = {
         ...orderData,
         id: `temp-${Date.now()}`,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      console.log("Order processing transient (not saved):", order.orderNumber);
+      console.log(`[ORDERS] Order processing transient: ${order.orderNumber}`);
     }
 
     // Emit socket event for new order
     const io = req.app.get("io");
-    console.log("[SOCKET] Emitting new-order event:", {
-      orderNumber: order.orderNumber,
-      tableNumber: order.tableNumber,
-      status: order.status
-    });
+    console.log(`[SOCKET] Emitting new-order for ${req.tenant.slug}:`, order.orderNumber);
     io.emit("new-order", order);
 
     // Send invoice via Email if email provided and order was saved
     if (SAVE_ORDERS && customerEmail && order.id) {
       try {
-        console.log(`[INVOICE] Attempting to send email invoice for order ${order.id} to ${customerEmail}`);
-        console.log(`[INVOICE] Order restaurantId: ${order.restaurantId}`);
-        
-        // Prepare order details for invoice
         const orderDetails = {
           orderNumber: order.orderNumber,
           createdAt: order.createdAt,
@@ -275,21 +212,15 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
           paymentStatus: order.paymentStatus
         };
 
-        const result = await sendInvoiceViaEmail(customerEmail, orderDetails, order.restaurantId);
+        const result = await sendInvoiceViaEmail(customerEmail, orderDetails, req.tenant.restaurant.id);
         if (result.success) {
-          console.log(`[INVOICE] ✅ Email invoice sent successfully to ${customerEmail}`);
-        } else {
-          console.log(`[INVOICE] ⚠️ Email invoice send failed: ${result.message}`);
+          console.log(`[INVOICE] ✅ Email invoice sent to ${customerEmail}`);
         }
       } catch (invoiceError) {
         console.error("[INVOICE] ❌ Failed to send email invoice:", invoiceError.message);
       }
     } else if (SAVE_ORDERS && customerPhone && order.id) {
-      // Fallback to WhatsApp if only phone provided
       try {
-        console.log(`[INVOICE] Attempting to send WhatsApp invoice for order ${order.id} to ${customerPhone}`);
-        console.log(`[INVOICE] Order restaurantId: ${order.restaurantId}`);
-        
         const orderDetails = {
           orderNumber: order.orderNumber,
           createdAt: order.createdAt,
@@ -303,39 +234,36 @@ router.post("/", optionalRestaurantAuth, async (req, res) => {
           paymentStatus: order.paymentStatus
         };
 
-        const result = await sendInvoiceViaWhatsApp(customerPhone, orderDetails, order.restaurantId);
+        const result = await sendInvoiceViaWhatsApp(customerPhone, orderDetails, req.tenant.restaurant.id);
         if (result.success) {
-          console.log(`[INVOICE] ✅ WhatsApp invoice sent successfully to ${customerPhone}`);
-        } else {
-          console.log(`[INVOICE] ⚠️ WhatsApp invoice send failed: ${result.message}`);
+          console.log(`[INVOICE] ✅ WhatsApp invoice sent to ${customerPhone}`);
         }
       } catch (invoiceError) {
         console.error("[INVOICE] ❌ Failed to send WhatsApp invoice:", invoiceError.message);
       }
-    } else {
-      console.log(`[INVOICE] Skipping invoice send - SAVE_ORDERS: ${SAVE_ORDERS}, customerEmail: ${customerEmail}, customerPhone: ${customerPhone}, order.id: ${order.id}`);
     }
 
     res.status(201).json(order);
   } catch (error) {
-    console.error("Error creating order:", error);
+    console.error("[ORDERS] Error creating order:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
 // Update order status
-router.put("/:id/status", async (req, res) => {
+router.put("/:id/status", requireTenant, async (req, res) => {
   try {
+    const { Order: TenantOrder } = req.tenant.models;
     const { status } = req.body;
     let order;
+    
     if (SAVE_ORDERS) {
-      order = await Order.findByPk(req.params.id);
+      order = await TenantOrder.findByPk(req.params.id);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
       await order.update({ status });
     } else {
-      // Persistence disabled — construct a transient order object to emit
       order = {
         id: req.params.id,
         status,
@@ -343,7 +271,7 @@ router.put("/:id/status", async (req, res) => {
       };
     }
 
-    // Emit socket event for order update (transient or persisted)
+    // Emit socket event for order update
     const io = req.app.get("io");
     io.emit("order-updated", order);
 
@@ -354,15 +282,15 @@ router.put("/:id/status", async (req, res) => {
 });
 
 // Get single order
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireTenant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
-      return res
-        .status(404)
-        .json({ message: "Order not found (persistence disabled)" });
+      return res.status(404).json({ message: "Order not found (persistence disabled)" });
     }
 
-    const order = await Order.findByPk(req.params.id);
+    const { Order: TenantOrder } = req.tenant.models;
+    const order = await TenantOrder.findByPk(req.params.id);
+    
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
@@ -373,22 +301,21 @@ router.get("/:id", async (req, res) => {
 });
 
 // Download invoice for an order
-router.get("/:id/invoice/download", async (req, res) => {
+router.get("/:id/invoice/download", requireTenant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.status(404).json({ message: "Invoice not available (persistence disabled)" });
     }
 
-    const order = await Order.findByPk(req.params.id);
+    const { Order: TenantOrder } = req.tenant.models;
+    const order = await TenantOrder.findByPk(req.params.id);
+    
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    // Get restaurant details
-    const restaurant = await Restaurant.findByPk(order.restaurantId);
-    if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
-    }
+    // Use restaurant from tenant context
+    const restaurant = req.tenant.restaurant;
 
     // Prepare order details for invoice
     const orderDetails = {
@@ -404,7 +331,7 @@ router.get("/:id/invoice/download", async (req, res) => {
       paymentStatus: order.paymentStatus
     };
 
-    // Generate invoice HTML (reuse from invoiceService)
+    // Generate invoice HTML
     const { generateHTMLInvoice } = await import("../services/invoiceService.js");
     const htmlContent = generateHTMLInvoice(orderDetails, restaurant);
 

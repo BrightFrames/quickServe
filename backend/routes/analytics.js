@@ -1,13 +1,19 @@
 import express from 'express'
 import { Op } from 'sequelize'
-import sequelize from '../config/database.js'
-import Order from '../models/Order.js'
+import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
 
 const router = express.Router()
 
+// Apply tenant middleware to all routes
+router.use(tenantMiddleware);
+
 // Get analytics
-router.get('/', async (req, res) => {
+router.get('/', requireTenant, async (req, res) => {
   try {
+    const { Order: TenantOrder } = req.tenant.models;
+    const tenantDb = req.tenant.models.Order.sequelize; // Get tenant-specific sequelize instance
+    const schemaName = `tenant_${req.tenant.slug}`;
+    
     const { period = 'today' } = req.query
 
     // Calculate date range
@@ -34,7 +40,7 @@ router.get('/', async (req, res) => {
     const todayEnd = new Date()
     todayEnd.setHours(23, 59, 59, 999)
 
-    const todayOrders = await Order.findAll({
+    const todayOrders = await TenantOrder.findAll({
       where: {
         createdAt: {
           [Op.between]: [todayStart, todayEnd],
@@ -49,9 +55,9 @@ router.get('/', async (req, res) => {
 
     // Last 7 days revenue
     const last7DaysStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    const [last7DaysResult] = await sequelize.query(`
+    const [last7DaysResult] = await tenantDb.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
-      FROM orders
+      FROM "${schemaName}".orders
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
@@ -62,9 +68,9 @@ router.get('/', async (req, res) => {
 
     // Last 30 days revenue
     const last30DaysStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const [last30DaysResult] = await sequelize.query(`
+    const [last30DaysResult] = await tenantDb.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
-      FROM orders
+      FROM "${schemaName}".orders
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
@@ -74,7 +80,7 @@ router.get('/', async (req, res) => {
     const last30DaysRevenue = parseFloat(last30DaysResult[0]?.total) || 0
 
     // Order Analytics
-    const orders = await Order.findAll({
+    const orders = await TenantOrder.findAll({
       where: {
         createdAt: {
           [Op.gte]: startDate,
@@ -90,12 +96,12 @@ router.get('/', async (req, res) => {
     }
 
     // Popular Items - Using raw query for JSONB array processing
-    const [popularItems] = await sequelize.query(`
+    const [popularItems] = await tenantDb.query(`
       SELECT 
         item->>'name' as name,
         SUM((item->>'quantity')::int) as orders,
         SUM((item->>'price')::decimal * (item->>'quantity')::int) as revenue
-      FROM orders, jsonb_array_elements(items) as item
+      FROM "${schemaName}".orders, jsonb_array_elements(items) as item
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
       GROUP BY item->>'name'
@@ -114,9 +120,9 @@ router.get('/', async (req, res) => {
       const dateEnd = new Date(date.setHours(23, 59, 59, 999))
       const dateStr = new Date(dateStart).toISOString().split('T')[0]
 
-      const [dayRevenue] = await sequelize.query(`
+      const [dayRevenue] = await tenantDb.query(`
         SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as revenue
-        FROM orders
+        FROM "${schemaName}".orders
         WHERE "createdAt" >= :startDate
         AND "createdAt" <= :endDate
         AND status != 'cancelled'
@@ -137,6 +143,8 @@ router.get('/', async (req, res) => {
       { status: 'Cancelled', count: orderStats.cancelled },
     ]
 
+    console.log(`[ANALYTICS] Generated analytics for ${req.tenant.slug}`);
+    
     res.json({
       revenue: {
         today: todayRevenue,
@@ -153,7 +161,7 @@ router.get('/', async (req, res) => {
       orderStatusChart,
     })
   } catch (error) {
-    console.error('Analytics error:', error)
+    console.error('[ANALYTICS] Error:', error)
     res.status(500).json({ message: 'Server error', error: error.message })
   }
 })

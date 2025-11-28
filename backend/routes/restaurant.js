@@ -240,12 +240,56 @@ router.get("/info/:restaurantCode", async (req, res) => {
         address: restaurant.address,
         gstNumber: restaurant.gstNumber,
         subscription: restaurant.subscription,
+        paymentAccounts: restaurant.paymentAccounts,
       },
     });
 
   } catch (error) {
     console.error("[RESTAURANT] Info fetch error:", error);
     res.status(500).json({ message: "Failed to fetch restaurant information" });
+  }
+});
+
+// ============================
+// Update Payment Accounts
+// ============================
+router.put("/payment-accounts/:restaurantCode", async (req, res) => {
+  console.log("[RESTAURANT] Update payment accounts request");
+  
+  try {
+    const { restaurantCode } = req.params;
+    const { paymentAccounts } = req.body;
+
+    if (!paymentAccounts) {
+      return res.status(400).json({ 
+        message: "Payment accounts data is required" 
+      });
+    }
+
+    // Find restaurant by code
+    const restaurant = await Restaurant.findOne({ 
+      where: { restaurantCode } 
+    });
+
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Update payment accounts
+    restaurant.set('paymentAccounts', paymentAccounts);
+    restaurant.changed('paymentAccounts', true);
+    await restaurant.save();
+
+    console.log(`[RESTAURANT] ✓ Payment accounts updated for restaurant: ${restaurantCode}`);
+
+    res.json({ 
+      message: "Payment accounts updated successfully",
+      paymentAccounts: restaurant.paymentAccounts
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT] Update payment accounts error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

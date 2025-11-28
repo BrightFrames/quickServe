@@ -2,121 +2,107 @@ import express from 'express'
 import MenuItem from '../models/MenuItem.js'
 import Restaurant from '../models/Restaurant.js'
 import { authenticateRestaurant, optionalRestaurantAuth } from '../middleware/auth.js'
+import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
 
 const router = express.Router()
 
-// Get all menu items (with optional restaurant filter for customer view)
-router.get('/', optionalRestaurantAuth, async (req, res) => {
+// Apply tenant middleware to all routes
+router.use(tenantMiddleware);
+
+// Get all menu items from tenant database
+router.get('/', requireTenant, async (req, res) => {
   try {
-    const { slug } = req.query;
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
     
-    const whereClause = {};
-    
-    // If slug is provided, resolve to restaurantId
-    if (slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug } });
-      if (restaurant) {
-        whereClause.restaurantId = restaurant.id;
-      }
-    } else if (req.restaurantId) {
-      whereClause.restaurantId = req.restaurantId;
-    }
-    
-    const items = await MenuItem.findAll({
-      where: whereClause,
+    const items = await TenantMenuItem.findAll({
       order: [['category', 'ASC'], ['name', 'ASC']],
-    })
-    res.json(items)
+    });
+    
+    console.log(`[MENU] Retrieved ${items.length} items for ${req.tenant.slug}`);
+    res.json(items);
   } catch (error) {
     console.error('[MENU] Error fetching menu items:', error);
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 // Get single menu item
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireTenant, async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id)
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
+    const item = await TenantMenuItem.findByPk(req.params.id);
+    
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' })
+      return res.status(404).json({ message: 'Item not found' });
     }
-    res.json(item)
+    res.json(item);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 // Create menu item
-router.post('/', async (req, res) => {
+router.post('/', requireTenant, async (req, res) => {
   try {
-    console.log('[MENU] Create menu item request:', req.body);
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
+    console.log('[MENU] Create menu item request for:', req.tenant.slug);
     
-    let restaurantId = req.body.restaurantId;
-    
-    // If slug is provided instead of restaurantId, resolve it
-    if (req.body.slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug: req.body.slug } });
-      if (restaurant) {
-        restaurantId = restaurant.id;
-      }
-    }
-    
-    // Validate restaurantId is provided or resolved
-    if (!restaurantId) {
-      console.error('[MENU] restaurantId or slug is required');
-      return res.status(400).json({ message: 'restaurantId or slug is required to create menu item' });
-    }
-    
-    const item = await MenuItem.create({ ...req.body, restaurantId })
-    console.log('[MENU] Menu item created:', item.id);
-    res.status(201).json(item)
+    const item = await TenantMenuItem.create(req.body);
+    console.log('[MENU] ✓ Menu item created:', item.name);
+    res.status(201).json(item);
   } catch (error) {
     console.error('[MENU] Error creating menu item:', error);
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 // Update menu item
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireTenant, async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id)
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
+    const item = await TenantMenuItem.findByPk(req.params.id);
+    
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' })
+      return res.status(404).json({ message: 'Item not found' });
     }
-    await item.update(req.body)
-    res.json(item)
+    await item.update(req.body);
+    res.json(item);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 // Update inventory
-router.put('/:id/inventory', async (req, res) => {
+router.put('/:id/inventory', requireTenant, async (req, res) => {
   try {
-    const { inventoryCount } = req.body
-    const item = await MenuItem.findByPk(req.params.id)
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
+    const { inventoryCount } = req.body;
+    const item = await TenantMenuItem.findByPk(req.params.id);
+    
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' })
+      return res.status(404).json({ message: 'Item not found' });
     }
-    await item.update({ inventoryCount })
-    res.json(item)
+    await item.update({ inventoryCount });
+    res.json(item);
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 // Delete menu item
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireTenant, async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id)
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
+    const item = await TenantMenuItem.findByPk(req.params.id);
+    
     if (!item) {
-      return res.status(404).json({ message: 'Item not found' })
+      return res.status(404).json({ message: 'Item not found' });
     }
-    await item.destroy()
-    res.json({ message: 'Item deleted successfully' })
+    await item.destroy();
+    res.json({ message: 'Item deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message })
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
-})
+});
 
 export default router

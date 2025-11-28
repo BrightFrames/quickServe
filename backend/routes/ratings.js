@@ -1,21 +1,21 @@
 import express from "express";
 import { Op } from "sequelize";
-import sequelize from "../config/database.js";
-import Rating from "../models/Rating.js";
-import Order from "../models/Order.js";
-import MenuItem from "../models/MenuItem.js";
+import { tenantMiddleware, requireTenant } from "../middleware/tenantMiddleware.js";
 
 const router = express.Router();
+
+// Apply tenant middleware to all routes
+router.use(tenantMiddleware);
 
 // ============================
 // Create Rating
 // ============================
-router.post("/", async (req, res) => {
+router.post("/", requireTenant, async (req, res) => {
   try {
-    const { orderId, customerId, customerPhone, rating, review, itemRatings } =
-      req.body;
+    const { Rating: TenantRating, Order: TenantOrder, MenuItem: TenantMenuItem } = req.tenant.models;
+    const { orderId, customerId, customerPhone, rating, review, itemRatings } = req.body;
 
-    console.log("[RATING] New rating submission:", {
+    console.log(`[RATING] New rating submission for ${req.tenant.slug}:`, {
       orderId,
       rating,
       customerId,
@@ -23,34 +23,28 @@ router.post("/", async (req, res) => {
 
     // Validate required fields
     if (!orderId || !rating) {
-      return res
-        .status(400)
-        .json({ message: "Order ID and rating are required" });
+      return res.status(400).json({ message: "Order ID and rating are required" });
     }
 
     // Validate rating range
     if (rating < 1 || rating > 5) {
-      return res
-        .status(400)
-        .json({ message: "Rating must be between 1 and 5" });
+      return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
     // Check if order exists
-    const order = await Order.findByPk(orderId);
+    const order = await TenantOrder.findByPk(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
     // Check if rating already exists for this order
-    const existingRating = await Rating.findOne({ where: { orderId } });
+    const existingRating = await TenantRating.findOne({ where: { orderId } });
     if (existingRating) {
-      return res
-        .status(400)
-        .json({ message: "Rating already submitted for this order" });
+      return res.status(400).json({ message: "Rating already submitted for this order" });
     }
 
     // Create new rating
-    const newRating = await Rating.create({
+    const newRating = await TenantRating.create({
       orderId,
       orderNumber: order.orderNumber,
       customerId: customerId || null,
@@ -69,33 +63,20 @@ router.post("/", async (req, res) => {
       for (const item of order.items) {
         if (item.menuItemId) {
           try {
-            const menuItem = await MenuItem.findByPk(item.menuItemId);
+            const menuItem = await TenantMenuItem.findByPk(item.menuItemId);
 
             if (menuItem) {
-              // Add the rating to the sum and increment count
               menuItem.ratingSum = (menuItem.ratingSum || 0) + rating;
               menuItem.totalRatings = (menuItem.totalRatings || 0) + 1;
-
-              // Calculate new average
-              menuItem.averageRating =
-                menuItem.ratingSum / menuItem.totalRatings;
-
+              menuItem.averageRating = menuItem.ratingSum / menuItem.totalRatings;
               await menuItem.save();
 
               console.log(
-                `[RATING] ✓ Updated rating for "${
-                  menuItem.name
-                }": ${parseFloat(menuItem.averageRating).toFixed(2)} (${
-                  menuItem.totalRatings
-                } ratings)`
+                `[RATING] ✓ Updated rating for "${menuItem.name}": ${parseFloat(menuItem.averageRating).toFixed(2)} (${menuItem.totalRatings} ratings)`
               );
             }
           } catch (itemError) {
-            console.error(
-              `[RATING] Error updating rating for item ${item.menuItemId}:`,
-              itemError
-            );
-            // Continue with other items even if one fails
+            console.error(`[RATING] Error updating rating for item ${item.menuItemId}:`, itemError);
           }
         }
       }
@@ -131,19 +112,18 @@ router.post("/", async (req, res) => {
 // ============================
 // Get Ratings for an Order
 // ============================
-router.get("/order/:orderId", async (req, res) => {
+router.get("/order/:orderId", requireTenant, async (req, res) => {
   try {
+    const { Rating: TenantRating, Order: TenantOrder } = req.tenant.models;
     const { orderId } = req.params;
 
-    const rating = await Rating.findOne({ 
+    const rating = await TenantRating.findOne({ 
       where: { orderId },
-      include: [{ model: Order }],
+      include: [{ model: TenantOrder }],
     });
 
     if (!rating) {
-      return res
-        .status(404)
-        .json({ message: "No rating found for this order" });
+      return res.status(404).json({ message: "No rating found for this order" });
     }
 
     res.json(rating);
@@ -156,8 +136,9 @@ router.get("/order/:orderId", async (req, res) => {
 // ============================
 // Get All Ratings (for Admin)
 // ============================
-router.get("/", async (req, res) => {
+router.get("/", requireTenant, async (req, res) => {
   try {
+    const { Rating: TenantRating, Order: TenantOrder } = req.tenant.models;
     const { minRating, maxRating, startDate, endDate, limit = 50 } = req.query;
 
     const filter = {};
@@ -176,13 +157,14 @@ router.get("/", async (req, res) => {
       if (endDate) filter.createdAt[Op.lte] = new Date(endDate);
     }
 
-    const ratings = await Rating.findAll({
+    const ratings = await TenantRating.findAll({
       where: filter,
-      include: [{ model: Order }],
+      include: [{ model: TenantOrder }],
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit),
     });
 
+    console.log(`[RATING] Retrieved ${ratings.length} ratings for ${req.tenant.slug}`);
     res.json(ratings);
   } catch (error) {
     console.error("[RATING] Error fetching ratings:", error);
@@ -193,9 +175,13 @@ router.get("/", async (req, res) => {
 // ============================
 // Get Rating Statistics
 // ============================
-router.get("/stats", async (req, res) => {
+router.get("/stats", requireTenant, async (req, res) => {
   try {
-    const [results] = await sequelize.query(`
+    const { Rating: TenantRating } = req.tenant.models;
+    const tenantDb = TenantRating.sequelize;
+    const schemaName = `tenant_${req.tenant.slug}`;
+
+    const [results] = await tenantDb.query(`
       SELECT 
         AVG(rating)::float as "averageRating",
         COUNT(*)::int as "totalRatings",
@@ -204,7 +190,7 @@ router.get("/stats", async (req, res) => {
         SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END)::int as "threeStars",
         SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END)::int as "twoStars",
         SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END)::int as "oneStar"
-      FROM ratings
+      FROM "${schemaName}".ratings
     `);
 
     res.json(
@@ -227,11 +213,12 @@ router.get("/stats", async (req, res) => {
 // ============================
 // Get Menu Item Rating
 // ============================
-router.get("/menu-item/:menuItemId", async (req, res) => {
+router.get("/menu-item/:menuItemId", requireTenant, async (req, res) => {
   try {
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
     const { menuItemId } = req.params;
 
-    const menuItem = await MenuItem.findByPk(menuItemId);
+    const menuItem = await TenantMenuItem.findByPk(menuItemId);
 
     if (!menuItem) {
       return res.status(404).json({ message: "Menu item not found" });
@@ -252,11 +239,12 @@ router.get("/menu-item/:menuItemId", async (req, res) => {
 // ============================
 // Get Top Rated Menu Items
 // ============================
-router.get("/menu-items/top-rated", async (req, res) => {
+router.get("/menu-items/top-rated", requireTenant, async (req, res) => {
   try {
+    const { MenuItem: TenantMenuItem } = req.tenant.models;
     const { limit = 10, minRatings = 1 } = req.query;
 
-    const topRatedItems = await MenuItem.findAll({
+    const topRatedItems = await TenantMenuItem.findAll({
       where: {
         totalRatings: {
           [Op.gte]: parseInt(minRatings),

@@ -8,6 +8,7 @@ import {
   TrendingUp,
   QrCode,
   Building2,
+  Wallet,
 } from "lucide-react";
 import Dashboard from "../components/admin/Dashboard";
 import MenuManagement from "../components/admin/MenuManagement";
@@ -15,9 +16,10 @@ import InventoryManagement from "../components/admin/InventoryManagement";
 import UserManagement from "../components/admin/UserManagement";
 import TableManagement from "../components/admin/TableManagement";
 import RestaurantInfo from "../components/admin/RestaurantInfo";
+import PaymentSettings from "../components/admin/PaymentSettings";
 import axios from "axios";
 
-type Tab = "dashboard" | "menu" | "inventory" | "users" | "tables" | "info";
+type Tab = "dashboard" | "menu" | "inventory" | "users" | "tables" | "info" | "payment";
 
 const AdminHome = () => {
   const { logout, user } = useAuth();
@@ -60,6 +62,7 @@ const AdminHome = () => {
     { id: "tables" as Tab, name: "Table Management", icon: QrCode },
     { id: "users" as Tab, name: "Kitchen Staff", icon: Users },
     { id: "info" as Tab, name: "Restaurant Info", icon: Building2 },
+    { id: "payment" as Tab, name: "Payment Settings", icon: Wallet },
   ];
 
   return (
@@ -141,6 +144,7 @@ const AdminHome = () => {
           {activeTab === "tables" && <TableManagement />}
           {activeTab === "users" && <UserManagement />}
           {activeTab === "info" && <RestaurantInfo />}
+          {activeTab === "payment" && <PaymentSettings />}
         </div>
       </div>
     </div>

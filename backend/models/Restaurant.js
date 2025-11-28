@@ -76,6 +76,21 @@ const Restaurant = sequelize.define('Restaurant', {
       timezone: 'UTC',
     },
   },
+  paymentAccounts: {
+    type: DataTypes.JSONB,
+    defaultValue: {
+      upiId: null,
+      phonePeMerchantId: null,
+      bankAccount: {
+        accountNumber: null,
+        ifscCode: null,
+        accountHolderName: null,
+        bankName: null,
+      },
+      paytmMerchantId: null,
+      razorpayKeyId: null,
+    },
+  },
   subscription: {
     type: DataTypes.JSONB,
     defaultValue: {
