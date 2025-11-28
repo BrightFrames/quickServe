@@ -40,7 +40,10 @@ const AdminHome = () => {
 
   const fetchLowStockCount = async () => {
     try {
-      const response = await axios.get('/api/menu');
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) return;
+      
+      const response = await axios.get(`/api/menu?slug=${slug}`);
       const items = response.data;
       const lowStock = items.filter(
         (item: any) => item.inventoryCount <= item.lowStockThreshold

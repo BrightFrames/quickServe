@@ -44,7 +44,13 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/users/kitchen`);
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        console.error('Restaurant slug not found');
+        return;
+      }
+      
+      const response = await axios.get(`${apiUrl}/api/users/kitchen?slug=${slug}`);
       setUsers(response.data);
     } catch (error) {
       toast.error("Failed to fetch kitchen users");
@@ -56,11 +62,17 @@ const UserManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error('Restaurant slug is missing');
+        return;
+      }
+      
       if (editingUser?.id) {
-        await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData);
+        await axios.put(`${apiUrl}/api/users/${editingUser.id}?slug=${slug}`, formData);
         toast.success("User updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/users/kitchen`, formData);
+        await axios.post(`${apiUrl}/api/users/kitchen?slug=${slug}`, formData);
         toast.success("User added successfully");
       }
       fetchUsers();
@@ -74,7 +86,13 @@ const UserManagement = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await axios.delete(`/api/users/${id}`);
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error('Restaurant slug is missing');
+        return;
+      }
+      
+      await axios.delete(`/api/users/${id}?slug=${slug}`);
       toast.success("User deleted successfully");
       fetchUsers();
     } catch (error) {
@@ -119,7 +137,13 @@ const UserManagement = () => {
     }
 
     try {
-      await axios.put(`${apiUrl}/api/users/${passwordChangeUser?.id}`, {
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error('Restaurant slug is missing');
+        return;
+      }
+      
+      await axios.put(`${apiUrl}/api/users/${passwordChangeUser?.id}?slug=${slug}`, {
         username: passwordChangeUser?.username,
         role: passwordChangeUser?.role,
         password: newPassword,

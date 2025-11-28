@@ -2,23 +2,21 @@ import express from 'express'
 import MenuItem from '../models/MenuItem.js'
 import Restaurant from '../models/Restaurant.js'
 import { authenticateRestaurant, optionalRestaurantAuth } from '../middleware/auth.js'
-import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
+// import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
 
 const router = express.Router()
 
-// Apply tenant middleware to all routes
-router.use(tenantMiddleware);
+// TEMPORARILY DISABLED: Apply tenant middleware to all routes
+// router.use(tenantMiddleware);
 
-// Get all menu items from tenant database
-router.get('/', requireTenant, async (req, res) => {
+// Get all menu items
+router.get('/', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
-    
-    const items = await TenantMenuItem.findAll({
+    const items = await MenuItem.findAll({
       order: [['category', 'ASC'], ['name', 'ASC']],
     });
     
-    console.log(`[MENU] Retrieved ${items.length} items for ${req.tenant.slug}`);
+    console.log(`[MENU] Retrieved ${items.length} items`);
     res.json(items);
   } catch (error) {
     console.error('[MENU] Error fetching menu items:', error);
@@ -27,10 +25,9 @@ router.get('/', requireTenant, async (req, res) => {
 });
 
 // Get single menu item
-router.get('/:id', requireTenant, async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
-    const item = await TenantMenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findByPk(req.params.id);
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -42,12 +39,11 @@ router.get('/:id', requireTenant, async (req, res) => {
 });
 
 // Create menu item
-router.post('/', requireTenant, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
-    console.log('[MENU] Create menu item request for:', req.tenant.slug);
+    console.log('[MENU] Create menu item request');
     
-    const item = await TenantMenuItem.create(req.body);
+    const item = await MenuItem.create(req.body);
     console.log('[MENU] ✓ Menu item created:', item.name);
     res.status(201).json(item);
   } catch (error) {
@@ -57,10 +53,9 @@ router.post('/', requireTenant, async (req, res) => {
 });
 
 // Update menu item
-router.put('/:id', requireTenant, async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
-    const item = await TenantMenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findByPk(req.params.id);
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -73,11 +68,10 @@ router.put('/:id', requireTenant, async (req, res) => {
 });
 
 // Update inventory
-router.put('/:id/inventory', requireTenant, async (req, res) => {
+router.put('/:id/inventory', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
     const { inventoryCount } = req.body;
-    const item = await TenantMenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findByPk(req.params.id);
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -90,10 +84,9 @@ router.put('/:id/inventory', requireTenant, async (req, res) => {
 });
 
 // Delete menu item
-router.delete('/:id', requireTenant, async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    const { MenuItem: TenantMenuItem } = req.tenant.models;
-    const item = await TenantMenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findByPk(req.params.id);
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });

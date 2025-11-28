@@ -44,7 +44,13 @@ const Dashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`/api/analytics?period=${period}`)
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        console.error('Restaurant slug not found');
+        return;
+      }
+      
+      const response = await axios.get(`/api/analytics?period=${period}&slug=${slug}`)
       setAnalytics(response.data)
     } catch (error) {
       console.error('Error fetching analytics:', error)

@@ -82,10 +82,10 @@ const MenuManagement = () => {
       const menuData = { ...formData, slug: restaurantSlug };
       
       if (editingItem?.id) {
-        await axios.put(`${apiUrl}/api/menu/${editingItem.id}`, menuData);
+        await axios.put(`${apiUrl}/api/menu/${editingItem.id}?slug=${restaurantSlug}`, menuData);
         toast.success("Menu item updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/menu`, menuData);
+        await axios.post(`${apiUrl}/api/menu?slug=${restaurantSlug}`, menuData);
         toast.success("Menu item added successfully");
       }
       fetchMenuItems();
@@ -100,7 +100,13 @@ const MenuManagement = () => {
     if (!confirm("Are you sure you want to delete this item?")) return;
 
     try {
-      await axios.delete(`${apiUrl}/api/menu/${id}`);
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error("Restaurant slug is missing");
+        return;
+      }
+      
+      await axios.delete(`${apiUrl}/api/menu/${id}?slug=${slug}`);
       toast.success("Menu item deleted successfully");
       fetchMenuItems();
     } catch (error) {
@@ -110,7 +116,13 @@ const MenuManagement = () => {
 
   const toggleAvailability = async (item: MenuItem) => {
     try {
-      await axios.put(`${apiUrl}/api/menu/${item.id}`, {
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error("Restaurant slug is missing");
+        return;
+      }
+      
+      await axios.put(`${apiUrl}/api/menu/${item.id}?slug=${slug}`, {
         ...item,
         available: !item.available,
       });
@@ -123,7 +135,13 @@ const MenuManagement = () => {
 
   const updateInventory = async (id: string, count: number) => {
     try {
-      await axios.put(`/api/menu/${id}/inventory`, { inventoryCount: count });
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error("Restaurant slug is missing");
+        return;
+      }
+      
+      await axios.put(`/api/menu/${id}/inventory?slug=${slug}`, { inventoryCount: count });
       toast.success("Inventory updated");
       fetchMenuItems();
     } catch (error) {

@@ -33,7 +33,13 @@ const InventoryManagement = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/menu`)
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        console.error('Restaurant slug not found');
+        return;
+      }
+      
+      const response = await axios.get(`${apiUrl}/api/menu?slug=${slug}`)
       const fetchedItems = response.data
       setItems(fetchedItems)
       
