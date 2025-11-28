@@ -64,6 +64,12 @@ const UserManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error('Restaurant slug is missing');
+        return;
+      }
+      
       if (editingUser?.id) {
         await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData, getAxiosConfig());
         toast.success("User updated successfully");
@@ -127,7 +133,13 @@ const UserManagement = () => {
     }
 
     try {
-      await axios.put(`${apiUrl}/api/users/${passwordChangeUser?.id}`, {
+      const slug = localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error('Restaurant slug is missing');
+        return;
+      }
+      
+      await axios.put(`${apiUrl}/api/users/${passwordChangeUser?.id}?slug=${slug}`, {
         username: passwordChangeUser?.username,
         role: passwordChangeUser?.role,
         password: newPassword,

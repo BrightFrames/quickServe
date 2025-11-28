@@ -116,7 +116,13 @@ const MenuManagement = () => {
 
   const toggleAvailability = async (item: MenuItem) => {
     try {
-      await axios.put(`${apiUrl}/api/menu/${item.id}`, {
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error("Restaurant slug is missing");
+        return;
+      }
+      
+      await axios.put(`${apiUrl}/api/menu/${item.id}?slug=${slug}`, {
         ...item,
         available: !item.available,
       });
@@ -129,7 +135,13 @@ const MenuManagement = () => {
 
   const updateInventory = async (id: string, count: number) => {
     try {
-      await axios.put(`/api/menu/${id}/inventory`, { inventoryCount: count });
+      const slug = restaurantSlug || localStorage.getItem('restaurantSlug');
+      if (!slug) {
+        toast.error("Restaurant slug is missing");
+        return;
+      }
+      
+      await axios.put(`/api/menu/${id}/inventory?slug=${slug}`, { inventoryCount: count });
       toast.success("Inventory updated");
       fetchMenuItems();
     } catch (error) {

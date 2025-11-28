@@ -53,7 +53,7 @@ const Dashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/analytics?period=${period}`, getAxiosConfig())
+      const response = await axios.get(`/api/analytics?period=${period}`)
       setAnalytics(response.data)
     } catch (error) {
       console.error('Error fetching analytics:', error)

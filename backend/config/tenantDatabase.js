@@ -103,11 +103,11 @@ export async function createTenantSchema(restaurantSlug) {
 export async function initializeTenantDatabase(restaurantSlug, tenantDb) {
   try {
     // Import models dynamically for this tenant
-    const { default: MenuItem } = await import('./models/MenuItem.js');
-    const { default: Order } = await import('./models/Order.js');
-    const { default: Table } = await import('./models/Table.js');
-    const { default: User } = await import('./models/User.js');
-    const { default: Rating } = await import('./models/Rating.js');
+    const { default: MenuItem } = await import('../models/MenuItem.js');
+    const { default: Order } = await import('../models/Order.js');
+    const { default: Table } = await import('../models/Table.js');
+    const { default: User } = await import('../models/User.js');
+    const { default: Rating } = await import('../models/Rating.js');
 
     // Initialize models with tenant connection
     const TenantMenuItem = MenuItem.init(MenuItem.rawAttributes, { sequelize: tenantDb });

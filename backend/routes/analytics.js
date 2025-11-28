@@ -1,19 +1,17 @@
 import express from 'express'
 import { Op } from 'sequelize'
-import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
+import Order from '../models/Order.js'
+import sequelize from '../config/database.js'
+// import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
 
 const router = express.Router()
 
-// Apply tenant middleware to all routes
-router.use(tenantMiddleware);
+// TEMPORARILY DISABLED: Apply tenant middleware to all routes
+// router.use(tenantMiddleware);
 
 // Get analytics
-router.get('/', requireTenant, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const { Order: TenantOrder } = req.tenant.models;
-    const tenantDb = req.tenant.models.Order.sequelize; // Get tenant-specific sequelize instance
-    const schemaName = `tenant_${req.tenant.slug}`;
-    
     const { period = 'today' } = req.query
 
     // Calculate date range
@@ -40,7 +38,7 @@ router.get('/', requireTenant, async (req, res) => {
     const todayEnd = new Date()
     todayEnd.setHours(23, 59, 59, 999)
 
-    const todayOrders = await TenantOrder.findAll({
+    const todayOrders = await Order.findAll({
       where: {
         createdAt: {
           [Op.between]: [todayStart, todayEnd],
@@ -55,9 +53,9 @@ router.get('/', requireTenant, async (req, res) => {
 
     // Last 7 days revenue
     const last7DaysStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    const [last7DaysResult] = await tenantDb.query(`
+    const [last7DaysResult] = await sequelize.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
-      FROM "${schemaName}".orders
+      FROM orders
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
@@ -68,9 +66,9 @@ router.get('/', requireTenant, async (req, res) => {
 
     // Last 30 days revenue
     const last30DaysStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const [last30DaysResult] = await tenantDb.query(`
+    const [last30DaysResult] = await sequelize.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
-      FROM "${schemaName}".orders
+      FROM orders
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
@@ -80,7 +78,7 @@ router.get('/', requireTenant, async (req, res) => {
     const last30DaysRevenue = parseFloat(last30DaysResult[0]?.total) || 0
 
     // Order Analytics
-    const orders = await TenantOrder.findAll({
+    const orders = await Order.findAll({
       where: {
         createdAt: {
           [Op.gte]: startDate,
@@ -96,12 +94,12 @@ router.get('/', requireTenant, async (req, res) => {
     }
 
     // Popular Items - Using raw query for JSONB array processing
-    const [popularItems] = await tenantDb.query(`
+    const [popularItems] = await sequelize.query(`
       SELECT 
         item->>'name' as name,
         SUM((item->>'quantity')::int) as orders,
         SUM((item->>'price')::decimal * (item->>'quantity')::int) as revenue
-      FROM "${schemaName}".orders, jsonb_array_elements(items) as item
+      FROM orders, jsonb_array_elements(items) as item
       WHERE "createdAt" >= :startDate
       AND status != 'cancelled'
       GROUP BY item->>'name'
@@ -120,9 +118,9 @@ router.get('/', requireTenant, async (req, res) => {
       const dateEnd = new Date(date.setHours(23, 59, 59, 999))
       const dateStr = new Date(dateStart).toISOString().split('T')[0]
 
-      const [dayRevenue] = await tenantDb.query(`
+      const [dayRevenue] = await sequelize.query(`
         SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as revenue
-        FROM "${schemaName}".orders
+        FROM orders
         WHERE "createdAt" >= :startDate
         AND "createdAt" <= :endDate
         AND status != 'cancelled'
@@ -143,7 +141,7 @@ router.get('/', requireTenant, async (req, res) => {
       { status: 'Cancelled', count: orderStats.cancelled },
     ]
 
-    console.log(`[ANALYTICS] Generated analytics for ${req.tenant.slug}`);
+    console.log('[ANALYTICS] Generated analytics');
     
     res.json({
       revenue: {
