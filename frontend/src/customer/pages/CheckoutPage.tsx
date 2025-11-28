@@ -91,19 +91,50 @@ export const CheckoutPage = () => {
 
       // Handle different payment methods
       if (paymentMethod === "upi") {
-        // For UPI: Don't place order yet, just initiate payment
-        // We'll create a temporary order reference
-
-        toast.info("Redirecting to UPI payment...", {
-          description: "Complete payment to place your order",
-          duration: 3000,
+        // PhonePe Payment Gateway Integration
+        toast.info("Initiating PhonePe payment...", {
+          description: "You will be redirected to PhonePe",
+          duration: 2000,
         });
 
-        // Store order data temporarily
-        sessionStorage.setItem("pendingOrder", JSON.stringify(orderData));
+        // First create the order
+        const order = await placeOrder({
+          ...orderData,
+          paymentStatus: "pending",
+        });
 
-        // Navigate to UPI payment page
-        navigate("../upi-payment");
+        // Initiate PhonePe payment
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+          const phonePeResponse = await fetch(`${API_BASE_URL}/api/payment/phonepe/initiate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderId: order.id,
+              amount: total,
+              restaurantId: order.restaurantId,
+              customerPhone: "9999999999", // You can add phone field if needed
+              customerName: "Customer",
+              customerEmail: email,
+            }),
+          });
+
+          const phonePeData = await phonePeResponse.json();
+
+          if (phonePeData.success && phonePeData.paymentUrl) {
+            // Redirect to PhonePe payment page
+            window.location.href = phonePeData.paymentUrl;
+          } else {
+            throw new Error(phonePeData.message || 'Failed to initiate payment');
+          }
+        } catch (phonepeError) {
+          console.error('PhonePe payment error:', phonepeError);
+          toast.error("Payment initiation failed. Please try again.");
+          // Update order status to failed
+          await paymentService.updatePaymentStatus(order.id, "upi", "failed");
+        }
       } else if (paymentMethod === "cash") {
         // Place order immediately for cash payment
         const order = await placeOrder(orderData);

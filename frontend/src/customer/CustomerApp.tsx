@@ -24,6 +24,9 @@ const OrderStatusPage = lazy(() =>
 const FeedbackPage = lazy(() =>
   import("./pages/FeedbackPage").then((m) => ({ default: m.FeedbackPage }))
 );
+const PaymentCallbackPage = lazy(() =>
+  import("./pages/PaymentCallbackPage").then((m) => ({ default: m.default }))
+);
 
 // Loading component for page transitions
 const PageLoader = () => (
@@ -41,6 +44,7 @@ export const CustomerApp = () => {
         <Route path="menu/table/:tableNumber" element={<MenuPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
         <Route path="upi-payment" element={<UpiPaymentPage />} />
+        <Route path="payment/callback" element={<PaymentCallbackPage />} />
         <Route path="order-status" element={<OrderStatusPage />} />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="landing" element={<LandingPage />} />

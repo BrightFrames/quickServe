@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 
 // Shared Components
 import LoadingScreen from './shared/components/LoadingScreen';
-import DashboardAccessGuard from './shared/components/DashboardAccessGuard';
 
 // Landing Pages
 import LandingPage from './landing/pages/LandingPage';
@@ -168,15 +167,13 @@ function App() {
             }
           />
 
-          {/* Restaurant Dashboard - Protected with password */}
+          {/* Restaurant Dashboard - No authentication needed */}
           <Route 
             path="/:restaurantSlug/dashboard" 
             element={
-              <DashboardAccessGuard>
-                <LandingAuthProvider>
-                  <Dashboard />
-                </LandingAuthProvider>
-              </DashboardAccessGuard>
+              <LandingAuthProvider>
+                <Dashboard />
+              </LandingAuthProvider>
             } 
           />
 
