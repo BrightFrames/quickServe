@@ -55,6 +55,15 @@ const Restaurant = sequelize.define('Restaurant', {
       is: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i, // GST format validation
     },
   },
+  taxPercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+    defaultValue: 5.00, // Default 5% tax
+    validate: {
+      min: 0,
+      max: 100,
+    },
+  },
   // Temporarily commented out - column not in database yet
   // customerAccessCode: {
   //   type: DataTypes.STRING,

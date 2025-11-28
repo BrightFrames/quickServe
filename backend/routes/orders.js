@@ -2,25 +2,29 @@ import express from "express";
 import { Op } from "sequelize";
 import { optionalRestaurantAuth } from "../middleware/auth.js";
 import { sendInvoiceViaWhatsApp, sendInvoiceViaEmail } from "../services/invoiceService.js";
-import { tenantMiddleware, requireTenant } from "../middleware/tenantMiddleware.js";
+// import { tenantMiddleware } from "../middleware/tenantMiddleware.js";
 import Restaurant from "../models/Restaurant.js";
+import Order from "../models/Order.js";
+import MenuItem from "../models/MenuItem.js";
+import Table from "../models/Table.js";
+import PromoCode from "../models/PromoCode.js";
 
 const router = express.Router();
 
-// Apply tenant middleware to all routes
-router.use(tenantMiddleware);
+// TEMPORARILY DISABLED: Apply tenant middleware to all routes
+// router.use(tenantMiddleware);
 
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
 const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
 
 // Get all active orders (not delivered or cancelled)
-router.get("/active", requireTenant, async (req, res) => {
+router.get("/active", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
     
-    const { Order: TenantOrder } = req.tenant.models;
+    
     
     const whereClause = {
       status: {
@@ -28,12 +32,12 @@ router.get("/active", requireTenant, async (req, res) => {
       },
     };
     
-    const orders = await TenantOrder.findAll({
+    const orders = await Order.findAll({
       where: whereClause,
       order: [['createdAt', 'DESC']],
     });
     
-    console.log(`[ORDERS] Retrieved ${orders.length} active orders for ${req.tenant.slug}`);
+    console.log(`[ORDERS] Retrieved ${orders.length} active orders for ${"single-tenant"}`);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -41,13 +45,13 @@ router.get("/active", requireTenant, async (req, res) => {
 });
 
 // Get all orders
-router.get("/", requireTenant, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
     
-    const { Order: TenantOrder } = req.tenant.models;
+    
     const { status, startDate, endDate, tableId } = req.query;
     
     const filter = {};
@@ -66,12 +70,12 @@ router.get("/", requireTenant, async (req, res) => {
       if (endDate) filter.createdAt[Op.lte] = new Date(endDate);
     }
 
-    const orders = await TenantOrder.findAll({
+    const orders = await Order.findAll({
       where: filter,
       order: [['createdAt', 'DESC']],
     });
     
-    console.log(`[ORDERS] Retrieved ${orders.length} orders for ${req.tenant.slug}`);
+    console.log(`[ORDERS] Retrieved ${orders.length} orders for ${"single-tenant"}`);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -79,15 +83,15 @@ router.get("/", requireTenant, async (req, res) => {
 });
 
 // Get orders by tableId
-router.get("/by-table/:tableId", requireTenant, async (req, res) => {
+router.get("/by-table/:tableId", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
     
-    const { Order: TenantOrder } = req.tenant.models;
     
-    const orders = await TenantOrder.findAll({
+    
+    const orders = await Order.findAll({
       where: {
         tableId: req.params.tableId,
       },
@@ -100,22 +104,26 @@ router.get("/by-table/:tableId", requireTenant, async (req, res) => {
 });
 
 // Create order
-router.post("/", requireTenant, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { Order: TenantOrder, MenuItem: TenantMenuItem, Table: TenantTable } = req.tenant.models;
-    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod } = req.body;
+    
+    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode } = req.body;
 
     // Validate payment method if provided
     if (paymentMethod && !["cash", "card", "upi"].includes(paymentMethod)) {
       return res.status(400).json({ message: "Invalid payment method" });
     }
 
+    // Get restaurant info for tax percentage
+    const restaurant = await Restaurant.findByPk(1); // Single tenant mode
+    const taxPercentage = restaurant?.taxPercentage || 5.0; // Default 5% if not set
+
     // If tableId is provided, verify it exists and get the table info
     let finalTableId = tableId;
     let finalTableNumber = tableNumber;
 
     if (tableId) {
-      const table = await TenantTable.findOne({ where: { tableId } });
+      const table = await Table.findOne({ where: { tableId } });
       if (table) {
         if (!table.isActive) {
           return res.status(400).json({ message: `Table ${tableId} is not active` });
@@ -132,15 +140,15 @@ router.post("/", requireTenant, async (req, res) => {
     }
 
     // Generate order number
-    const count = await TenantOrder.count();
+    const count = await Order.count();
     const orderNumber = `ORD${String(count + 1).padStart(5, "0")}`;
 
-    // Calculate total and update inventory
-    let totalAmount = 0;
+    // Calculate subtotal and update inventory
+    let subtotal = 0;
     const orderItems = [];
 
     for (const item of items) {
-      const menuItem = await TenantMenuItem.findByPk(item.menuItemId);
+      const menuItem = await MenuItem.findByPk(item.menuItemId);
       if (!menuItem) {
         return res.status(404).json({ message: `Menu item ${item.name} not found` });
       }
@@ -154,7 +162,7 @@ router.post("/", requireTenant, async (req, res) => {
       menuItem.inventoryCount -= item.quantity;
       await menuItem.save();
 
-      totalAmount += parseFloat(menuItem.price) * item.quantity;
+      subtotal += parseFloat(menuItem.price) * item.quantity;
       orderItems.push({
         menuItemId: menuItem.id,
         name: menuItem.name,
@@ -164,14 +172,58 @@ router.post("/", requireTenant, async (req, res) => {
       });
     }
 
+    // Validate and apply promo code
+    let discount = 0;
+    let promoCodeApplied = null;
+    if (promoCode) {
+      const promo = await PromoCode.findOne({
+        where: {
+          code: promoCode.toUpperCase(),
+          restaurantId: 1,
+        },
+      });
+
+      if (promo && promo.isValid()) {
+        // Check minimum order amount
+        if (subtotal >= promo.minOrderAmount) {
+          discount = (subtotal * promo.discountPercentage) / 100;
+          promoCodeApplied = {
+            code: promo.code,
+            discountPercentage: parseFloat(promo.discountPercentage),
+            discountAmount: parseFloat(discount.toFixed(2)),
+          };
+          // Increment usage count
+          promo.usedCount += 1;
+          await promo.save();
+        } else {
+          return res.status(400).json({
+            message: `Minimum order amount of ₹${promo.minOrderAmount} required for this promo code`,
+          });
+        }
+      } else {
+        return res.status(400).json({ message: "Invalid or expired promo code" });
+      }
+    }
+
+    // Calculate tax and total
+    const amountAfterDiscount = subtotal - discount;
+    const taxAmount = (amountAfterDiscount * taxPercentage) / 100;
+    const totalAmount = amountAfterDiscount + taxAmount;
+
     const orderData = {
+      restaurantId: 1, // Single tenant mode - use restaurant ID 1
       orderNumber,
       tableId: finalTableId,
       tableNumber: finalTableNumber,
       customerPhone,
       customerEmail,
       items: orderItems,
-      totalAmount,
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      discount: parseFloat(discount.toFixed(2)),
+      promoCode: promoCodeApplied,
+      taxPercentage: parseFloat(taxPercentage),
+      taxAmount: parseFloat(taxAmount.toFixed(2)),
+      totalAmount: parseFloat(totalAmount.toFixed(2)),
       status: "preparing",
       paymentMethod: paymentMethod || "cash",
       paymentStatus: paymentMethod === "upi" ? "pending" : "pending",
@@ -179,8 +231,8 @@ router.post("/", requireTenant, async (req, res) => {
 
     let order;
     if (SAVE_ORDERS) {
-      order = await TenantOrder.create(orderData);
-      console.log(`[ORDERS] ✓ Order saved for ${req.tenant.slug}: ${order.orderNumber}`);
+      order = await Order.create(orderData);
+      console.log(`[ORDERS] ✓ Order saved for ${"single-tenant"}: ${order.orderNumber}`);
     } else {
       order = {
         ...orderData,
@@ -193,7 +245,7 @@ router.post("/", requireTenant, async (req, res) => {
 
     // Emit socket event for new order
     const io = req.app.get("io");
-    console.log(`[SOCKET] Emitting new-order for ${req.tenant.slug}:`, order.orderNumber);
+    console.log(`[SOCKET] Emitting new-order for ${"single-tenant"}:`, order.orderNumber);
     io.emit("new-order", order);
 
     // Send invoice via Email if email provided and order was saved
@@ -212,7 +264,7 @@ router.post("/", requireTenant, async (req, res) => {
           paymentStatus: order.paymentStatus
         };
 
-        const result = await sendInvoiceViaEmail(customerEmail, orderDetails, req.tenant.restaurant.id);
+        const result = await sendInvoiceViaEmail(customerEmail, orderDetails, 1);
         if (result.success) {
           console.log(`[INVOICE] ✅ Email invoice sent to ${customerEmail}`);
         }
@@ -234,7 +286,7 @@ router.post("/", requireTenant, async (req, res) => {
           paymentStatus: order.paymentStatus
         };
 
-        const result = await sendInvoiceViaWhatsApp(customerPhone, orderDetails, req.tenant.restaurant.id);
+        const result = await sendInvoiceViaWhatsApp(customerPhone, orderDetails, 1);
         if (result.success) {
           console.log(`[INVOICE] ✅ WhatsApp invoice sent to ${customerPhone}`);
         }
@@ -251,14 +303,14 @@ router.post("/", requireTenant, async (req, res) => {
 });
 
 // Update order status
-router.put("/:id/status", requireTenant, async (req, res) => {
+router.put("/:id/status", async (req, res) => {
   try {
-    const { Order: TenantOrder } = req.tenant.models;
+    
     const { status } = req.body;
     let order;
     
     if (SAVE_ORDERS) {
-      order = await TenantOrder.findByPk(req.params.id);
+      order = await Order.findByPk(req.params.id);
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -282,14 +334,14 @@ router.put("/:id/status", requireTenant, async (req, res) => {
 });
 
 // Get single order
-router.get("/:id", requireTenant, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.status(404).json({ message: "Order not found (persistence disabled)" });
     }
 
-    const { Order: TenantOrder } = req.tenant.models;
-    const order = await TenantOrder.findByPk(req.params.id);
+    
+    const order = await Order.findByPk(req.params.id);
     
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -301,14 +353,14 @@ router.get("/:id", requireTenant, async (req, res) => {
 });
 
 // Download invoice for an order
-router.get("/:id/invoice/download", requireTenant, async (req, res) => {
+router.get("/:id/invoice/download", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.status(404).json({ message: "Invoice not available (persistence disabled)" });
     }
 
-    const { Order: TenantOrder } = req.tenant.models;
-    const order = await TenantOrder.findByPk(req.params.id);
+    
+    const order = await Order.findByPk(req.params.id);
     
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -342,6 +394,55 @@ router.get("/:id/invoice/download", requireTenant, async (req, res) => {
 
   } catch (error) {
     console.error('[INVOICE DOWNLOAD] Error:', error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// Download PDF invoice
+router.get("/:id/invoice/pdf", async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Get restaurant details
+    const restaurant = await Restaurant.findByPk(order.restaurantId);
+
+    // Prepare order data for PDF
+    const orderData = {
+      orderNumber: order.orderNumber,
+      tableId: order.tableId,
+      customerPhone: order.customerPhone,
+      items: order.items,
+      subtotal: order.subtotal || order.totalAmount,
+      discount: order.discount || 0,
+      promoCode: order.promoCode,
+      taxPercentage: order.taxPercentage || 0,
+      taxAmount: order.taxAmount || 0,
+      totalAmount: order.totalAmount,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      createdAt: order.createdAt,
+      restaurantName: restaurant?.name || 'Restaurant',
+      restaurantAddress: restaurant?.address || '',
+      gstNumber: restaurant?.gstNumber || '',
+    };
+
+    // Import PDF service dynamically
+    const { generateInvoicePDFBuffer } = await import('../services/pdfInvoiceService.js');
+    
+    // Generate PDF buffer
+    const pdfBuffer = await generateInvoicePDFBuffer(orderData);
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="invoice-${order.orderNumber}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error('[PDF INVOICE] Error:', error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

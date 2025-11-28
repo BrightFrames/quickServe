@@ -17,6 +17,7 @@ import ratingRoutes from "./routes/ratings.js";
 import invoiceRoutes from "./routes/invoice.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
 import phonePeRoutes from "./routes/phonepe.js";
+import promoCodeRoutes from "./routes/promoCodes.js";
 
 dotenv.config();
 
@@ -176,6 +177,9 @@ console.log("✓ Customer Auth routes registered at /api/customer-auth");
 
 app.use("/api/payment", phonePeRoutes);
 console.log("✓ PhonePe routes registered at /api/payment");
+
+app.use("/api/promo-codes", promoCodeRoutes);
+console.log("✓ Promo Code routes registered at /api/promo-codes");
 
 // Health check
 app.get("/api/health", (req, res) => {

@@ -368,7 +368,7 @@ router.put("/profile", async (req, res) => {
     }
 
     // Update allowed fields
-    const { phone, address, gstNumber } = req.body;
+    const { phone, address, gstNumber, taxPercentage } = req.body;
     
     if (phone) restaurant.phone = phone;
     if (address) restaurant.address = address;
@@ -378,6 +378,14 @@ router.put("/profile", async (req, res) => {
         return res.status(400).json({ message: "Invalid GST number format" });
       }
       restaurant.gstNumber = gstNumber ? gstNumber.toUpperCase() : null;
+    }
+    if (taxPercentage !== undefined) {
+      // Validate tax percentage range
+      const tax = parseFloat(taxPercentage);
+      if (isNaN(tax) || tax < 0 || tax > 100) {
+        return res.status(400).json({ message: "Tax percentage must be between 0 and 100" });
+      }
+      restaurant.taxPercentage = tax;
     }
 
     await restaurant.save();
@@ -393,6 +401,7 @@ router.put("/profile", async (req, res) => {
         phone: restaurant.phone,
         address: restaurant.address,
         gstNumber: restaurant.gstNumber,
+        taxPercentage: restaurant.taxPercentage,
       },
     });
 

@@ -41,6 +41,27 @@ const Order = sequelize.define('Order', {
     allowNull: false,
     defaultValue: [],
   },
+  subtotal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  discount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0,
+  },
+  promoCode: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
+  taxPercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+  },
+  taxAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
   status: {
     type: DataTypes.ENUM('pending', 'preparing', 'prepared', 'delivered', 'cancelled'),
     defaultValue: 'pending',

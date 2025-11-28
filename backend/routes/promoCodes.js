@@ -1,0 +1,170 @@
+import express from 'express';
+import PromoCode from '../models/PromoCode.js';
+import { Op } from 'sequelize';
+
+const router = express.Router();
+
+// Get all promo codes for the restaurant
+router.get('/', async (req, res) => {
+  try {
+    const restaurantId = 1; // Single tenant mode
+    const promoCodes = await PromoCode.findAll({
+      where: { restaurantId },
+      order: [['createdAt', 'DESC']],
+    });
+    res.json(promoCodes);
+  } catch (error) {
+    console.error('Error fetching promo codes:', error);
+    res.status(500).json({ error: 'Failed to fetch promo codes' });
+  }
+});
+
+// Create new promo code
+router.post('/', async (req, res) => {
+  try {
+    const restaurantId = 1; // Single tenant mode
+    const { code, discountPercentage, validFrom, validTo, maxUses, minOrderAmount } = req.body;
+
+    // Check if code already exists
+    const existing = await PromoCode.findOne({ where: { code: code.toUpperCase() } });
+    if (existing) {
+      return res.status(400).json({ error: 'Promo code already exists' });
+    }
+
+    const promoCode = await PromoCode.create({
+      code,
+      discountPercentage,
+      validFrom: validFrom || null,
+      validTo: validTo || null,
+      maxUses: maxUses || null,
+      minOrderAmount: minOrderAmount || 0,
+      restaurantId,
+    });
+
+    res.status(201).json(promoCode);
+  } catch (error) {
+    console.error('Error creating promo code:', error);
+    res.status(500).json({ error: 'Failed to create promo code' });
+  }
+});
+
+// Update promo code
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = 1; // Single tenant mode
+    const { code, discountPercentage, isActive, validFrom, validTo, maxUses, minOrderAmount } = req.body;
+
+    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    if (!promoCode) {
+      return res.status(404).json({ error: 'Promo code not found' });
+    }
+
+    // Check if new code conflicts with existing
+    if (code && code.toUpperCase() !== promoCode.code) {
+      const existing = await PromoCode.findOne({ where: { code: code.toUpperCase() } });
+      if (existing) {
+        return res.status(400).json({ error: 'Promo code already exists' });
+      }
+    }
+
+    await promoCode.update({
+      code: code || promoCode.code,
+      discountPercentage: discountPercentage !== undefined ? discountPercentage : promoCode.discountPercentage,
+      isActive: isActive !== undefined ? isActive : promoCode.isActive,
+      validFrom: validFrom !== undefined ? validFrom : promoCode.validFrom,
+      validTo: validTo !== undefined ? validTo : promoCode.validTo,
+      maxUses: maxUses !== undefined ? maxUses : promoCode.maxUses,
+      minOrderAmount: minOrderAmount !== undefined ? minOrderAmount : promoCode.minOrderAmount,
+    });
+
+    res.json(promoCode);
+  } catch (error) {
+    console.error('Error updating promo code:', error);
+    res.status(500).json({ error: 'Failed to update promo code' });
+  }
+});
+
+// Delete promo code
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = 1; // Single tenant mode
+
+    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    if (!promoCode) {
+      return res.status(404).json({ error: 'Promo code not found' });
+    }
+
+    await promoCode.destroy();
+    res.json({ message: 'Promo code deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting promo code:', error);
+    res.status(500).json({ error: 'Failed to delete promo code' });
+  }
+});
+
+// Validate promo code (for customer use)
+router.post('/validate', async (req, res) => {
+  try {
+    const { code, orderAmount } = req.body;
+    const restaurantId = 1; // Single tenant mode
+
+    if (!code) {
+      return res.status(400).json({ error: 'Promo code is required' });
+    }
+
+    const promoCode = await PromoCode.findOne({
+      where: {
+        code: code.toUpperCase(),
+        restaurantId,
+      },
+    });
+
+    if (!promoCode) {
+      return res.status(404).json({ error: 'Invalid promo code' });
+    }
+
+    // Check if valid
+    if (!promoCode.isValid()) {
+      return res.status(400).json({ error: 'Promo code is expired or not available' });
+    }
+
+    // Check minimum order amount
+    if (orderAmount < promoCode.minOrderAmount) {
+      return res.status(400).json({
+        error: `Minimum order amount of ₹${promoCode.minOrderAmount} required`,
+      });
+    }
+
+    res.json({
+      valid: true,
+      discountPercentage: promoCode.discountPercentage,
+      code: promoCode.code,
+    });
+  } catch (error) {
+    console.error('Error validating promo code:', error);
+    res.status(500).json({ error: 'Failed to validate promo code' });
+  }
+});
+
+// Toggle promo code active status
+router.patch('/:id/toggle', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = 1; // Single tenant mode
+
+    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    if (!promoCode) {
+      return res.status(404).json({ error: 'Promo code not found' });
+    }
+
+    await promoCode.update({ isActive: !promoCode.isActive });
+    res.json(promoCode);
+  } catch (error) {
+    console.error('Error toggling promo code:', error);
+    res.status(500).json({ error: 'Failed to toggle promo code status' });
+  }
+});
+
+export default router;
