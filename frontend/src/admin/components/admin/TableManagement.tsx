@@ -38,6 +38,12 @@ const TableManagement = () => {
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  });
+
   const [formData, setFormData] = useState({
     tableId: "",
     tableName: "",
@@ -51,7 +57,7 @@ const TableManagement = () => {
 
   const fetchTables = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/tables`);
+      const response = await axios.get(`${apiUrl}/api/tables`, getAxiosConfig());
       setTables(response.data);
     } catch (error: any) {
       toast.error("Failed to fetch tables");
@@ -78,7 +84,7 @@ const TableManagement = () => {
       await axios.post(`${apiUrl}/api/tables`, {
         ...formData,
         restaurantSlug: slug,
-      });
+      }, getAxiosConfig());
       toast.success("Table added successfully");
       setIsAddDialogOpen(false);
       resetForm();
@@ -92,7 +98,7 @@ const TableManagement = () => {
     if (!selectedTable) return;
 
     try {
-      await axios.put(`${apiUrl}/api/tables/${selectedTable.id}`, formData);
+      await axios.put(`${apiUrl}/api/tables/${selectedTable.id}`, formData, getAxiosConfig());
       toast.success("Table updated successfully");
       setIsEditDialogOpen(false);
       setSelectedTable(null);
@@ -107,7 +113,7 @@ const TableManagement = () => {
     if (!selectedTable) return;
 
     try {
-      await axios.delete(`${apiUrl}/api/tables/${selectedTable.id}`);
+      await axios.delete(`${apiUrl}/api/tables/${selectedTable.id}`, getAxiosConfig());
       toast.success("Table deleted successfully");
       setIsDeleteDialogOpen(false);
       setSelectedTable(null);
@@ -121,7 +127,7 @@ const TableManagement = () => {
     try {
       await axios.put(`${apiUrl}/api/tables/${table.id}`, {
         isActive: !table.isActive,
-      });
+      }, getAxiosConfig());
       toast.success(`Table ${table.isActive ? "deactivated" : "activated"}`);
       fetchTables();
     } catch (error: any) {
@@ -136,7 +142,7 @@ const TableManagement = () => {
       
       await axios.post(`${apiUrl}/api/tables/${table.id}/regenerate-qr`, {
         restaurantSlug: slug,
-      });
+      }, getAxiosConfig());
       toast.success("QR code regenerated successfully");
       fetchTables();
     } catch (error: any) {

@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useRestaurant } from "../../context/RestaurantContext";
 
 interface KitchenUser {
   id?: string;
@@ -22,9 +23,16 @@ interface KitchenUser {
 }
 
 const UserManagement = () => {
+  const { restaurantSlug } = useRestaurant();
   const [users, setUsers] = useState<KitchenUser[]>([]);
   const [loading, setLoading] = useState(true);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  });
   const [showForm, setShowForm] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [editingUser, setEditingUser] = useState<KitchenUser | null>(null);
@@ -44,7 +52,7 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/users/kitchen`);
+      const response = await axios.get(`${apiUrl}/api/users/kitchen`, getAxiosConfig());
       setUsers(response.data);
     } catch (error) {
       toast.error("Failed to fetch kitchen users");
@@ -57,10 +65,10 @@ const UserManagement = () => {
     e.preventDefault();
     try {
       if (editingUser?.id) {
-        await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData);
+        await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData, getAxiosConfig());
         toast.success("User updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/users/kitchen`, formData);
+        await axios.post(`${apiUrl}/api/users/kitchen`, formData, getAxiosConfig());
         toast.success("User added successfully");
       }
       fetchUsers();
@@ -74,7 +82,7 @@ const UserManagement = () => {
     if (!confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      await axios.delete(`/api/users/${id}`);
+      await axios.delete(`${apiUrl}/api/users/${id}`, getAxiosConfig());
       toast.success("User deleted successfully");
       fetchUsers();
     } catch (error) {
@@ -123,7 +131,7 @@ const UserManagement = () => {
         username: passwordChangeUser?.username,
         role: passwordChangeUser?.role,
         password: newPassword,
-      });
+      }, getAxiosConfig());
       toast.success("Password changed successfully");
       setShowPasswordChange(false);
       setPasswordChangeUser(null);

@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Building, Phone, Mail, MapPin, FileText, Loader2, Info } from 'lucide-react';
+import { Building, Phone, Mail, MapPin, FileText, Loader2, Info, Edit, Save, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
+import { Input } from '@/shared/ui/input';
+import { Label } from '@/shared/ui/label';
+import { Button } from '@/shared/ui/button';
+import { toast } from 'sonner';
 
 const RestaurantInfo = () => {
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const [restaurantData, setRestaurantData] = useState({
     name: '',
     email: '',
@@ -15,6 +21,12 @@ const RestaurantInfo = () => {
     gstNumber: '',
     restaurantCode: '',
     subscription: { plan: 'Free', startDate: null, endDate: null },
+  });
+  
+  const [editForm, setEditForm] = useState({
+    phone: '',
+    address: '',
+    gstNumber: '',
   });
 
   useEffect(() => {
@@ -44,11 +56,55 @@ const RestaurantInfo = () => {
         restaurantCode: restaurant.restaurantCode || '',
         subscription: restaurant.subscription || { plan: 'free', startDate: null, endDate: null },
       });
+      
+      // Initialize edit form with current data
+      setEditForm({
+        phone: restaurant.phone || '',
+        address: restaurant.address || '',
+        gstNumber: restaurant.gstNumber || '',
+      });
     } catch (error: any) {
       console.error('Error fetching restaurant info:', error);
       setError(error.response?.data?.message || 'Failed to load restaurant information');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    // Reset form to original data
+    setEditForm({
+      phone: restaurantData.phone === 'Not provided' ? '' : restaurantData.phone,
+      address: restaurantData.address === 'Not provided' ? '' : restaurantData.address,
+      gstNumber: restaurantData.gstNumber === 'Not registered' ? '' : restaurantData.gstNumber,
+    });
+    setIsEditing(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const restaurantCode = localStorage.getItem('restaurantCode');
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      
+      await axios.put(`${apiUrl}/api/restaurant/update/${restaurantCode}`, {
+        phone: editForm.phone || null,
+        address: editForm.address || null,
+        gstNumber: editForm.gstNumber || null,
+      });
+      
+      toast.success('Restaurant information updated successfully!');
+      setIsEditing(false);
+      fetchRestaurantInfo(); // Refresh data
+    } catch (error: any) {
+      console.error('Error updating restaurant info:', error);
+      toast.error(error.response?.data?.message || 'Failed to update restaurant information');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -70,12 +126,38 @@ const RestaurantInfo = () => {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          This information is managed by the restaurant owner. Contact them to update details.
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center justify-between">
+        <Alert className="flex-1">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            {isEditing 
+              ? 'Edit your restaurant information below and click Save to update.'
+              : 'You can edit your restaurant information by clicking the Edit button.'}
+          </AlertDescription>
+        </Alert>
+        
+        {!isEditing ? (
+          <Button onClick={handleEdit} className="ml-4">
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        ) : (
+          <div className="flex gap-2 ml-4">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Save
+            </Button>
+            <Button onClick={handleCancel} variant="outline" disabled={saving}>
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* Basic Information */}
       <Card>
@@ -123,21 +205,55 @@ const RestaurantInfo = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Phone className="w-4 h-4" />
-              <span className="font-medium">Phone Number</span>
-            </div>
-            <p className="text-base">{restaurantData.phone}</p>
-          </div>
+          {!isEditing ? (
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Phone className="w-4 h-4" />
+                  <span className="font-medium">Phone Number</span>
+                </div>
+                <p className="text-base">{restaurantData.phone}</p>
+              </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MapPin className="w-4 h-4" />
-              <span className="font-medium">Address</span>
-            </div>
-            <p className="text-base">{restaurantData.address}</p>
-          </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">Address</span>
+                </div>
+                <p className="text-base">{restaurantData.address}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" />
+                  Phone Number
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Address
+                </Label>
+                <Input
+                  id="address"
+                  type="text"
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  placeholder="Enter restaurant address"
+                />
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -150,24 +266,44 @@ const RestaurantInfo = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <FileText className="w-4 h-4" />
-              <span className="font-medium">GST Number</span>
-            </div>
-            <p className="text-base font-mono">
-              {restaurantData.gstNumber === 'Not registered' ? (
-                <span className="text-gray-500 italic">{restaurantData.gstNumber}</span>
-              ) : (
-                restaurantData.gstNumber
-              )}
-            </p>
-            {restaurantData.gstNumber === 'Not registered' && (
-              <p className="text-xs text-gray-500">
-                Ask the restaurant owner to add GST number for invoice generation
+          {!isEditing ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <FileText className="w-4 h-4" />
+                <span className="font-medium">GST Number</span>
+              </div>
+              <p className="text-base font-mono">
+                {restaurantData.gstNumber === 'Not registered' ? (
+                  <span className="text-gray-500 italic">{restaurantData.gstNumber}</span>
+                ) : (
+                  restaurantData.gstNumber
+                )}
               </p>
-            )}
-          </div>
+              {restaurantData.gstNumber === 'Not registered' && (
+                <p className="text-xs text-gray-500">
+                  Add GST number for invoice generation
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="gstNumber" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                GST Number
+              </Label>
+              <Input
+                id="gstNumber"
+                type="text"
+                value={editForm.gstNumber}
+                onChange={(e) => setEditForm({ ...editForm, gstNumber: e.target.value.toUpperCase() })}
+                placeholder="Enter GST number (e.g., 22AAAAA0000A1Z5)"
+                maxLength={15}
+              />
+              <p className="text-xs text-gray-500">
+                GST number should be 15 characters (optional)
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

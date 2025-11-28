@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useRestaurant } from "../context/RestaurantContext";
 import {
   LogOut,
   Menu as MenuIcon,
@@ -23,9 +24,18 @@ type Tab = "dashboard" | "menu" | "inventory" | "users" | "tables" | "info" | "p
 
 const AdminHome = () => {
   const { logout, user } = useAuth();
+  const { restaurantSlug } = useRestaurant();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [lowStockCount, setLowStockCount] = useState(0);
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  });
 
   useEffect(() => {
     fetchLowStockCount();
@@ -40,7 +50,7 @@ const AdminHome = () => {
 
   const fetchLowStockCount = async () => {
     try {
-      const response = await axios.get('/api/menu');
+      const response = await axios.get(`${apiUrl}/api/menu`, getAxiosConfig());
       const items = response.data;
       const lowStock = items.filter(
         (item: any) => item.inventoryCount <= item.lowStockThreshold

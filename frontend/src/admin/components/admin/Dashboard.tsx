@@ -3,6 +3,7 @@ import axios from 'axios'
 import { TrendingUp, ShoppingCart, Package, AlertCircle, DollarSign, CheckCircle, Clock, XCircle } from 'lucide-react'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatCurrency } from '../../lib/utils'
+import { useRestaurant } from '../../context/RestaurantContext'
 
 interface Analytics {
   revenue: {
@@ -34,9 +35,17 @@ interface Analytics {
 const COLORS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B']
 
 const Dashboard = () => {
+  const { restaurantSlug } = useRestaurant()
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<'today' | '7days' | '30days'>('today')
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  })
 
   useEffect(() => {
     fetchAnalytics()
@@ -44,7 +53,7 @@ const Dashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`/api/analytics?period=${period}`)
+      const response = await axios.get(`${apiUrl}/api/analytics?period=${period}`, getAxiosConfig())
       setAnalytics(response.data)
     } catch (error) {
       console.error('Error fetching analytics:', error)

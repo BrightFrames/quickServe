@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
+import { toast } from 'sonner';
 
 interface PaymentAccounts {
   upiId: string;
@@ -24,7 +25,6 @@ const PaymentSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccounts>({
     upiId: '',
     phonePeMerchantId: '',
@@ -82,7 +82,6 @@ const PaymentSettings = () => {
     try {
       setSaving(true);
       setError(null);
-      setSuccess(null);
 
       const restaurantCode = localStorage.getItem('restaurantCode');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -91,11 +90,10 @@ const PaymentSettings = () => {
         paymentAccounts,
       });
 
-      setSuccess('Payment settings saved successfully!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Payment settings saved successfully!');
     } catch (error: any) {
       console.error('Error saving payment settings:', error);
-      setError(error.response?.data?.message || 'Failed to save payment settings');
+      toast.error(error.response?.data?.message || 'Failed to save payment settings');
     } finally {
       setSaving(false);
     }
@@ -122,13 +120,6 @@ const PaymentSettings = () => {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {success && (
-        <Alert className="bg-green-50 text-green-900 border-green-200">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
 

@@ -47,14 +47,20 @@ const MenuManagement = () => {
     isVegetarian: true,
   });
 
+  // Helper to get axios config with restaurant slug header
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  });
+
   useEffect(() => {
     fetchMenuItems();
   }, []);
 
   const fetchMenuItems = async () => {
     try {
-      const url = restaurantSlug ? `${apiUrl}/api/menu?slug=${restaurantSlug}` : `${apiUrl}/api/menu`;
-      const response = await axios.get(url);
+      const response = await axios.get(`${apiUrl}/api/menu`, getAxiosConfig());
       setMenuItems(response.data);
     } catch (error) {
       console.error('Error fetching menu items:', error);
@@ -82,10 +88,10 @@ const MenuManagement = () => {
       const menuData = { ...formData, slug: restaurantSlug };
       
       if (editingItem?.id) {
-        await axios.put(`${apiUrl}/api/menu/${editingItem.id}`, menuData);
+        await axios.put(`${apiUrl}/api/menu/${editingItem.id}`, formData, getAxiosConfig());
         toast.success("Menu item updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/menu`, menuData);
+        await axios.post(`${apiUrl}/api/menu`, formData, getAxiosConfig());
         toast.success("Menu item added successfully");
       }
       fetchMenuItems();
@@ -100,7 +106,7 @@ const MenuManagement = () => {
     if (!confirm("Are you sure you want to delete this item?")) return;
 
     try {
-      await axios.delete(`${apiUrl}/api/menu/${id}`);
+      await axios.delete(`${apiUrl}/api/menu/${id}`, getAxiosConfig());
       toast.success("Menu item deleted successfully");
       fetchMenuItems();
     } catch (error) {

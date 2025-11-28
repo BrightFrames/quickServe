@@ -3,6 +3,7 @@ import axios from 'axios'
 import { AlertTriangle, Package, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { notificationSounds } from '../../utils/notificationSounds'
+import { useRestaurant } from '../../context/RestaurantContext'
 
 interface InventoryItem {
   id: string
@@ -14,11 +15,18 @@ interface InventoryItem {
 }
 
 const InventoryManagement = () => {
+  const { restaurantSlug } = useRestaurant();
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'low'>('all')
   const previousLowStockCount = useRef<number>(0)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
+  const getAxiosConfig = () => ({
+    headers: {
+      'x-restaurant-slug': restaurantSlug || '',
+    }
+  });
 
   useEffect(() => {
     fetchInventory()
@@ -33,7 +41,7 @@ const InventoryManagement = () => {
 
   const fetchInventory = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/menu`)
+      const response = await axios.get(`${apiUrl}/api/menu`, getAxiosConfig())
       const fetchedItems = response.data
       setItems(fetchedItems)
       
@@ -74,7 +82,7 @@ const InventoryManagement = () => {
 
   const updateStock = async (id: string, newCount: number) => {
     try {
-      await axios.put(`${apiUrl}/api/menu/${id}/inventory`, { inventoryCount: newCount })
+      await axios.put(`${apiUrl}/api/menu/${id}/inventory`, { inventoryCount: newCount }, getAxiosConfig())
       toast.success('Stock updated successfully')
       fetchInventory()
     } catch (error) {
