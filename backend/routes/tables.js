@@ -1,22 +1,23 @@
 import express from "express";
 import QRCode from "qrcode";
-import { tenantMiddleware, requireTenant } from "../middleware/tenantMiddleware.js";
+import { authenticateRestaurant } from "../middleware/auth.js";
+import Table from "../models/Table.js";
+import Restaurant from "../models/Restaurant.js";
 
 const router = express.Router();
 
-// Apply tenant middleware to all routes
-router.use(tenantMiddleware);
+// Apply authentication to all routes
+router.use(authenticateRestaurant);
 
 // Get all tables
-router.get("/", requireTenant, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
-    
-    const tables = await TenantTable.findAll({
+    const tables = await Table.findAll({
+      where: { restaurantId: req.restaurantId },
       order: [['tableId', 'ASC']],
     });
     
-    console.log(`[TABLES] Retrieved ${tables.length} tables for ${req.tenant.slug}`);
+    console.log(`[TABLES] Retrieved ${tables.length} tables for restaurant ${req.restaurantId}`);
     res.json(tables);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -24,10 +25,14 @@ router.get("/", requireTenant, async (req, res) => {
 });
 
 // Get single table by ID
-router.get("/:id", requireTenant, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
-    const table = await TenantTable.findByPk(req.params.id);
+    const table = await Table.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
@@ -39,10 +44,14 @@ router.get("/:id", requireTenant, async (req, res) => {
 });
 
 // Get table by tableId
-router.get("/by-table-id/:tableId", requireTenant, async (req, res) => {
+router.get("/by-table-id/:tableId", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
-    const table = await TenantTable.findOne({ where: { tableId: req.params.tableId } });
+    const table = await Table.findOne({ 
+      where: { 
+        tableId: req.params.tableId,
+        restaurantId: req.restaurantId 
+      } 
+    });
     
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
@@ -54,20 +63,25 @@ router.get("/by-table-id/:tableId", requireTenant, async (req, res) => {
 });
 
 // Create new table
-router.post("/", requireTenant, async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
     const { tableId, tableName, seats, location } = req.body;
 
-    // Check if table ID already exists
-    const existingTable = await TenantTable.findOne({ where: { tableId } });
+    // Check if table ID already exists for this restaurant
+    const existingTable = await Table.findOne({ 
+      where: { 
+        tableId,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (existingTable) {
       return res.status(400).json({ message: "Table ID already exists" });
     }
 
-    // Generate QR code URL - use restaurant slug from tenant context
+    // Get restaurant slug for QR code URL
+    const restaurant = await Restaurant.findByPk(req.restaurantId);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    const orderUrl = `${baseUrl}/${req.tenant.slug}?table=${tableId}`;
+    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${tableId}`;
 
     // Generate QR code as base64 image
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
@@ -77,16 +91,17 @@ router.post("/", requireTenant, async (req, res) => {
       margin: 2,
     });
 
-    const table = await TenantTable.create({
+    const table = await Table.create({
       tableId,
       tableName,
       seats: seats || 4,
       location: location || "",
       qrCode: qrCodeImage,
       isActive: true,
+      restaurantId: req.restaurantId,
     });
 
-    console.log(`[TABLES] ✓ Table created for ${req.tenant.slug}: ${tableId}`);
+    console.log(`[TABLES] ✓ Table created for restaurant ${req.restaurantId}: ${tableId}`);
     res.status(201).json(table);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -94,12 +109,16 @@ router.post("/", requireTenant, async (req, res) => {
 });
 
 // Update table
-router.put("/:id", requireTenant, async (req, res) => {
+router.put("/:id", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
     const { tableName, seats, location, isActive } = req.body;
 
-    const table = await TenantTable.findByPk(req.params.id);
+    const table = await Table.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
@@ -119,18 +138,22 @@ router.put("/:id", requireTenant, async (req, res) => {
 });
 
 // Regenerate QR code for a table
-router.post("/:id/regenerate-qr", requireTenant, async (req, res) => {
+router.post("/:id/regenerate-qr", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
-    
-    const table = await TenantTable.findByPk(req.params.id);
+    const table = await Table.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    // Generate new QR code with restaurant slug from tenant context
+    // Get restaurant slug for QR code URL
+    const restaurant = await Restaurant.findByPk(req.restaurantId);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    const orderUrl = `${baseUrl}/${req.tenant.slug}?table=${table.tableId}`;
+    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${table.tableId}`;
       
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
       errorCorrectionLevel: "H",
@@ -147,11 +170,14 @@ router.post("/:id/regenerate-qr", requireTenant, async (req, res) => {
 });
 
 // Delete table
-router.delete("/:id", requireTenant, async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
-    const { Table: TenantTable } = req.tenant.models;
-    
-    const table = await TenantTable.findByPk(req.params.id);
+    const table = await Table.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }

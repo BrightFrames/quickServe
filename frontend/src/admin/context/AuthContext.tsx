@@ -24,35 +24,74 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     // Check if user is already logged in
     const storedUser = localStorage.getItem('user')
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken')
+    
     if (storedUser && token) {
       setUser(JSON.parse(storedUser))
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      console.log('[AUTH] Restored session with token')
     }
   }, [])
 
   const login = async (username: string, password: string, role: 'admin' | 'kitchen', restaurantCode?: string) => {
     try {
-      const payload: any = {
-        username,
-        password,
-        role,
-      };
-      
-      // Add restaurantCode for admin/kitchen login
-      if (restaurantCode) {
-        payload.restaurantCode = restaurantCode;
+      // For admin role, use restaurant login endpoint
+      if (role === 'admin') {
+        // Use username as email (admin login now asks for email)
+        const email = username;
+        
+        console.log('[AUTH] Attempting restaurant login with email:', email);
+        
+        // Login as restaurant to get restaurant token
+        const response = await axios.post(`${apiUrl}/api/restaurant/login`, {
+          email: email,
+          password: password
+        });
+        
+        const { restaurant, token } = response.data;
+        
+        console.log('[AUTH] Login successful, got restaurant token');
+        
+        // Store as admin user with restaurant info
+        const adminUser = {
+          id: restaurant.id,
+          username: restaurant.name,
+          role: 'admin' as const,
+          email: restaurant.email,
+          restaurantId: restaurant.id
+        };
+        
+        setUser(adminUser);
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('token', token);
+        localStorage.setItem('restaurantToken', token);
+        localStorage.setItem('restaurantEmail', restaurant.email);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        console.log('[AUTH] Token set in axios headers');
+      } else {
+        // Kitchen staff login using old endpoint
+        const payload: any = {
+          username,
+          password,
+          role,
+        };
+        
+        if (restaurantCode) {
+          payload.restaurantCode = restaurantCode;
+        }
+        
+        const response = await axios.post(`${apiUrl}/api/auth/login`, payload);
+        
+        const { user, token } = response.data;
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('token', token);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       }
-      
-      const response = await axios.post(`${apiUrl}/api/auth/login`, payload)
-      
-      const { user, token } = response.data
-      setUser(user)
-      localStorage.setItem('user', JSON.stringify(user))
-      localStorage.setItem('token', token)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-    } catch (error) {
-      throw error
+    } catch (error: any) {
+      console.error('[AUTH] Login error:', error.response?.data || error.message);
+      throw error;
     }
   }
 
@@ -60,6 +99,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null)
     localStorage.removeItem('user')
     localStorage.removeItem('token')
+    localStorage.removeItem('restaurantToken')
+    localStorage.removeItem('restaurantEmail')
     localStorage.removeItem('restaurantSlug')
     localStorage.removeItem('restaurantCode')
     localStorage.removeItem('restaurantName')

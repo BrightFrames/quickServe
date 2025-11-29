@@ -2,18 +2,19 @@ import express from 'express'
 import bcrypt from 'bcryptjs'
 import { Op } from 'sequelize'
 import User from '../models/User.js'
-// import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
+import { authenticateRestaurant } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// TEMPORARILY DISABLED: Apply tenant middleware to all routes
-// router.use(tenantMiddleware);
+// Apply authentication to all routes
+router.use(authenticateRestaurant);
 
 // Get all kitchen users
 router.get('/kitchen', async (req, res) => {
   try {
     const users = await User.findAll({
       where: {
+        restaurantId: req.restaurantId,
         role: {
           [Op.in]: ['kitchen', 'cook'],
         },
@@ -34,8 +35,13 @@ router.post('/kitchen', async (req, res) => {
   try {
     const { username, password, role } = req.body
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { username } })
+    // Check if user already exists in this restaurant
+    const existingUser = await User.findOne({ 
+      where: { 
+        username,
+        restaurantId: req.restaurantId 
+      } 
+    })
     if (existingUser) {
       return res.status(400).json({ message: 'Username already exists' })
     }
@@ -48,6 +54,7 @@ router.post('/kitchen', async (req, res) => {
       username,
       password: hashedPassword,
       role: role || 'kitchen',
+      restaurantId: req.restaurantId,
     })
 
     const userResponse = user.toJSON()
@@ -71,7 +78,12 @@ router.put('/:id', async (req, res) => {
       updateData.password = await bcrypt.hash(password, salt)
     }
 
-    const user = await User.findByPk(req.params.id)
+    const user = await User.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }
@@ -90,7 +102,12 @@ router.put('/:id', async (req, res) => {
 // Delete user
 router.delete('/:id', async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.id)
+    const user = await User.findOne({ 
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!user) {
       return res.status(404).json({ message: 'User not found' })
     }

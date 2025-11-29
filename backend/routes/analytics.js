@@ -2,17 +2,18 @@ import express from 'express'
 import { Op } from 'sequelize'
 import Order from '../models/Order.js'
 import sequelize from '../config/database.js'
-// import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
+import { authenticateRestaurant } from '../middleware/auth.js'
 
 const router = express.Router()
 
-// TEMPORARILY DISABLED: Apply tenant middleware to all routes
-// router.use(tenantMiddleware);
+// Apply authentication to all routes
+router.use(authenticateRestaurant);
 
 // Get analytics
 router.get('/', async (req, res) => {
   try {
     const { period = 'today' } = req.query
+    const restaurantId = req.restaurantId;
 
     // Calculate date range
     const now = new Date()
@@ -40,6 +41,7 @@ router.get('/', async (req, res) => {
 
     const todayOrders = await Order.findAll({
       where: {
+        restaurantId: restaurantId,
         createdAt: {
           [Op.between]: [todayStart, todayEnd],
         },
@@ -47,7 +49,7 @@ router.get('/', async (req, res) => {
           [Op.ne]: 'cancelled',
         },
       },
-    })
+    });
 
     const todayRevenue = todayOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0)
 
@@ -56,11 +58,12 @@ router.get('/', async (req, res) => {
     const [last7DaysResult] = await sequelize.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
       FROM orders
-      WHERE "createdAt" >= :startDate
+      WHERE "restaurantId" = :restaurantId
+      AND "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
-      replacements: { startDate: last7DaysStart },
-    })
+      replacements: { restaurantId, startDate: last7DaysStart },
+    });
 
     const last7DaysRevenue = parseFloat(last7DaysResult[0]?.total) || 0
 
@@ -69,22 +72,24 @@ router.get('/', async (req, res) => {
     const [last30DaysResult] = await sequelize.query(`
       SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as total
       FROM orders
-      WHERE "createdAt" >= :startDate
+      WHERE "restaurantId" = :restaurantId
+      AND "createdAt" >= :startDate
       AND status != 'cancelled'
     `, {
-      replacements: { startDate: last30DaysStart },
-    })
+      replacements: { restaurantId, startDate: last30DaysStart },
+    });
 
     const last30DaysRevenue = parseFloat(last30DaysResult[0]?.total) || 0
 
     // Order Analytics
     const orders = await Order.findAll({
       where: {
+        restaurantId: restaurantId,
         createdAt: {
           [Op.gte]: startDate,
         },
       },
-    })
+    });
 
     const orderStats = {
       total: orders.length,
@@ -100,14 +105,15 @@ router.get('/', async (req, res) => {
         SUM((item->>'quantity')::int) as orders,
         SUM((item->>'price')::decimal * (item->>'quantity')::int) as revenue
       FROM orders, jsonb_array_elements(items) as item
-      WHERE "createdAt" >= :startDate
+      WHERE "restaurantId" = :restaurantId
+      AND "createdAt" >= :startDate
       AND status != 'cancelled'
       GROUP BY item->>'name'
       ORDER BY orders DESC
       LIMIT 10
     `, {
-      replacements: { startDate },
-    })
+      replacements: { restaurantId, startDate },
+    });
 
     // Revenue Chart Data - Last 7 days
     const revenueChart = []
@@ -121,12 +127,13 @@ router.get('/', async (req, res) => {
       const [dayRevenue] = await sequelize.query(`
         SELECT COALESCE(SUM(CAST("totalAmount" AS DECIMAL)), 0) as revenue
         FROM orders
-        WHERE "createdAt" >= :startDate
+        WHERE "restaurantId" = :restaurantId
+        AND "createdAt" >= :startDate
         AND "createdAt" <= :endDate
         AND status != 'cancelled'
       `, {
-        replacements: { startDate: dateStart, endDate: dateEnd },
-      })
+        replacements: { restaurantId, startDate: dateStart, endDate: dateEnd },
+      });
 
       revenueChart.push({
         date: dateStr,

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { CustomerProtectedRoute } from "./components/CustomerProtectedRoute";
 
 // Note: CartProvider and RestaurantProvider are now wrapped in main App.tsx
 
@@ -37,19 +38,21 @@ const PageLoader = () => (
 
 export const CustomerApp = () => {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/" element={<Navigate to="menu/table/t1" replace />} />
-        <Route path="menu" element={<Navigate to="menu/table/t1" replace />} />
-        <Route path="menu/table/:tableNumber" element={<MenuPage />} />
-        <Route path="checkout" element={<CheckoutPage />} />
-        <Route path="upi-payment" element={<UpiPaymentPage />} />
-        <Route path="payment/callback" element={<PaymentCallbackPage />} />
-        <Route path="order-status" element={<OrderStatusPage />} />
-        <Route path="feedback" element={<FeedbackPage />} />
-        <Route path="landing" element={<LandingPage />} />
-        <Route path="*" element={<Navigate to="menu/table/t1" replace />} />
-      </Routes>
-    </Suspense>
+    <CustomerProtectedRoute>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Navigate to="menu/table/t1" replace />} />
+          <Route path="menu" element={<Navigate to="menu/table/t1" replace />} />
+          <Route path="menu/table/:tableNumber" element={<MenuPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="upi-payment" element={<UpiPaymentPage />} />
+          <Route path="payment/callback" element={<PaymentCallbackPage />} />
+          <Route path="order-status" element={<OrderStatusPage />} />
+          <Route path="feedback" element={<FeedbackPage />} />
+          <Route path="landing" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="menu/table/t1" replace />} />
+        </Routes>
+      </Suspense>
+    </CustomerProtectedRoute>
   );
 };

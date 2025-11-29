@@ -18,6 +18,7 @@ import invoiceRoutes from "./routes/invoice.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
 import phonePeRoutes from "./routes/phonepe.js";
 import promoCodeRoutes from "./routes/promoCodes.js";
+import debugRoutes from "./routes/debug.js";
 
 dotenv.config();
 
@@ -66,11 +67,11 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader(
       "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS"
+      "GET, POST, PUT, DELETE, PATCH, OPTIONS"
     );
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With, Accept"
+      "Content-Type, Authorization, X-Requested-With, Accept, x-restaurant-slug"
     );
     res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
     console.log(`[CORS] ✓ Allowed origin: ${origin}`);
@@ -180,6 +181,9 @@ console.log("✓ PhonePe routes registered at /api/payment");
 
 app.use("/api/promo-codes", promoCodeRoutes);
 console.log("✓ Promo Code routes registered at /api/promo-codes");
+
+app.use("/api/debug", debugRoutes);
+console.log("✓ Debug routes registered at /api/debug");
 
 // Health check
 app.get("/api/health", (req, res) => {

@@ -72,9 +72,15 @@ const AdminLogin = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-blue-800">
+                <strong>Note:</strong> Use your restaurant email and password (the same credentials you used during restaurant registration)
+              </p>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
+                Email (Restaurant Account)
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -83,7 +89,7 @@ const AdminLogin = () => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter username"
+                  placeholder="Enter your restaurant email"
                   required
                 />
               </div>

@@ -463,6 +463,7 @@ router.get("/verify/:slug/:code", async (req, res) => {
         name: restaurant.name,
         slug: restaurant.slug,
         restaurantCode: restaurant.restaurantCode,
+        email: restaurant.email,
         phone: restaurant.phone,
         address: restaurant.address,
       }

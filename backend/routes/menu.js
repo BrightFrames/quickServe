@@ -2,21 +2,21 @@ import express from 'express'
 import MenuItem from '../models/MenuItem.js'
 import Restaurant from '../models/Restaurant.js'
 import { authenticateRestaurant, optionalRestaurantAuth } from '../middleware/auth.js'
-// import { tenantMiddleware, requireTenant } from '../middleware/tenantMiddleware.js'
 
 const router = express.Router()
 
-// TEMPORARILY DISABLED: Apply tenant middleware to all routes
-// router.use(tenantMiddleware);
+// Apply authentication middleware to all routes
+router.use(authenticateRestaurant);
 
-// Get all menu items
+// Get all menu items for authenticated restaurant
 router.get('/', async (req, res) => {
   try {
     const items = await MenuItem.findAll({
+      where: { restaurantId: req.restaurantId },
       order: [['category', 'ASC'], ['name', 'ASC']],
     });
     
-    console.log(`[MENU] Retrieved ${items.length} items`);
+    console.log(`[MENU] Retrieved ${items.length} items for restaurant ${req.restaurantId}`);
     res.json(items);
   } catch (error) {
     console.error('[MENU] Error fetching menu items:', error);
@@ -27,7 +27,12 @@ router.get('/', async (req, res) => {
 // Get single menu item
 router.get('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findOne({
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      }
+    });
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -41,9 +46,12 @@ router.get('/:id', async (req, res) => {
 // Create menu item
 router.post('/', async (req, res) => {
   try {
-    console.log('[MENU] Create menu item request');
+    console.log('[MENU] Create menu item request for restaurant', req.restaurantId);
     
-    const item = await MenuItem.create(req.body);
+    const item = await MenuItem.create({
+      ...req.body,
+      restaurantId: req.restaurantId
+    });
     console.log('[MENU] ✓ Menu item created:', item.name);
     res.status(201).json(item);
   } catch (error) {
@@ -55,7 +63,12 @@ router.post('/', async (req, res) => {
 // Update menu item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findOne({
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      }
+    });
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -71,7 +84,12 @@ router.put('/:id', async (req, res) => {
 router.put('/:id/inventory', async (req, res) => {
   try {
     const { inventoryCount } = req.body;
-    const item = await MenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findOne({
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      }
+    });
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
@@ -86,7 +104,12 @@ router.put('/:id/inventory', async (req, res) => {
 // Delete menu item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await MenuItem.findByPk(req.params.id);
+    const item = await MenuItem.findOne({
+      where: { 
+        id: req.params.id,
+        restaurantId: req.restaurantId 
+      }
+    });
     
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });

@@ -35,10 +35,12 @@ const RestaurantVerification = () => {
           setStatus('success');
           setMessage(`Welcome to ${response.data.restaurant.name}!`);
           
-          // Store restaurant data (no restaurantId stored)
+          // Store restaurant data for admin login
           localStorage.setItem('restaurantName', response.data.restaurant.name);
           localStorage.setItem('restaurantCode', response.data.restaurant.restaurantCode);
           localStorage.setItem('restaurantSlug', response.data.restaurant.slug);
+          localStorage.setItem('restaurantEmail', response.data.restaurant.email || '');
+          localStorage.setItem('restaurantId', response.data.restaurant.id);
 
           // Redirect to appropriate login page after 1 second
           setTimeout(() => {

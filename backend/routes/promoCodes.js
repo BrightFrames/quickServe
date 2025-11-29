@@ -1,15 +1,18 @@
 import express from 'express';
 import PromoCode from '../models/PromoCode.js';
 import { Op } from 'sequelize';
+import { authenticateRestaurant } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Apply authentication to all routes
+router.use(authenticateRestaurant);
 
 // Get all promo codes for the restaurant
 router.get('/', async (req, res) => {
   try {
-    const restaurantId = 1; // Single tenant mode
     const promoCodes = await PromoCode.findAll({
-      where: { restaurantId },
+      where: { restaurantId: req.restaurantId },
       order: [['createdAt', 'DESC']],
     });
     res.json(promoCodes);
@@ -22,11 +25,15 @@ router.get('/', async (req, res) => {
 // Create new promo code
 router.post('/', async (req, res) => {
   try {
-    const restaurantId = 1; // Single tenant mode
     const { code, discountPercentage, validFrom, validTo, maxUses, minOrderAmount } = req.body;
 
-    // Check if code already exists
-    const existing = await PromoCode.findOne({ where: { code: code.toUpperCase() } });
+    // Check if code already exists for this restaurant
+    const existing = await PromoCode.findOne({ 
+      where: { 
+        code: code.toUpperCase(),
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (existing) {
       return res.status(400).json({ error: 'Promo code already exists' });
     }
@@ -38,7 +45,7 @@ router.post('/', async (req, res) => {
       validTo: validTo || null,
       maxUses: maxUses || null,
       minOrderAmount: minOrderAmount || 0,
-      restaurantId,
+      restaurantId: req.restaurantId,
     });
 
     res.status(201).json(promoCode);
@@ -52,17 +59,26 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const restaurantId = 1; // Single tenant mode
     const { code, discountPercentage, isActive, validFrom, validTo, maxUses, minOrderAmount } = req.body;
 
-    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    const promoCode = await PromoCode.findOne({ 
+      where: { 
+        id, 
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!promoCode) {
       return res.status(404).json({ error: 'Promo code not found' });
     }
 
     // Check if new code conflicts with existing
     if (code && code.toUpperCase() !== promoCode.code) {
-      const existing = await PromoCode.findOne({ where: { code: code.toUpperCase() } });
+      const existing = await PromoCode.findOne({ 
+        where: { 
+          code: code.toUpperCase(),
+          restaurantId: req.restaurantId 
+        } 
+      });
       if (existing) {
         return res.status(400).json({ error: 'Promo code already exists' });
       }
@@ -89,9 +105,13 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const restaurantId = 1; // Single tenant mode
 
-    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    const promoCode = await PromoCode.findOne({ 
+      where: { 
+        id, 
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!promoCode) {
       return res.status(404).json({ error: 'Promo code not found' });
     }
@@ -104,20 +124,19 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Validate promo code (for customer use)
+// Validate promo code (for customer use) - no auth required
 router.post('/validate', async (req, res) => {
   try {
-    const { code, orderAmount } = req.body;
-    const restaurantId = 1; // Single tenant mode
+    const { code, orderAmount, restaurantId } = req.body;
 
-    if (!code) {
-      return res.status(400).json({ error: 'Promo code is required' });
+    if (!code || !restaurantId) {
+      return res.status(400).json({ error: 'Promo code and restaurant ID are required' });
     }
 
     const promoCode = await PromoCode.findOne({
       where: {
         code: code.toUpperCase(),
-        restaurantId,
+        restaurantId: restaurantId,
       },
     });
 
@@ -152,9 +171,13 @@ router.post('/validate', async (req, res) => {
 router.patch('/:id/toggle', async (req, res) => {
   try {
     const { id } = req.params;
-    const restaurantId = 1; // Single tenant mode
 
-    const promoCode = await PromoCode.findOne({ where: { id, restaurantId } });
+    const promoCode = await PromoCode.findOne({ 
+      where: { 
+        id, 
+        restaurantId: req.restaurantId 
+      } 
+    });
     if (!promoCode) {
       return res.status(404).json({ error: 'Promo code not found' });
     }
