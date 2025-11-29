@@ -4,6 +4,7 @@ import { Plus, Edit, Trash2, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from '@/shared/lib/utils';
 import { useRestaurant } from "../../context/RestaurantContext";
+import { GlowCard } from "../ui/spotlight-card";
 
 interface MenuItem {
   id?: string;
@@ -194,14 +195,15 @@ const MenuManagement = () => {
       </div>
 
       {/* Category Filter */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <div className="bg-white/80 rounded-lg shadow p-4 border-0">
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Filter by Category
         </label>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="w-full md:w-64 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full md:w-64 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 bg-white"
         >
           <option value="all">All Categories</option>
           {MENU_CATEGORIES.map((category) => (
@@ -213,7 +215,8 @@ const MenuManagement = () => {
         <p className="text-sm text-gray-500 mt-2">
           Showing {filteredMenuItems.length} of {menuItems.length} items
         </p>
-      </div>
+        </div>
+      </GlowCard>
 
       {/* Form Modal */}
       {showForm && (
@@ -460,7 +463,8 @@ const MenuManagement = () => {
       )}
 
       {/* Menu Items Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <div className="bg-white/80 rounded-lg shadow overflow-hidden border-0">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr key="header-row">
@@ -570,7 +574,8 @@ const MenuManagement = () => {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </GlowCard>
     </div>
   );
 };

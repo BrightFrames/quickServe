@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/shared/ui/button';
@@ -20,6 +20,7 @@ import {
   UserPlus,
   Key
 } from 'lucide-react';
+import { GlowCard } from './ui/spotlight-card';
 
 const Dashboard: React.FC = () => {
   const { restaurant, token, logout } = useAuth();
@@ -114,9 +115,9 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-sm border-b border-orange-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
@@ -150,64 +151,72 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Restaurant Info Card */}
-        <div className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Building className="h-5 w-5" />
-                <span>Restaurant Information</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-3">
-                  <Building className="h-4 w-4 text-gray-500" />
-                  <div>
-                    <span className="text-xs text-gray-500 block">Restaurant Code</span>
-                    <span className="text-sm font-semibold text-primary">{restaurant?.restaurantCode}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">{restaurant?.email}</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">{restaurant?.phone}</span>
-                </div>
-                <div className="flex items-center space-x-3 md:col-span-1">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">{restaurant?.address}</span>
+        <Card className="mb-8 border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building className="h-5 w-5 text-orange-600" />
+              <span>Restaurant Information</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <Building className="h-5 w-5 text-orange-600" />
+                <div>
+                  <span className="text-xs text-gray-500 block">Restaurant Code</span>
+                  <span className="text-sm font-medium">{restaurant?.restaurantCode}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="flex items-center space-x-3">
+                <Mail className="h-5 w-5 text-orange-600" />
+                <div>
+                  <span className="text-xs text-gray-500 block">Email</span>
+                  <span className="text-sm font-medium">{restaurant?.email}</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Phone className="h-5 w-5 text-orange-600" />
+                <div>
+                  <span className="text-xs text-gray-500 block">Phone</span>
+                  <span className="text-sm font-medium">{restaurant?.phone}</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <MapPin className="h-5 w-5 text-orange-600" />
+                <div>
+                  <span className="text-xs text-gray-500 block">Address</span>
+                  <span className="text-sm font-medium">{restaurant?.address}</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Account Management Section */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Management</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Update Admin Password */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Key className="h-5 w-5 text-blue-600" />
-                  <span>Update Admin Credentials</span>
-                </CardTitle>
-                <CardDescription>
-                  Set a unique admin username and password for your restaurant
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!showAdminForm ? (
-                  <div className="space-y-3">
-                    <Button onClick={() => setShowAdminForm(true)} className="w-full">
-                      <Key className="h-4 w-4 mr-2" />
-                      Change Admin Credentials
-                    </Button>
-                  </div>
-                ) : (
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Management</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Update Admin Password */}
+          <GlowCard glowColor="orange" customSize className="w-full h-auto">
+            <Card className="border-0 bg-transparent shadow-none">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <UserPlus className="h-5 w-5 text-orange-600" />
+                <span>Update Admin Credentials</span>
+              </CardTitle>
+              <CardDescription>
+                Set a unique admin username and password for your restaurant
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!showAdminForm ? (
+                <div className="space-y-3">
+                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-orange-600 hover:bg-orange-700">
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Change Admin Credentials
+                  </Button>
+                </div>
+              ) : (
                   <form onSubmit={handleCreateAdmin} className="space-y-4">
                     <div>
                       <Label htmlFor="admin-username">New Admin Username (Optional)</Label>
@@ -238,29 +247,31 @@ const Dashboard: React.FC = () => {
                     </div>
                   </form>
                 )}
-              </CardContent>
-            </Card>
+            </CardContent>
+          </Card>
+          </GlowCard>
 
-            {/* Update Kitchen Password */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <ChefHat className="h-5 w-5 text-orange-600" />
-                  <span>Update Kitchen Credentials</span>
-                </CardTitle>
-                <CardDescription>
-                  Set a unique kitchen staff username and password for your restaurant
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {!showKitchenForm ? (
-                  <div className="space-y-3">
-                    <Button onClick={() => setShowKitchenForm(true)} className="w-full" variant="outline">
-                      <Key className="h-4 w-4 mr-2" />
-                      Change Kitchen Credentials
-                    </Button>
-                  </div>
-                ) : (
+          {/* Update Kitchen Password */}
+          <GlowCard glowColor="orange" customSize className="w-full h-auto">
+            <Card className="border-0 bg-transparent shadow-none">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <ChefHat className="h-5 w-5 text-orange-600" />
+                <span>Update Kitchen Credentials</span>
+              </CardTitle>
+              <CardDescription>
+                Set a unique kitchen staff username and password for your restaurant
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!showKitchenForm ? (
+                <div className="space-y-3">
+                  <Button onClick={() => setShowKitchenForm(true)} className="w-full bg-orange-600 hover:bg-orange-700">
+                    <ChefHat className="h-4 w-4 mr-2" />
+                    Change Kitchen Credentials
+                  </Button>
+                </div>
+              ) : (
                   <form onSubmit={handleCreateKitchen} className="space-y-4">
                     <div>
                       <Label htmlFor="kitchen-username">New Kitchen Username (Optional)</Label>
@@ -286,23 +297,24 @@ const Dashboard: React.FC = () => {
                       <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
                     </div>
                     <div className="flex space-x-2">
-                      <Button type="submit" className="flex-1" variant="outline">Update Credentials</Button>
+                      <Button type="submit" className="flex-1">Update Credentials</Button>
                       <Button type="button" variant="outline" onClick={() => setShowKitchenForm(false)}>Cancel</Button>
                     </div>
                   </form>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
+          </GlowCard>
         </div>
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Admin Panel */}
-          <Card className="feature-card cursor-pointer transition-all hover:shadow-lg" onClick={handleNavigateToAdmin}>
+          <GlowCard glowColor="orange" customSize className="w-full h-auto">
+            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToAdmin}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5 text-primary" />
+                <Settings className="h-5 w-5 text-orange-600" />
                 <span>Admin Panel</span>
                 <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
               </CardTitle>
@@ -325,20 +337,22 @@ const Dashboard: React.FC = () => {
                   <span>Manage tables and users</span>
                 </div>
               </div>
-              <Button className="w-full mt-4">
+              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
                 Open Admin Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
+          </GlowCard>
 
           {/* Kitchen Panel */}
-          <Card className="feature-card cursor-pointer transition-all hover:shadow-lg" onClick={handleNavigateToKitchen}>
+          <GlowCard glowColor="orange" customSize className="w-full h-auto">
+            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToKitchen}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-primary" />
+                <ChefHat className="h-5 w-5 text-orange-600" />
                 <span>Kitchen Panel</span>
-                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-orange-400 ml-auto" />
               </CardTitle>
               <CardDescription>
                 Real-time order management for kitchen staff
@@ -359,20 +373,22 @@ const Dashboard: React.FC = () => {
                   <span>Manage preparation queue</span>
                 </div>
               </div>
-              <Button className="w-full mt-4" variant="outline">
+              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
                 Open Kitchen Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
+          </GlowCard>
 
           {/* Customer App */}
-          <Card className="feature-card cursor-pointer transition-all hover:shadow-lg" onClick={handleNavigateToCustomer}>
+          <GlowCard glowColor="orange" customSize className="w-full h-auto">
+            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToCustomer}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-primary" />
+                <Users className="h-5 w-5 text-orange-600" />
                 <span>Customer App</span>
-                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-orange-400 ml-auto" />
               </CardTitle>
               <CardDescription>
                 View your restaurant from customer perspective
@@ -393,43 +409,44 @@ const Dashboard: React.FC = () => {
                   <span>QR code table ordering</span>
                 </div>
               </div>
-              <Button className="w-full mt-4" variant="outline">
+              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
                 Open Customer App
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
+          </GlowCard>
         </div>
 
         {/* Quick Stats */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+          <Card className="border-orange-200">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="h-6 w-6 text-green-600" />
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="h-6 w-6 text-orange-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
               <p className="text-sm text-gray-600 mt-1">Track performance metrics</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-orange-200">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <ChefHat className="h-6 w-6 text-blue-600" />
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <ChefHat className="h-6 w-6 text-amber-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Kitchen Management</h3>
-              <p className="text-sm text-gray-600 mt-1">Streamline order processing</p>
+              <p className="text-sm text-gray-600 mt-1">Real-time order processing</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-orange-200">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Users className="h-6 w-6 text-purple-600" />
+              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Users className="h-6 w-6 text-orange-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Customer Experience</h3>
-              <p className="text-sm text-gray-600 mt-1">Enhance dining experience</p>
+              <p className="text-sm text-gray-600 mt-1">QR ordering and feedback</p>
             </CardContent>
           </Card>
         </div>

@@ -47,12 +47,12 @@ const LandingPage: React.FC = () => {
 
   if (authMode === 'login') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full space-y-8">
           <div className="text-center">
             <button
               onClick={() => setAuthMode('landing')}
-              className="inline-flex items-center text-sm text-zinc-400 hover:text-white mb-6 transition-colors"
+              className="inline-flex items-center text-sm text-zinc-600 hover:text-zinc-900 mb-6 transition-colors"
             >
               <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
               Back to home
@@ -66,12 +66,12 @@ const LandingPage: React.FC = () => {
 
   if (authMode === 'signup') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full space-y-8">
           <div className="text-center">
             <button
               onClick={() => setAuthMode('landing')}
-              className="inline-flex items-center text-sm text-zinc-400 hover:text-white mb-6 transition-colors"
+              className="inline-flex items-center text-sm text-zinc-600 hover:text-zinc-900 mb-6 transition-colors"
             >
               <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
               Back to home

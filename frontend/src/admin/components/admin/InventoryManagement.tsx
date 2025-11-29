@@ -4,6 +4,7 @@ import { AlertTriangle, Package, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { notificationSounds } from '../../utils/notificationSounds'
 import { useRestaurant } from '../../context/RestaurantContext'
+import { GlowCard } from '../ui/spotlight-card'
 
 interface InventoryItem {
   id: string
@@ -113,19 +114,22 @@ const InventoryManagement = () => {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Total Items</p>
               <p className="text-3xl font-bold text-gray-800 mt-1">{items.length}</p>
             </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Package className="w-8 h-8 text-blue-600" />
+            <div className="bg-orange-100 p-3 rounded-lg">
+              <Package className="w-8 h-8 text-orange-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Low Stock Items</p>
@@ -135,9 +139,11 @@ const InventoryManagement = () => {
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Unavailable Items</p>
@@ -149,7 +155,8 @@ const InventoryManagement = () => {
               <TrendingDown className="w-8 h-8 text-gray-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
       </div>
 
       {/* Filter */}
@@ -158,7 +165,7 @@ const InventoryManagement = () => {
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-lg font-medium ${
             filter === 'all'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-orange-600 text-white'
               : 'bg-white text-gray-700 hover:bg-gray-100'
           }`}
         >
@@ -177,7 +184,8 @@ const InventoryManagement = () => {
       </div>
 
       {/* Inventory Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <div className="bg-white/80 rounded-lg shadow overflow-hidden border-0">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -247,7 +255,8 @@ const InventoryManagement = () => {
             })}
           </tbody>
         </table>
-      </div>
+        </div>
+      </GlowCard>
     </div>
   )
 }

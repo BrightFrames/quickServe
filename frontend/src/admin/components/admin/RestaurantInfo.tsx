@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Building, Phone, Mail, MapPin, FileText, Loader2, Info, Edit, Save, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card';
+import { GlowCard } from '../ui/spotlight-card';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -152,13 +153,13 @@ const RestaurantInfo = () => {
         </Alert>
         
         {!isEditing ? (
-          <Button onClick={handleEdit} className="ml-4">
+          <Button onClick={handleEdit} className="ml-4 bg-orange-600 hover:bg-orange-700">
             <Edit className="w-4 h-4 mr-2" />
             Edit
           </Button>
         ) : (
           <div className="flex gap-2 ml-4">
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving} className="bg-orange-600 hover:bg-orange-700">
               {saving ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
@@ -175,7 +176,8 @@ const RestaurantInfo = () => {
       </div>
 
       {/* Basic Information */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building className="w-5 h-5" />
@@ -210,9 +212,11 @@ const RestaurantInfo = () => {
           </div>
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* Contact & Address */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="w-5 h-5" />
@@ -271,9 +275,11 @@ const RestaurantInfo = () => {
           )}
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* GST Information */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
@@ -358,9 +364,11 @@ const RestaurantInfo = () => {
           )}
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* Subscription */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Info className="w-5 h-5" />
@@ -403,6 +411,7 @@ const RestaurantInfo = () => {
           )}
         </CardContent>
       </Card>
+      </GlowCard>
     </div>
   );
 };

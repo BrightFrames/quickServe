@@ -46,6 +46,9 @@ const allowedOrigins = [
   "http://localhost:8081", // Customer dev (alternate port)
   "http://localhost:8082",
   "http://localhost:3001", // Customer dev (alternate port)
+  "http://192.168.1.83:8080", // Network IP for mobile testing
+  "http://192.168.1.83:5173", // Network IP for admin
+  "http://192.168.1.83:3001", // Network IP for landing
   ...envOrigins, // Production frontends
 ];
 

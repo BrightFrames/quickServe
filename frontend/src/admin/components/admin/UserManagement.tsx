@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRestaurant } from "../../context/RestaurantContext";
+import { GlowCard } from "../ui/spotlight-card";
 
 interface KitchenUser {
   id?: string;
@@ -176,7 +177,7 @@ const UserManagement = () => {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
         >
           <Plus className="w-5 h-5" />
           <span>Add Kitchen User</span>
@@ -184,43 +185,46 @@ const UserManagement = () => {
       </div>
 
       {/* Default Credentials Info Banner */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 rounded-lg p-4 shadow-sm">
-        <div className="flex items-start space-x-3">
-          <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div className="flex-1">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">
-              Default Kitchen Login Credentials
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center space-x-4 bg-white rounded px-3 py-2 shadow-sm">
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">Username:</span>
-                  <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono text-xs font-semibold">
-                    kitchen1
-                  </code>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-l-4 border-orange-500 rounded-lg p-4 shadow-sm">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                Default Kitchen Login Credentials
+              </h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center space-x-4 bg-white rounded px-3 py-2 shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600">Username:</span>
+                    <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono text-xs font-semibold">
+                      kitchen1
+                    </code>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-4 h-4 text-gray-500" />
+                    <span className="text-gray-600">Password:</span>
+                    <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono text-xs font-semibold">
+                      kitchen123
+                    </code>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Key className="w-4 h-4 text-gray-500" />
-                  <span className="text-gray-600">Password:</span>
-                  <code className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono text-xs font-semibold">
-                    kitchen123
-                  </code>
-                </div>
+                <p className="text-blue-700 text-xs mt-2">
+                  💡 <strong>Tip:</strong> You can edit username, change password,
+                  or delete this account using the actions below. Click{" "}
+                  <strong>"Change Password"</strong> to update credentials.
+                </p>
               </div>
-              <p className="text-blue-700 text-xs mt-2">
-                💡 <strong>Tip:</strong> You can edit username, change password,
-                or delete this account using the actions below. Click{" "}
-                <strong>"Change Password"</strong> to update credentials.
-              </p>
             </div>
           </div>
         </div>
-      </div>
+      </GlowCard>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Total Users</p>
@@ -228,13 +232,15 @@ const UserManagement = () => {
                 {users.length}
               </p>
             </div>
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <User className="w-8 h-8 text-blue-600" />
+            <div className="bg-orange-100 p-3 rounded-lg">
+              <User className="w-8 h-8 text-orange-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Active Now</p>
@@ -246,9 +252,11 @@ const UserManagement = () => {
               <User className="w-8 h-8 text-green-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-600 text-sm">Offline</p>
@@ -260,7 +268,8 @@ const UserManagement = () => {
               <User className="w-8 h-8 text-gray-600" />
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
       </div>
 
       {/* Form Modal */}
@@ -443,8 +452,9 @@ const UserManagement = () => {
       )}
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <div className="bg-white/80 rounded-lg shadow overflow-hidden border-0">
+          <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
               <th className="text-left py-3 px-4 font-semibold text-gray-700">
@@ -524,6 +534,7 @@ const UserManagement = () => {
           </tbody>
         </table>
       </div>
+      </GlowCard>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { CreditCard, Wallet, Building2, Phone, Loader2, Save, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card';
+import { GlowCard } from '../ui/spotlight-card';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -124,7 +125,8 @@ const PaymentSettings = () => {
       )}
 
       {/* UPI Settings */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wallet className="w-5 h-5" />
@@ -148,9 +150,11 @@ const PaymentSettings = () => {
           </div>
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* PhonePe Settings */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Phone className="w-5 h-5" />
@@ -174,9 +178,11 @@ const PaymentSettings = () => {
           </div>
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* Bank Account Settings */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5" />
@@ -266,9 +272,11 @@ const PaymentSettings = () => {
           </p>
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* Other Payment Gateways */}
-      <Card>
+      <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <Card className="border-0 bg-white/80 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
@@ -301,10 +309,11 @@ const PaymentSettings = () => {
           </div>
         </CardContent>
       </Card>
+      </GlowCard>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="lg">
+        <Button onClick={handleSave} disabled={saving} size="lg" className="bg-orange-600 hover:bg-orange-700">
           {saving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
