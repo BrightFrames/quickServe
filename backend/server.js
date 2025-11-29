@@ -180,8 +180,8 @@ console.log("✓ Rating routes registered at /api/ratings");
 app.use("/api/invoice", invoiceRoutes);
 console.log("✓ Invoice routes registered at /api/invoice");
 
-app.use("/api/customer-auth", customerAuthRoutes);
-console.log("✓ Customer Auth routes registered at /api/customer-auth");
+app.use("/api/customer/auth", customerAuthRoutes);
+console.log("✓ Customer Auth routes registered at /api/customer/auth");
 
 app.use("/api/promo-codes", promoCodeRoutes);
 console.log("✓ Promo Code routes registered at /api/promo-codes");
