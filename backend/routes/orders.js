@@ -105,11 +105,21 @@ router.get("/by-table/:tableId", authenticateRestaurant, async (req, res) => {
 router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
   try {
     
-    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode, restaurantId } = req.body;
+    const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode, restaurantId, slug } = req.body;
+
+    // Get restaurantId from slug if not provided directly
+    let finalRestaurantId = restaurantId;
+    if (!finalRestaurantId && slug) {
+      const restaurant = await Restaurant.findOne({ where: { slug } });
+      if (!restaurant) {
+        return res.status(404).json({ message: "Restaurant not found" });
+      }
+      finalRestaurantId = restaurant.id;
+    }
 
     // Validate restaurantId
-    if (!restaurantId) {
-      return res.status(400).json({ message: "Restaurant ID is required" });
+    if (!finalRestaurantId) {
+      return res.status(400).json({ message: "Restaurant ID or slug is required" });
     }
 
     // Validate table number format (security check)
@@ -132,10 +142,10 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
     }
 
     // Log customer access for analytics
-    console.log(`[ORDER] Restaurant ${restaurantId}, Table: ${tableNumber || tableId}`);
+    console.log(`[ORDER] Restaurant ${finalRestaurantId}, Table: ${tableNumber || tableId}`);
 
     // Get restaurant info for tax percentage
-    const restaurant = await Restaurant.findByPk(restaurantId);
+    const restaurant = await Restaurant.findByPk(finalRestaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
@@ -149,7 +159,7 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
       const table = await Table.findOne({ 
         where: { 
           tableId,
-          restaurantId 
+          restaurantId: finalRestaurantId 
         } 
       });
       if (table) {
@@ -167,12 +177,11 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
       finalTableNumber = tableNumber || 1;
     }
 
-    // Generate order number for this restaurant
-    const restaurantOrderCount = await Order.count({ 
-      where: { restaurantId } 
-    });
-    const orderNumber = `ORD${String(restaurantOrderCount + 1).padStart(5, "0")}`;
-
+    // Generate unique order number for this restaurant
+    // Use restaurant ID prefix + timestamp + random to ensure uniqueness
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const orderNumber = `R${finalRestaurantId}_${timestamp}_${random}`;
     // Calculate subtotal and update inventory
     let subtotal = 0;
     const orderItems = [];
@@ -181,7 +190,7 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
       const menuItem = await MenuItem.findOne({
         where: {
           id: item.menuItemId,
-          restaurantId
+          restaurantId: finalRestaurantId
         }
       });
       if (!menuItem) {
@@ -214,7 +223,7 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
       const promo = await PromoCode.findOne({
         where: {
           code: promoCode.toUpperCase(),
-          restaurantId: restaurantId,
+          restaurantId: finalRestaurantId,
         },
       });
 
@@ -246,7 +255,7 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
     const totalAmount = amountAfterDiscount + taxAmount;
 
     const orderData = {
-      restaurantId: restaurantId, // Use restaurantId from request
+      restaurantId: finalRestaurantId, // Use restaurantId resolved from slug or direct ID
       orderNumber,
       tableId: finalTableId,
       tableNumber: finalTableNumber,
@@ -261,7 +270,9 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
       totalAmount: parseFloat(totalAmount.toFixed(2)),
       status: "preparing",
       paymentMethod: paymentMethod || "cash",
-      paymentStatus: paymentMethod === "upi" ? "pending" : "pending",
+      // For cash/card: pending (will pay at counter/delivery)
+      // For UPI: pending (will be updated via payment gateway webhook)
+      paymentStatus: "pending",
     };
 
     let order;
@@ -373,20 +384,16 @@ router.put("/:id/status", authenticateRestaurant, async (req, res) => {
   }
 });
 
-// Get single order
-router.get("/:id", authenticateRestaurant, async (req, res) => {
+// Get single order - Public endpoint for customers to check their order status
+router.get("/:id", async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.status(404).json({ message: "Order not found (persistence disabled)" });
     }
 
-    
-    const order = await Order.findOne({ 
-      where: { 
-        id: req.params.id,
-        restaurantId: req.restaurantId 
-      } 
-    });
+    // Find order by ID without restaurant authentication
+    // This allows customers to check their order status
+    const order = await Order.findByPk(req.params.id);
     
     if (!order) {
       return res.status(404).json({ message: "Order not found" });

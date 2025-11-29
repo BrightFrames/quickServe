@@ -20,6 +20,7 @@ const RestaurantInfo = () => {
     address: '',
     gstNumber: '',
     restaurantCode: '',
+    taxPercentage: 5.00,
     subscription: { plan: 'Free', startDate: null, endDate: null },
   });
   
@@ -27,6 +28,7 @@ const RestaurantInfo = () => {
     phone: '',
     address: '',
     gstNumber: '',
+    taxPercentage: 5.00,
   });
 
   useEffect(() => {
@@ -44,7 +46,7 @@ const RestaurantInfo = () => {
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await axios.get(`${apiUrl}/api/restaurant/info/${restaurantCode}`);
+      const response = await axios.get(`${apiUrl}/api/restaurant/info/code/${restaurantCode}`);
       
       const { restaurant } = response.data;
       setRestaurantData({
@@ -54,6 +56,7 @@ const RestaurantInfo = () => {
         address: restaurant.address || 'Not provided',
         gstNumber: restaurant.gstNumber || 'Not registered',
         restaurantCode: restaurant.restaurantCode || '',
+        taxPercentage: restaurant.taxPercentage || 5.00,
         subscription: restaurant.subscription || { plan: 'free', startDate: null, endDate: null },
       });
       
@@ -62,6 +65,7 @@ const RestaurantInfo = () => {
         phone: restaurant.phone || '',
         address: restaurant.address || '',
         gstNumber: restaurant.gstNumber || '',
+        taxPercentage: restaurant.taxPercentage || 5.00,
       });
     } catch (error: any) {
       console.error('Error fetching restaurant info:', error);
@@ -81,6 +85,7 @@ const RestaurantInfo = () => {
       phone: restaurantData.phone === 'Not provided' ? '' : restaurantData.phone,
       address: restaurantData.address === 'Not provided' ? '' : restaurantData.address,
       gstNumber: restaurantData.gstNumber === 'Not registered' ? '' : restaurantData.gstNumber,
+      taxPercentage: restaurantData.taxPercentage || 5.00,
     });
     setIsEditing(false);
   };
@@ -88,13 +93,23 @@ const RestaurantInfo = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const restaurantCode = localStorage.getItem('restaurantCode');
+      const token = localStorage.getItem('restaurantToken');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
       
-      await axios.put(`${apiUrl}/api/restaurant/update/${restaurantCode}`, {
+      if (!token) {
+        toast.error('Authentication required. Please login again.');
+        return;
+      }
+      
+      await axios.put(`${apiUrl}/api/restaurant/profile`, {
         phone: editForm.phone || null,
         address: editForm.address || null,
         gstNumber: editForm.gstNumber || null,
+        taxPercentage: parseFloat(editForm.taxPercentage.toString()) || 5.00,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       
       toast.success('Restaurant information updated successfully!');
@@ -262,47 +277,84 @@ const RestaurantInfo = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            GST Information
+            GST & Tax Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!isEditing ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="w-4 h-4" />
-                <span className="font-medium">GST Number</span>
-              </div>
-              <p className="text-base font-mono">
-                {restaurantData.gstNumber === 'Not registered' ? (
-                  <span className="text-gray-500 italic">{restaurantData.gstNumber}</span>
-                ) : (
-                  restaurantData.gstNumber
-                )}
-              </p>
-              {restaurantData.gstNumber === 'Not registered' && (
-                <p className="text-xs text-gray-500">
-                  Add GST number for invoice generation
+            <>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">GST Number</span>
+                </div>
+                <p className="text-base font-mono">
+                  {restaurantData.gstNumber === 'Not registered' ? (
+                    <span className="text-gray-500 italic">{restaurantData.gstNumber}</span>
+                  ) : (
+                    restaurantData.gstNumber
+                  )}
                 </p>
-              )}
-            </div>
+                {restaurantData.gstNumber === 'Not registered' && (
+                  <p className="text-xs text-gray-500">
+                    Add GST number for invoice generation
+                  </p>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <FileText className="w-4 h-4" />
+                  <span className="font-medium">Tax Percentage</span>
+                </div>
+                <p className="text-base">
+                  <span className="font-semibold text-lg">{restaurantData.taxPercentage}%</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  This tax rate will be applied to all orders
+                </p>
+              </div>
+            </>
           ) : (
-            <div className="space-y-2">
-              <Label htmlFor="gstNumber" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                GST Number
-              </Label>
-              <Input
-                id="gstNumber"
-                type="text"
-                value={editForm.gstNumber}
-                onChange={(e) => setEditForm({ ...editForm, gstNumber: e.target.value.toUpperCase() })}
-                placeholder="Enter GST number (e.g., 22AAAAA0000A1Z5)"
-                maxLength={15}
-              />
-              <p className="text-xs text-gray-500">
-                GST number should be 15 characters (optional)
-              </p>
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="gstNumber" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  GST Number
+                </Label>
+                <Input
+                  id="gstNumber"
+                  type="text"
+                  value={editForm.gstNumber}
+                  onChange={(e) => setEditForm({ ...editForm, gstNumber: e.target.value.toUpperCase() })}
+                  placeholder="Enter GST number (e.g., 22AAAAA0000A1Z5)"
+                  maxLength={15}
+                />
+                <p className="text-xs text-gray-500">
+                  GST number should be 15 characters (optional)
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="taxPercentage" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Tax Percentage (%)
+                </Label>
+                <Input
+                  id="taxPercentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={editForm.taxPercentage}
+                  onChange={(e) => setEditForm({ ...editForm, taxPercentage: parseFloat(e.target.value) || 0 })}
+                  placeholder="Enter tax percentage (e.g., 5.00)"
+                />
+                <p className="text-xs text-gray-500">
+                  Tax percentage will be applied to all orders (0-100%)
+                </p>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

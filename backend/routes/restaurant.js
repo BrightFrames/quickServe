@@ -276,7 +276,7 @@ router.post("/verify-admin-password", async (req, res) => {
 // ============================
 // Get Restaurant Info by Code (for admin view)
 // ============================
-router.get("/info/:restaurantCode", async (req, res) => {
+router.get("/info/code/:restaurantCode", async (req, res) => {
   try {
     const { restaurantCode } = req.params;
     
@@ -298,6 +298,7 @@ router.get("/info/:restaurantCode", async (req, res) => {
         phone: restaurant.phone,
         address: restaurant.address,
         gstNumber: restaurant.gstNumber,
+        taxPercentage: parseFloat(restaurant.taxPercentage) || 5.0,
         subscription: restaurant.subscription,
         paymentAccounts: restaurant.paymentAccounts,
       },
@@ -625,6 +626,50 @@ router.put("/update-credentials/:restaurantCode", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Update credentials error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================
+// Get Restaurant Info by Slug (Public - for customers)
+// ============================
+router.get("/info/:slug", async (req, res) => {
+  try {
+    const { slug } = req.params;
+    console.log(`[RESTAURANT INFO] Request for slug: ${slug}`);
+    
+    const restaurant = await Restaurant.findOne({ 
+      where: { slug: slug.toLowerCase().trim() },
+      attributes: ['id', 'name', 'slug', 'restaurantCode', 'taxPercentage', 'address', 'phone', 'isActive']
+    });
+    
+    console.log(`[RESTAURANT INFO] Found restaurant:`, restaurant ? {
+      id: restaurant.id,
+      name: restaurant.name,
+      taxPercentage: restaurant.taxPercentage,
+      isActive: restaurant.isActive
+    } : 'null');
+    
+    if (!restaurant || !restaurant.isActive) {
+      console.log(`[RESTAURANT INFO] Restaurant not found or inactive`);
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    const response = {
+      id: restaurant.id,
+      name: restaurant.name,
+      slug: restaurant.slug,
+      restaurantCode: restaurant.restaurantCode,
+      taxPercentage: parseFloat(restaurant.taxPercentage) || 5.0,
+      address: restaurant.address,
+      phone: restaurant.phone
+    };
+    
+    console.log(`[RESTAURANT INFO] Sending response:`, response);
+    res.json(response);
+
+  } catch (error) {
+    console.error("[RESTAURANT INFO] Error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

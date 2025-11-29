@@ -28,6 +28,8 @@ export interface Order {
   createdAt: Date;
   updatedAt: Date;
   promoCode?: string;
+  paymentMethod?: "cash" | "card" | "upi";
+  paymentStatus?: "pending" | "paid" | "failed";
 }
 
 class OrderService {
@@ -83,6 +85,7 @@ class OrderService {
         customerEmail: orderData.customerEmail || "",
         items: backendItems,
         slug: restaurantSlug,
+        paymentMethod: orderData.paymentMethod || "cash",
       };
 
       // Only add tableId if it's a valid QR code table

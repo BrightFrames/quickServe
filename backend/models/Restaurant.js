@@ -73,6 +73,16 @@ const Restaurant = sequelize.define('Restaurant', {
   //     len: [4, 10], // 4-10 character code
   //   },
   // },
+  
+  // Cashfree vendor ID for marketplace payments
+  // This stores the Cashfree linked account/vendor ID for split settlements
+  cashfreeVendorId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Cashfree marketplace vendor ID for split settlements',
+  },
+  
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,

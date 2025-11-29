@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, Tag, Users, Mail } from "lucide-react";
+import { ArrowLeft, CreditCard, Mail } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { Card } from "@/shared/ui/card";
 import { Separator } from "@/shared/ui/separator";
-import { Switch } from "@/shared/ui/switch";
 import { formatCurrency } from "@/shared/lib/utils";
 import { useCart } from "../context/CartContext";
 import { useOrder } from "../hooks/useOrder";
@@ -16,39 +15,64 @@ import { toast } from "sonner";
 
 export const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { cart, getCartTotal, setSplitBill, clearCart, tableNumber } = useCart();
+  const { cart, getCartTotal, clearCart, tableNumber } = useCart();
   const { placeOrder, loading } = useOrder();
-  const [promoCode, setPromoCode] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [splitEnabled, setSplitEnabled] = useState(false);
-  const [splitCount, setSplitCount] = useState(2);
   const [email, setEmail] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<
     "cash" | "card" | "upi" | null
   >(null);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [taxPercentage, setTaxPercentage] = useState(5.0);
+  const [loadingTax, setLoadingTax] = useState(true);
 
   const subtotal = getCartTotal();
-  const tax = subtotal * 0.09; // 9% tax
-  const total = subtotal + tax - discount;
-  const splitAmount = splitEnabled ? total / splitCount : total;
+  const tax = (subtotal * taxPercentage) / 100;
+  const total = subtotal + tax;
 
-  const handleApplyPromo = () => {
-    // Mock promo validation
-    const promoCodes: Record<string, number> = {
-      WELCOME10: 10,
-      SAVE20: 20,
+  // Fetch restaurant tax percentage on mount
+  useEffect(() => {
+    const fetchTaxRate = async () => {
+      try {
+        const savedData = localStorage.getItem("customer_restaurant_data");
+        console.log("[TAX] Saved data:", savedData);
+        
+        if (savedData) {
+          const data = JSON.parse(savedData);
+          const slug = data.restaurantSlug;
+          console.log("[TAX] Restaurant slug:", slug);
+          
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const url = `${apiUrl}/api/restaurant/info/${slug}`;
+          console.log("[TAX] Fetching from:", url);
+          
+          const response = await fetch(url);
+          console.log("[TAX] Response status:", response.status);
+          
+          if (response.ok) {
+            const restaurantInfo = await response.json();
+            console.log("[TAX] Restaurant info:", restaurantInfo);
+            console.log("[TAX] Tax percentage from API:", restaurantInfo.taxPercentage);
+            
+            const taxValue = parseFloat(restaurantInfo.taxPercentage) || 5.0;
+            console.log("[TAX] Setting tax to:", taxValue);
+            setTaxPercentage(taxValue);
+          } else {
+            console.error("[TAX] Failed to fetch, status:", response.status);
+          }
+        } else {
+          console.warn("[TAX] No restaurant data in localStorage");
+        }
+      } catch (error) {
+        console.error("[TAX] Error fetching tax rate:", error);
+        // Keep default 5%
+      } finally {
+        setLoadingTax(false);
+        console.log("[TAX] Final tax percentage:", taxPercentage);
+      }
     };
 
-    const discountPercent = promoCodes[promoCode.toUpperCase()];
-    if (discountPercent) {
-      const discountAmount = (subtotal * discountPercent) / 100;
-      setDiscount(discountAmount);
-      toast.success(`${discountPercent}% discount applied!`);
-    } else {
-      toast.error("Invalid promo code");
-    }
-  };
+    fetchTaxRate();
+  }, []);
 
   const handlePlaceOrder = async () => {
     // Validate email
@@ -75,67 +99,17 @@ export const CheckoutPage = () => {
         items: cart,
         subtotal,
         tax,
-        discount,
+        discount: 0,
         total,
         tableNumber,
         customerEmail: email,
-        splitBill: splitEnabled,
-        splitCount: splitEnabled ? splitCount : undefined,
-        promoCode: promoCode || undefined,
         paymentMethod,
         // Mark UPI orders as pending payment
         paymentStatus: paymentMethod === "upi" ? "pending" : undefined,
       };
 
-      setSplitBill(splitEnabled, splitEnabled ? splitCount : undefined);
-
       // Handle different payment methods
-      if (paymentMethod === "upi") {
-        // PhonePe Payment Gateway Integration
-        toast.info("Initiating PhonePe payment...", {
-          description: "You will be redirected to PhonePe",
-          duration: 2000,
-        });
-
-        // First create the order
-        const order = await placeOrder({
-          ...orderData,
-          paymentStatus: "pending",
-        });
-
-        // Initiate PhonePe payment
-        try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-          const phonePeResponse = await fetch(`${API_BASE_URL}/api/payment/phonepe/initiate`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              orderId: order.id,
-              amount: total,
-              restaurantId: order.restaurantId,
-              customerPhone: "9999999999", // You can add phone field if needed
-              customerName: "Customer",
-              customerEmail: email,
-            }),
-          });
-
-          const phonePeData = await phonePeResponse.json();
-
-          if (phonePeData.success && phonePeData.paymentUrl) {
-            // Redirect to PhonePe payment page
-            window.location.href = phonePeData.paymentUrl;
-          } else {
-            throw new Error(phonePeData.message || 'Failed to initiate payment');
-          }
-        } catch (phonepeError) {
-          console.error('PhonePe payment error:', phonepeError);
-          toast.error("Payment initiation failed. Please try again.");
-          // Update order status to failed
-          await paymentService.updatePaymentStatus(order.id, "upi", "failed");
-        }
-      } else if (paymentMethod === "cash") {
+      if (paymentMethod === "cash") {
         // Place order immediately for cash payment
         const order = await placeOrder(orderData);
 
@@ -236,35 +210,7 @@ export const CheckoutPage = () => {
           </div>
         </Card>
 
-        {/* Promo Code */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Tag className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">Promo Code</h2>
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter code"
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              className="h-12"
-            />
-            <Button
-              onClick={handleApplyPromo}
-              variant="outline"
-              className="h-12"
-            >
-              Apply
-            </Button>
-          </div>
-          {discount > 0 && (
-            <p className="text-sm text-success mt-2">
-              Discount applied: -{formatCurrency(discount)}
-            </p>
-          )}
-        </Card>
-
-        {/* Contact Details for Invoice */}
+        {/* Email for Invoice */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-primary" />
@@ -287,50 +233,6 @@ export const CheckoutPage = () => {
           </div>
         </Card>
 
-        {/* Split Bill */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              <Label
-                htmlFor="split-bill"
-                className="text-lg font-bold cursor-pointer"
-              >
-                Split Bill
-              </Label>
-            </div>
-            <Switch
-              id="split-bill"
-              checked={splitEnabled}
-              onCheckedChange={(checked) => {
-                setSplitEnabled(checked);
-                setSplitBill(checked, checked ? splitCount : undefined);
-              }}
-            />
-          </div>
-          {splitEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="split-count">Number of People</Label>
-              <Input
-                id="split-count"
-                type="number"
-                min="2"
-                max="10"
-                value={splitCount}
-                onChange={(e) => {
-                  const count = parseInt(e.target.value) || 2;
-                  setSplitCount(count);
-                  setSplitBill(true, count);
-                }}
-                className="h-12"
-              />
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(splitAmount)} per person
-              </p>
-            </div>
-          )}
-        </Card>
-
         {/* Payment Summary */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
@@ -343,26 +245,16 @@ export const CheckoutPage = () => {
               <span>{formatCurrency(subtotal)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax (9%)</span>
+              <span className="text-muted-foreground">
+                Tax ({loadingTax ? '...' : `${taxPercentage.toFixed(1)}%`})
+              </span>
               <span>{formatCurrency(tax)}</span>
             </div>
-            {discount > 0 && (
-              <div className="flex justify-between text-success">
-                <span>Discount</span>
-                <span>-{formatCurrency(discount)}</span>
-              </div>
-            )}
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
               <span className="text-primary">{formatCurrency(total)}</span>
             </div>
-            {splitEnabled && (
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Per Person ({splitCount} people)</span>
-                <span>{formatCurrency(splitAmount)}</span>
-              </div>
-            )}
           </div>
         </Card>
 
@@ -383,10 +275,8 @@ export const CheckoutPage = () => {
         >
           {processingPayment
             ? "Processing..."
-            : paymentMethod === "upi"
-            ? "Proceed to UPI Payment"
             : paymentMethod === "cash"
-            ? "Place Order - Pay Cash"
+            ? "Place Order - Cash on Delivery"
             : paymentMethod === "card"
             ? "Place Order - Pay by Card"
             : "Select Payment Method"}

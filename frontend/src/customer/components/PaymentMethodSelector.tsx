@@ -14,8 +14,8 @@ export const PaymentMethodSelector = ({
   const paymentMethods = [
     {
       id: "cash" as const,
-      name: "Cash at Counter",
-      description: "Pay with cash when you collect",
+      name: "Cash on Delivery",
+      description: "Pay with cash when your order arrives",
       icon: Banknote,
       color: "text-green-600",
       bgColor: "bg-green-50",
@@ -30,15 +30,16 @@ export const PaymentMethodSelector = ({
       bgColor: "bg-blue-50",
       borderColor: "border-blue-200",
     },
-    {
-      id: "upi" as const,
-      name: "UPI Payment",
-      description: "Pay instantly via GPay, PhonePe, Paytm",
-      icon: Smartphone,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      borderColor: "border-purple-200",
-    },
+    // UPI Payment temporarily disabled - Cashfree integration pending
+    // {
+    //   id: "upi" as const,
+    //   name: "UPI Payment",
+    //   description: "Pay instantly via GPay, PhonePe, Paytm",
+    //   icon: Smartphone,
+    //   color: "text-purple-600",
+    //   bgColor: "bg-purple-50",
+    //   borderColor: "border-purple-200",
+    // },
   ];
 
   return (

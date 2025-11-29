@@ -13,10 +13,10 @@ import userRoutes from "./routes/users.js";
 import analyticsRoutes from "./routes/analytics.js";
 import tableRoutes from "./routes/tables.js";
 import paymentRoutes from "./routes/payment.js";
+import cashfreePaymentRoutes from "./routes/paymentRoutes.js";
 import ratingRoutes from "./routes/ratings.js";
 import invoiceRoutes from "./routes/invoice.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
-import phonePeRoutes from "./routes/phonepe.js";
 import promoCodeRoutes from "./routes/promoCodes.js";
 import debugRoutes from "./routes/debug.js";
 
@@ -167,6 +167,10 @@ console.log("✓ Table routes registered at /api/tables");
 app.use("/api/payment", paymentRoutes);
 console.log("✓ Payment routes registered at /api/payment");
 
+// Cashfree marketplace payment routes
+app.use("/api/payment", cashfreePaymentRoutes);
+console.log("✓ Cashfree payment routes registered at /api/payment");
+
 app.use("/api/ratings", ratingRoutes);
 console.log("✓ Rating routes registered at /api/ratings");
 
@@ -175,9 +179,6 @@ console.log("✓ Invoice routes registered at /api/invoice");
 
 app.use("/api/customer-auth", customerAuthRoutes);
 console.log("✓ Customer Auth routes registered at /api/customer-auth");
-
-app.use("/api/payment", phonePeRoutes);
-console.log("✓ PhonePe routes registered at /api/payment");
 
 app.use("/api/promo-codes", promoCodeRoutes);
 console.log("✓ Promo Code routes registered at /api/promo-codes");

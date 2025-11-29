@@ -53,7 +53,7 @@ const PaymentSettings = () => {
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const response = await axios.get(`${apiUrl}/api/restaurant/info/${restaurantCode}`);
+      const response = await axios.get(`${apiUrl}/api/restaurant/info/code/${restaurantCode}`);
       
       const { restaurant } = response.data;
       if (restaurant.paymentAccounts) {

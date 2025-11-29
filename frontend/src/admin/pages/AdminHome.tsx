@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Building2,
   Wallet,
+  Tag,
 } from "lucide-react";
 import Dashboard from "../components/admin/Dashboard";
 import MenuManagement from "../components/admin/MenuManagement";
@@ -16,9 +17,10 @@ import InventoryManagement from "../components/admin/InventoryManagement";
 import UserManagement from "../components/admin/UserManagement";
 import RestaurantInfo from "../components/admin/RestaurantInfo";
 import PaymentSettings from "../components/admin/PaymentSettings";
+import PromoCodeManagement from "../components/admin/PromoCodeManagement";
 import axios from "axios";
 
-type Tab = "dashboard" | "menu" | "inventory" | "users" | "info" | "payment";
+type Tab = "dashboard" | "menu" | "inventory" | "users" | "info" | "payment" | "promos";
 
 const AdminHome = () => {
   const { logout, user } = useAuth();
@@ -68,6 +70,7 @@ const AdminHome = () => {
     { id: "menu" as Tab, name: "Menu Management", icon: MenuIcon },
     { id: "inventory" as Tab, name: "Inventory", icon: Package },
     { id: "users" as Tab, name: "Kitchen Staff", icon: Users },
+    { id: "promos" as Tab, name: "Promo Codes", icon: Tag },
     { id: "info" as Tab, name: "Restaurant Info", icon: Building2 },
     { id: "payment" as Tab, name: "Payment Settings", icon: Wallet },
   ];
@@ -149,6 +152,7 @@ const AdminHome = () => {
           {activeTab === "menu" && <MenuManagement />}
           {activeTab === "inventory" && <InventoryManagement />}
           {activeTab === "users" && <UserManagement />}
+          {activeTab === "promos" && <PromoCodeManagement />}
           {activeTab === "info" && <RestaurantInfo />}
           {activeTab === "payment" && <PaymentSettings />}
         </div>
