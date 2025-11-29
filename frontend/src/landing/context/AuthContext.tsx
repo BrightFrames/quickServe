@@ -47,8 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<{success: boolean; message?: string}> => {
     setIsLoading(true);
     console.log('[AUTH] Starting login for:', email);
+    const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://quickserve-51ek.onrender.com');
+    
     try {
-      const response = await fetch('http://localhost:3000/api/restaurant/login', {
+      const response = await fetch(`${apiUrl}/api/restaurant/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,10 +89,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     phone: string;
     address: string;
   }): Promise<{success: boolean; message?: string}> => {
+    const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : 'https://quickserve-51ek.onrender.com');
     setIsLoading(true);
     console.log('[AUTH] Starting signup for:', restaurantData.email);
     try {
-      const response = await fetch('http://localhost:3000/api/restaurant/signup', {
+      const response = await fetch(`${apiUrl}/api/restaurant/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
