@@ -49,7 +49,8 @@ const allowedOrigins = [
   "http://192.168.1.83:8080", // Network IP for mobile testing
   "http://192.168.1.83:5173", // Network IP for admin
   "http://192.168.1.83:3001", // Network IP for landing
-  ...envOrigins, // Production frontends
+  "https://quick-serve-ten.vercel.app", // Production frontend
+  ...envOrigins, // Additional production frontends
 ];
 
 console.log("Allowed CORS origins:", allowedOrigins);
