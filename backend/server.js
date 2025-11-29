@@ -62,7 +62,7 @@ app.use((req, res, next) => {
 
   // Log every request origin for debugging
   console.log(
-    `[CORS] Request from: ${origin || "no-origin"} - Method: ${req.method}`
+    `[CORS] Request from: ${origin || "no-origin"} - Method: ${req.method} - Path: ${req.path}`
   );
 
   // Check if origin is allowed
@@ -80,17 +80,22 @@ app.use((req, res, next) => {
     );
     res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
     console.log(`[CORS] ✓ Allowed origin: ${origin}`);
+    
+    // Handle preflight OPTIONS requests
+    if (req.method === "OPTIONS") {
+      console.log("[CORS] ✓ Responding to OPTIONS preflight with 204");
+      return res.status(204).end();
+    }
   } else if (!origin) {
     // Allow requests with no origin (curl, Postman, server-to-server)
     console.log("[CORS] ✓ No origin (non-browser request)");
   } else {
     console.log(`[CORS] ✗ BLOCKED: ${origin}`);
-  }
-
-  // Handle preflight OPTIONS requests
-  if (req.method === "OPTIONS") {
-    console.log("[CORS] Handling OPTIONS preflight request");
-    return res.status(200).end();
+    // For blocked origins, still need to respond to OPTIONS
+    if (req.method === "OPTIONS") {
+      console.log("[CORS] ✗ Blocked OPTIONS request - returning 403");
+      return res.status(403).json({ error: "CORS not allowed" });
+    }
   }
 
   next();
