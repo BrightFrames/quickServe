@@ -8,6 +8,7 @@ import LoadingScreen from './shared/components/LoadingScreen';
 // Landing Pages
 import LandingPage from './landing/pages/LandingPage';
 import Dashboard from './landing/components/Dashboard';
+import { DashboardProtection } from './landing/components/DashboardProtection';
 
 // Admin Pages  
 import AdminLogin from './admin/pages/AdminLogin';
@@ -167,12 +168,14 @@ function App() {
             }
           />
 
-          {/* Restaurant Dashboard - No authentication needed */}
+          {/* Restaurant Dashboard - Password Protected */}
           <Route 
             path="/:restaurantSlug/dashboard" 
             element={
               <LandingAuthProvider>
-                <Dashboard />
+                <DashboardProtection>
+                  <Dashboard />
+                </DashboardProtection>
               </LandingAuthProvider>
             } 
           />

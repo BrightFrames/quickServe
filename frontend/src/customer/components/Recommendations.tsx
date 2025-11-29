@@ -4,6 +4,7 @@ import { Button } from '@/shared/ui/button';
 import { Plus, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/shared/lib/utils';
 
 interface RecommendationsProps {
   items: MenuItemType[];
@@ -53,7 +54,7 @@ export const Recommendations = ({ items }: RecommendationsProps) => {
                 </h3>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-primary">
-                    ${typeof item.price === 'string' ? parseFloat(item.price).toFixed(2) : item.price.toFixed(2)}
+                    {formatCurrency(typeof item.price === 'string' ? parseFloat(item.price) : item.price)}
                   </span>
                   <Button
                     size="sm"

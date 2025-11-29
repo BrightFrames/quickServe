@@ -15,6 +15,13 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Clear customer session markers if they exist
+    sessionStorage.removeItem('userType')
+    sessionStorage.removeItem('customerSessionStart')
+    sessionStorage.removeItem('adminVerified')
+    sessionStorage.removeItem('adminVerifiedAt')
+    
     setLoading(true)
 
     try {

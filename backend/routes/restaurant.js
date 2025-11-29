@@ -215,6 +215,65 @@ router.post("/login", async (req, res) => {
 });
 
 // ============================
+// Verify Admin Password - For Customer Trying to Access Admin Area
+// ============================
+router.post("/verify-admin-password", async (req, res) => {
+  console.log("[ADMIN ACCESS GUARD] Password verification request");
+  
+  try {
+    const { slug, password } = req.body;
+
+    if (!slug || !password) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Restaurant slug and password are required" 
+      });
+    }
+
+    // Find restaurant by slug
+    const restaurant = await Restaurant.findOne({ 
+      where: { 
+        slug: slug.toLowerCase().trim(),
+        isActive: true 
+      }
+    });
+
+    if (!restaurant) {
+      console.log("[ADMIN ACCESS GUARD] Restaurant not found");
+      return res.status(404).json({ 
+        success: false,
+        message: "Restaurant not found" 
+      });
+    }
+
+    // Verify password
+    const isValidPassword = await restaurant.comparePassword(password);
+    
+    if (!isValidPassword) {
+      console.log("[ADMIN ACCESS GUARD] Invalid password");
+      return res.status(401).json({ 
+        success: false,
+        message: "Incorrect password" 
+      });
+    }
+
+    console.log("[ADMIN ACCESS GUARD] Password verified successfully");
+    
+    res.json({
+      success: true,
+      message: "Password verified successfully"
+    });
+
+  } catch (error) {
+    console.error("[ADMIN ACCESS GUARD] Verification error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error during verification" 
+    });
+  }
+});
+
+// ============================
 // Get Restaurant Info by Code (for admin view)
 // ============================
 router.get("/info/:restaurantCode", async (req, res) => {
