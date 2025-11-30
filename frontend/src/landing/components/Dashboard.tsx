@@ -53,24 +53,40 @@ const Dashboard: React.FC = () => {
   }, [restaurant, restaurantSlug, navigate, logout]);
 
   const handleNavigateToAdmin = () => {
-    if (restaurant && restaurant.restaurantCode) {
-      // Navigate to restaurant verification page with code
-      // URL format: /slug?code=QS1234&type=admin
-      navigate(`/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
+    console.log('Admin button clicked', { restaurant, restaurantCode: restaurant?.restaurantCode });
+    if (restaurant) {
+      if (restaurant.restaurantCode) {
+        // Navigate to restaurant verification page with code
+        // URL format: /slug?code=QS1234&type=admin
+        navigate(`/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
+      } else {
+        // If restaurantCode is missing (old session), go directly to admin login
+        toast.info('Redirecting to admin login...');
+        navigate(`/${restaurant.slug}/admin/login`);
+      }
+    } else {
+      toast.error('Restaurant information not found. Please login again.');
+      console.error('Cannot navigate: Missing restaurant data', restaurant);
     }
   };
 
   const handleNavigateToKitchen = () => {
+    console.log('Kitchen button clicked', { restaurant });
     if (restaurant) {
       // Navigate to kitchen login with restaurant slug
       navigate(`/${restaurant.slug}/kitchen/login`);
+    } else {
+      toast.error('Restaurant information not found. Please login again.');
     }
   };
 
   const handleNavigateToCaptain = () => {
+    console.log('Captain button clicked', { restaurant });
     if (restaurant) {
       // Navigate to captain login with restaurant slug
       navigate(`/${restaurant.slug}/captain/login`);
+    } else {
+      toast.error('Restaurant information not found. Please login again.');
     }
   };
 

@@ -40,6 +40,8 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
         return;
       }
 
+      console.log('[CAPTAIN] Fetching tables for restaurant:', restaurantId);
+
       // Use captain-specific endpoint that doesn't require restaurant token
       const response = await axios.get(
         `${apiUrl}/api/captain/tables/${restaurantId}`,
@@ -47,8 +49,11 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
+      console.log('[CAPTAIN] Tables fetched:', response.data);
       setTables(response.data || []);
     } catch (err: any) {
+      console.error('[CAPTAIN] Error fetching tables:', err);
       setError(err.response?.data?.message || "Failed to load tables");
     } finally {
       setLoading(false);
