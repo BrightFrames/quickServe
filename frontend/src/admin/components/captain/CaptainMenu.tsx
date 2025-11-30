@@ -33,14 +33,28 @@ const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
 
   const fetchMenu = async () => {
     try {
+      const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const restaurantCode = user.restaurantCode;
+      const restaurantId = user.restaurantId;
 
+      if (!restaurantId) {
+        setError("Restaurant information not found");
+        setLoading(false);
+        return;
+      }
+
+      console.log('[CAPTAIN] Fetching menu for restaurant:', restaurantId);
+
+      // Use captain-specific endpoint
       const response = await axios.get(
-        `${apiUrl}/api/menu?restaurantCode=${restaurantCode}`
+        `${apiUrl}/api/captain/menu/${restaurantId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
       
-      const items = response.data.menu || [];
+      console.log('[CAPTAIN] Menu items fetched:', response.data.length);
+      const items = response.data || [];
       setMenuItems(items);
 
       // Extract unique categories
