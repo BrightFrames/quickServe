@@ -15,6 +15,8 @@ import AdminLogin from './admin/pages/AdminLogin';
 import KitchenLogin from './admin/pages/KitchenLogin';
 import AdminHome from './admin/pages/AdminHome';
 import KitchenHome from './admin/pages/KitchenHome';
+import CaptainLogin from './admin/pages/CaptainLogin';
+import CaptainHome from './admin/pages/CaptainHome';
 import RestaurantVerification from './admin/pages/RestaurantVerification';
 import LoginSelection from './admin/pages/LoginSelection';
 
@@ -126,6 +128,30 @@ function App() {
             } 
           />
 
+          {/* Captain Login with Restaurant Slug */}
+          <Route 
+            path="/:restaurantSlug/captain/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <CaptainLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
+          {/* Captain Login (fallback without slug) */}
+          <Route 
+            path="/captain/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <CaptainLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
           {/* Admin Dashboard - Protected */}
           <Route
             path="/admin/dashboard"
@@ -162,6 +188,34 @@ function App() {
                 <AdminRestaurantProvider>
                   <ProtectedRoute role="kitchen">
                     <KitchenHome />
+                  </ProtectedRoute>
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            }
+          />
+
+          {/* Captain Dashboard - Protected */}
+          <Route
+            path="/captain/dashboard"
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ProtectedRoute role="captain">
+                    <CaptainHome />
+                  </ProtectedRoute>
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            }
+          />
+
+          {/* Captain Dashboard with Restaurant Slug - Protected */}
+          <Route
+            path="/:restaurantSlug/captain/dashboard"
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ProtectedRoute role="captain">
+                    <CaptainHome />
                   </ProtectedRoute>
                 </AdminRestaurantProvider>
               </AdminAuthProvider>

@@ -90,20 +90,20 @@ router.post("/login", async (req, res) => {
       }
     }
 
-    // Kitchen/Cook login - ONLY from User table, NOT admin credentials
-    console.log("[AUTH] Processing kitchen/cook login...");
+    // Kitchen/Cook/Captain login - ONLY from User table, NOT admin credentials
+    console.log("[AUTH] Processing kitchen/cook/captain login...");
     
-    // Prevent admin credentials from accessing kitchen dashboard
+    // Prevent admin credentials from accessing kitchen/captain dashboard
     if (username === process.env.ADMIN_USERNAME) {
-      console.log("[AUTH] ✗ Admin credentials cannot be used for kitchen login");
-      return res.status(401).json({ message: "Invalid credentials. Please use kitchen staff credentials." });
+      console.log("[AUTH] ✗ Admin credentials cannot be used for staff login");
+      return res.status(401).json({ message: "Invalid credentials. Please use staff credentials." });
     }
     
     const user = await User.findOne({
       where: {
         username,
         role: {
-          [Op.in]: ["kitchen", "cook"],
+          [Op.in]: ["kitchen", "cook", "captain"],
         },
       },
     });
@@ -136,6 +136,71 @@ router.post("/login", async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("[AUTH] Server error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ============================
+// Captain Login Route
+// ============================
+router.post("/captain/login", async (req, res) => {
+  console.log("[AUTH] Captain login request received");
+  console.log("[AUTH] Body:", req.body);
+
+  try {
+    const { username, password } = req.body;
+
+    // Validate required fields
+    if (!username || !password) {
+      console.log("[AUTH] Missing required fields");
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    console.log(`[AUTH] Attempting captain login for user: ${username}`);
+
+    // Find captain user
+    const user = await User.findOne({
+      where: {
+        username,
+        role: "captain",
+      },
+    });
+
+    if (!user) {
+      console.log("[AUTH] ✗ Captain not found");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      console.log("[AUTH] ✗ Invalid password");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    console.log("[AUTH] ✓ Captain credentials valid");
+
+    // Update user status
+    user.isOnline = true;
+    user.lastActive = new Date();
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, restaurantId: user.restaurantId },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        restaurantId: user.restaurantId,
       },
       token,
     });

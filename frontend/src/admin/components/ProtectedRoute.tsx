@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  role: 'admin' | 'kitchen'
+  role: 'admin' | 'kitchen' | 'captain'
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
@@ -33,6 +33,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
       return <Navigate to="/admin/dashboard" replace />
     } else if (user?.role === 'kitchen') {
       return <Navigate to="/kitchen/dashboard" replace />
+    } else if (user?.role === 'captain') {
+      return <Navigate to="/captain/dashboard" replace />
     }
     
     // If no valid role, redirect to login
