@@ -160,6 +160,14 @@ const TableManagement = () => {
 
   const openAddDialog = () => {
     resetForm();
+    // Auto-generate next table name
+    const nextTableNumber = tables.length + 1;
+    setFormData({
+      tableId: `t${nextTableNumber}`,
+      tableName: `Table ${nextTableNumber}`,
+      seats: 4,
+      location: "",
+    });
     setIsAddDialogOpen(true);
   };
 

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Plus, Search, ShoppingCart } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Search, Plus, ArrowLeft, AlertCircle } from "lucide-react";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface MenuItem {
   id: number;
@@ -9,24 +10,22 @@ interface MenuItem {
   description: string;
   price: number;
   category: string;
-  image: string;
-  available: boolean;
+  image?: string;
+  isAvailable: boolean;
 }
 
 interface CaptainMenuProps {
-  tableId: number;
-  cartItems: any[];
   onAddToCart: (item: MenuItem) => void;
-  onViewCart: () => void;
+  onBack: () => void;
 }
 
-const CaptainMenu = ({ tableId, cartItems, onAddToCart, onViewCart }: CaptainMenuProps) => {
+const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchMenu();
@@ -34,62 +33,98 @@ const CaptainMenu = ({ tableId, cartItems, onAddToCart, onViewCart }: CaptainMen
 
   const fetchMenu = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem('captainUser') || '{}');
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const restaurantCode = user.restaurantCode;
+
       const response = await axios.get(
-        `${apiUrl}/api/menu/restaurant/${user.restaurantId}`
+        `${apiUrl}/api/menu?restaurantCode=${restaurantCode}`
       );
-      setMenuItems(response.data.filter((item: MenuItem) => item.available));
-    } catch (error) {
-      console.error('Error fetching menu:', error);
-      toast.error('Failed to load menu');
+      
+      const items = response.data.menu || [];
+      setMenuItems(items);
+
+      // Extract unique categories
+      const uniqueCategories = [
+        "All",
+        ...Array.from(new Set(items.map((item: MenuItem) => item.category))),
+      ];
+      setCategories(uniqueCategories);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load menu");
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ['All', ...new Set(menuItems.map((item) => item.category))];
-
   const filteredItems = menuItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    const matchesCategory =
+      selectedCategory === "All" || item.category === selectedCategory;
+    const matchesSearch = item.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch && item.isAvailable;
   });
-
-  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center gap-3 text-red-700">
+          <AlertCircle className="w-5 h-5" />
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search and Categories */}
-      <div className="space-y-3">
+    <div className="bg-white rounded-lg shadow-sm">
+      {/* Header */}
+      <div className="p-4 border-b">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Tables</span>
+        </button>
+
+        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search menu items..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            placeholder="Search menu items..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        {/* Categories */}
+        <div className="flex gap-2 overflow-x-auto mt-4 pb-2">
           {categories.map((category) => (
             <button
               key={category}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === category
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
               onClick={() => setSelectedCategory(category)}
+              className={`
+                px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors
+                ${
+                  selectedCategory === category
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }
+              `}
             >
               {category}
             </button>
@@ -98,58 +133,52 @@ const CaptainMenu = ({ tableId, cartItems, onAddToCart, onViewCart }: CaptainMen
       </div>
 
       {/* Menu Items */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredItems.map((item) => (
-          <div key={item.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-            {item.image && (
-              <div className="h-40 overflow-hidden bg-gray-100">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div className="p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">{item.name}</h3>
-                <span className="px-2 py-1 bg-gray-100 text-gray-800 text-sm font-medium rounded">₹{item.price}</span>
-              </div>
-              {item.description && (
-                <p className="text-sm text-gray-600">{item.description}</p>
-              )}
-              <button
-                onClick={() => onAddToCart(item)}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+      <div className="p-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No items found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {filteredItems.map((item) => (
+              <div
+                key={item.id}
+                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
               >
-                <Plus className="h-4 w-4" />
-                Add to Order
-              </button>
-            </div>
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {item.name}
+                    </h3>
+                    {item.description && (
+                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-lg font-bold text-blue-600">
+                      ₹{item.price.toFixed(2)}
+                    </p>
+                  </div>
+                  {item.image && (
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-20 h-20 object-cover rounded-lg ml-4"
+                    />
+                  )}
+                </div>
+                <button
+                  onClick={() => onAddToCart(item)}
+                  className="w-full mt-3 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add to Order
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
-
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No items found</p>
-        </div>
-      )}
-
-      {/* Floating Cart Button */}
-      {cartItemCount > 0 && (
-        <button
-          onClick={onViewCart}
-          className="fixed bottom-6 right-6 bg-purple-600 hover:bg-purple-700 text-white rounded-full h-16 w-16 shadow-2xl transition-all hover:scale-110 flex items-center justify-center"
-        >
-          <div className="relative">
-            <ShoppingCart className="h-6 w-6" />
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold">
-              {cartItemCount}
-            </span>
-          </div>
-        </button>
-      )}
     </div>
   );
 };

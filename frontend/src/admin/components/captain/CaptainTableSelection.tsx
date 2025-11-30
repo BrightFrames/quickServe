@@ -1,25 +1,28 @@
-import { useEffect, useState } from 'react';
-import { Users, Circle } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Users, AlertCircle } from "lucide-react";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface Table {
   id: number;
-  tableNumber: string;
+  tableNumber: number;
+  tableName?: string;
   capacity: number;
-  status: 'available' | 'occupied' | 'reserved';
+  status: "available" | "occupied" | "reserved";
   restaurantId: number;
 }
 
 interface CaptainTableSelectionProps {
-  onTableSelect: (tableId: number) => void;
+  onSelectTable: (tableId: number) => void;
 }
 
-const CaptainTableSelection = ({ onTableSelect }: CaptainTableSelectionProps) => {
+const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
+  onSelectTable,
+}) => {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchTables();
@@ -27,19 +30,26 @@ const CaptainTableSelection = ({ onTableSelect }: CaptainTableSelectionProps) =>
 
   const fetchTables = async () => {
     try {
-      const token = localStorage.getItem('captainToken');
-      const user = JSON.parse(localStorage.getItem('captainUser') || '{}');
-      
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const restaurantId = user.restaurantId;
+
+      if (!restaurantId) {
+        setError("Restaurant information not found. Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      // Use captain-specific endpoint that doesn't require restaurant token
       const response = await axios.get(
-        `${apiUrl}/api/tables/restaurant/${user.restaurantId}`,
+        `${apiUrl}/api/captain/tables/${restaurantId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setTables(response.data);
-    } catch (error) {
-      console.error('Error fetching tables:', error);
-      toast.error('Failed to load tables');
+      setTables(response.data || []);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to load tables");
     } finally {
       setLoading(false);
     }
@@ -47,73 +57,92 @@ const CaptainTableSelection = ({ onTableSelect }: CaptainTableSelectionProps) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'occupied':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'reserved':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case "available":
+        return "bg-green-100 text-green-700 border-green-300";
+      case "occupied":
+        return "bg-red-100 text-red-700 border-red-300";
+      case "reserved":
+        return "bg-yellow-100 text-yellow-700 border-yellow-300";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-700 border-gray-300";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Free";
+      case "occupied":
+        return "Occupied";
+      case "reserved":
+        return "Reserved";
+      default:
+        return status;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center py-20">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tables...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <div className="flex items-center gap-3 text-red-700">
+          <AlertCircle className="w-5 h-5" />
+          <p>{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Select a Table</h2>
-        <span className="px-3 py-1 text-sm border border-gray-300 rounded-full bg-white">
-          {tables.length} Tables
-        </span>
+    <div>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Table</h2>
+        <p className="text-gray-600">Choose a table to start taking orders</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {tables.map((table) => (
-          <div
-            key={table.id}
-            className="bg-white rounded-xl shadow-md p-5 cursor-pointer hover:shadow-xl transition-all hover:scale-105 border border-gray-200"
-            onClick={() => onTableSelect(table.id)}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Table {table.tableNumber}
-                </h3>
-                <Circle
-                  className={`h-3 w-3 ${
-                    table.status === 'available'
-                      ? 'fill-green-500 text-green-500'
-                      : table.status === 'occupied'
-                      ? 'fill-red-500 text-red-500'
-                      : 'fill-yellow-500 text-yellow-500'
-                  }`}
-                />
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm">Capacity: {table.capacity}</span>
+      {tables.length === 0 ? (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+          <p className="text-yellow-700 font-medium mb-2">No Tables Found</p>
+          <p className="text-yellow-600 text-sm">
+            Please contact admin to add tables
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {tables.map((table) => (
+            <button
+              key={table.id}
+              onClick={() => onSelectTable(table.tableNumber)}
+              className={`
+                relative p-6 rounded-xl border-2 transition-all hover:scale-105 active:scale-95
+                ${getStatusColor(table.status)}
+              `}
+            >
+              <div className="text-center">
+                <div className="text-3xl font-bold mb-2">
+                  {table.tableName || `#${table.tableNumber}`}
                 </div>
-                <span className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(table.status)}`}>
-                  {table.status.charAt(0).toUpperCase() + table.status.slice(1)}
-                </span>
+                <div className="flex items-center justify-center gap-1 text-xs mb-1">
+                  <Users className="w-3 h-3" />
+                  <span>{table.capacity}</span>
+                </div>
+                <div className="text-xs font-medium uppercase">
+                  {getStatusText(table.status)}
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {tables.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No tables available</p>
+            </button>
+          ))}
         </div>
       )}
     </div>

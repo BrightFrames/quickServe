@@ -19,6 +19,7 @@ import invoiceRoutes from "./routes/invoice.js";
 import customerAuthRoutes from "./routes/customerAuth.js";
 import promoCodeRoutes from "./routes/promoCodes.js";
 import debugRoutes from "./routes/debug.js";
+import captainRoutes from "./routes/captain.js";
 
 dotenv.config();
 
@@ -173,6 +174,9 @@ console.log("✓ Analytics routes registered at /api/analytics");
 
 app.use("/api/tables", tableRoutes);
 console.log("✓ Table routes registered at /api/tables");
+
+app.use("/api/captain", captainRoutes);
+console.log("✓ Captain routes registered at /api/captain");
 
 app.use("/api/payment", paymentRoutes);
 console.log("✓ Payment routes registered at /api/payment");

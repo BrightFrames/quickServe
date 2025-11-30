@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Minus, Plus, Trash2, ArrowLeft, Send } from 'lucide-react';
-import axios from 'axios';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import axios from "axios";
+import { Minus, Plus, Trash2, Send, AlertCircle } from "lucide-react";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface CartItem {
   id: number;
@@ -12,211 +13,191 @@ interface CartItem {
 }
 
 interface CaptainCartProps {
-  tableId: number;
   items: CartItem[];
-  onUpdateCart: (items: CartItem[]) => void;
-  onBack: () => void;
+  tableNumber: number;
+  onUpdateQuantity: (itemId: number, change: number) => void;
+  onUpdateNotes: (itemId: number, notes: string) => void;
+  onRemoveItem: (itemId: number) => void;
   onOrderPlaced: () => void;
 }
 
-const CaptainCart = ({ tableId, items, onUpdateCart, onBack, onOrderPlaced }: CaptainCartProps) => {
-  const [loading, setLoading] = useState(false);
-  const [customerEmail, setCustomerEmail] = useState('');
-  const navigate = useNavigate();
+const CaptainCart: React.FC<CaptainCartProps> = ({
+  items,
+  tableNumber,
+  onUpdateQuantity,
+  onUpdateNotes,
+  onRemoveItem,
+  onOrderPlaced,
+}) => {
+  const [placing, setPlacing] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-  const updateQuantity = (itemId: number, change: number) => {
-    const updatedItems = items.map((item) => {
-      if (item.id === itemId) {
-        const newQuantity = Math.max(1, item.quantity + change);
-        return { ...item, quantity: newQuantity };
-      }
-      return item;
-    });
-    onUpdateCart(updatedItems);
-  };
-
-  const updateNotes = (itemId: number, notes: string) => {
-    const updatedItems = items.map((item) =>
-      item.id === itemId ? { ...item, notes } : item
-    );
-    onUpdateCart(updatedItems);
-  };
-
-  const removeItem = (itemId: number) => {
-    onUpdateCart(items.filter((item) => item.id !== itemId));
-  };
-
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.05; // 5% tax
-  const total = subtotal + tax;
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   const handlePlaceOrder = async () => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('captainToken');
-      const user = JSON.parse(localStorage.getItem('captainUser') || '{}');
+    if (items.length === 0) {
+      setError("Cart is empty");
+      return;
+    }
 
+    setPlacing(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const restaurantCode = user.restaurantCode;
+
+      // Get restaurant slug from code
+      const restaurantResponse = await axios.get(
+        `${apiUrl}/api/restaurant/info/code/${restaurantCode}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const slug = restaurantResponse.data.restaurant.slug;
+
+      // Prepare order data
       const orderData = {
-        restaurantId: user.restaurantId,
-        tableNumber: tableId.toString(),
+        tableNumber,
         items: items.map((item) => ({
           menuItemId: item.id,
           name: item.name,
           quantity: item.quantity,
           price: item.price,
-          specialInstructions: item.notes || '',
+          specialInstructions: item.notes || "",
         })),
-        subtotal,
-        tax,
-        discount: 0,
-        total,
-        paymentMethod: 'cash',
-        customerEmail: customerEmail || undefined,
-        orderedBy: 'captain',
-        captainId: user.id,
+        slug,
+        paymentMethod: "cash", // Captain orders default to cash
+        customerEmail: `captain-order-table${tableNumber}@restaurant.com`,
       };
 
-      await axios.post(`${apiUrl}/api/orders`, orderData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(`${apiUrl}/api/orders`, orderData);
 
-      toast.success('Order placed successfully!');
-      onOrderPlaced();
-    } catch (error: any) {
-      console.error('Error placing order:', error);
-      toast.error(error.response?.data?.message || 'Failed to place order');
+      setSuccess("Order sent to kitchen successfully!");
+      setTimeout(() => {
+        onOrderPlaced();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to place order");
     } finally {
-      setLoading(false);
+      setPlacing(false);
     }
   };
 
-  if (items.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 mb-4">Cart is empty</p>
-        <button
-          onClick={onBack}
-          className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-        >
-          Back to Menu
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4 pb-24">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Menu
-      </button>
+    <div className="bg-white rounded-lg shadow-sm sticky top-20">
+      <div className="p-4 border-b">
+        <h2 className="text-xl font-bold text-gray-900">
+          Order for Table {tableNumber}
+        </h2>
+        <p className="text-sm text-gray-600 mt-1">
+          {items.length} {items.length === 1 ? "item" : "items"}
+        </p>
+      </div>
 
       {/* Cart Items */}
-      <div className="space-y-3">
-        {items.map((item) => (
-          <div key={item.id} className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
-            <div className="space-y-3">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                  <p className="text-sm text-gray-600">₹{item.price} each</p>
+      <div className="p-4 max-h-[calc(100vh-400px)] overflow-y-auto">
+        {items.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No items added yet</p>
+            <p className="text-sm mt-2">Add items from the menu</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {items.map((item) => (
+              <div key={item.id} className="border rounded-lg p-3">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                    <p className="text-sm text-blue-600 mt-1">
+                      ₹{item.price.toFixed(2)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onRemoveItem(item.id)}
+                    className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => updateQuantity(item.id, -1)}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-12 text-center font-semibold">
-                  {item.quantity}
-                </span>
-                <button
-                  onClick={() => updateQuantity(item.id, 1)}
-                  className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <span className="ml-auto font-semibold">
-                  ₹{(item.price * item.quantity).toFixed(2)}
-                </span>
-              </div>
+                {/* Quantity Controls */}
+                <div className="flex items-center gap-3 mb-3">
+                  <button
+                    onClick={() => onUpdateQuantity(item.id, -1)}
+                    className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="font-semibold min-w-[2rem] text-center">
+                    {item.quantity}
+                  </span>
+                  <button
+                    onClick={() => onUpdateQuantity(item.id, 1)}
+                    className="w-8 h-8 flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm text-gray-600 ml-auto">
+                    ₹{(item.price * item.quantity).toFixed(2)}
+                  </span>
+                </div>
 
-              <textarea
-                placeholder="Add special instructions (optional)"
-                value={item.notes}
-                onChange={(e) => updateNotes(item.id, e.target.value)}
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none"
-              />
-            </div>
+                {/* Notes */}
+                <input
+                  type="text"
+                  value={item.notes}
+                  onChange={(e) => onUpdateNotes(item.id, e.target.value)}
+                  placeholder="Add notes (optional)"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Customer Email (Optional) */}
-      <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Customer Email (Optional)</h3>
-        <input
-          type="email"
-          placeholder="customer@example.com"
-          value={customerEmail}
-          onChange={(e) => setCustomerEmail(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-        />
-      </div>
-
-      {/* Order Summary */}
-      <div className="bg-white rounded-xl shadow-md p-4 border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h3>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <span className="text-gray-600">Subtotal</span>
-            <span>₹{subtotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Tax (5%)</span>
-            <span>₹{tax.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg pt-2 border-t">
+      {/* Footer */}
+      {items.length > 0 && (
+        <div className="p-4 border-t space-y-4">
+          {/* Total */}
+          <div className="flex justify-between items-center text-lg font-bold">
             <span>Total</span>
-            <span>₹{total.toFixed(2)}</span>
+            <span className="text-blue-600">₹{subtotal.toFixed(2)}</span>
           </div>
-        </div>
-      </div>
 
-      {/* Place Order Button - Fixed at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto">
+          {/* Messages */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-medium text-center">
+              {success}
+            </div>
+          )}
+
+          {/* Place Order Button */}
           <button
             onClick={handlePlaceOrder}
-            disabled={loading}
-            className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-lg rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={placing || items.length === 0}
+            className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              'Placing Order...'
-            ) : (
-              <>
-                <Send className="h-5 w-5" />
-                Send to Kitchen (₹{total.toFixed(2)})
-              </>
-            )}
+            <Send className="w-5 h-5" />
+            {placing ? "Sending to Kitchen..." : "Send to Kitchen"}
           </button>
         </div>
-      </div>
+      )}
     </div>
   );
 };
