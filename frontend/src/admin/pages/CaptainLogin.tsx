@@ -1,33 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, ArrowLeft, Lock } from 'lucide-react';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
 const CaptainLogin = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await axios.post(`${apiUrl}/api/auth/captain/login`, {
-        username,
-        password,
-      });
-
-      if (response.data.token) {
-        localStorage.setItem('captainToken', response.data.token);
-        localStorage.setItem('captainUser', JSON.stringify(response.data.user));
-        toast.success('Logged in successfully!');
-        navigate('/captain/dashboard');
-      }
+      await login(username, password, 'captain');
+      toast.success('Logged in successfully!');
+      navigate('/captain/dashboard');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Invalid credentials');
     } finally {

@@ -6,12 +6,13 @@ const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'lo
 interface User {
   id: string
   username: string
-  role: 'admin' | 'kitchen'
+  role: 'admin' | 'kitchen' | 'captain'
+  restaurantId?: number
 }
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string, role: 'admin' | 'kitchen', restaurantCode?: string) => Promise<void>
+  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
 }
@@ -33,7 +34,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [])
 
-  const login = async (username: string, password: string, role: 'admin' | 'kitchen', restaurantCode?: string) => {
+  const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => {
     try {
       // For admin role, use restaurant login endpoint
       if (role === 'admin') {
@@ -69,6 +70,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('[AUTH] Token set in axios headers');
+      } else if (role === 'captain') {
+        // Captain login using dedicated endpoint
+        console.log('[AUTH] Attempting captain login');
+        
+        const response = await axios.post(`${apiUrl}/api/auth/captain/login`, {
+          username,
+          password,
+        });
+        
+        const { user, token } = response.data;
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('token', token);
+        localStorage.setItem('captainToken', token);
+        localStorage.setItem('captainUser', JSON.stringify(user));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        console.log('[AUTH] Captain login successful');
       } else {
         // Kitchen staff login using old endpoint
         const payload: any = {
