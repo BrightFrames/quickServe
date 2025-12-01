@@ -6,13 +6,13 @@ const apiUrl = import.meta.env.VITE_API_URL || (window.location.hostname === 'lo
 interface User {
   id: string
   username: string
-  role: 'admin' | 'kitchen' | 'captain'
+  role: 'admin' | 'kitchen' | 'captain' | 'reception'
   restaurantId?: number
 }
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => Promise<void>
+  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantCode?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
 }
@@ -88,6 +88,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('[AUTH] Captain login successful');
+      } else if (role === 'reception') {
+        // Reception login
+        const response = await axios.post(`${apiUrl}/api/auth/reception/login`, {
+          username,
+          password,
+        });
+        
+        const { user, token } = response.data;
+        setUser(user);
+        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('token', token);
+        localStorage.setItem('receptionToken', token);
+        localStorage.setItem('receptionUser', JSON.stringify(user));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        console.log('[AUTH] Reception login successful');
       } else {
         // Kitchen staff login using old endpoint
         const payload: any = {

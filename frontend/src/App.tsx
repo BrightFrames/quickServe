@@ -17,6 +17,8 @@ import AdminHome from './admin/pages/AdminHome';
 import KitchenHome from './admin/pages/KitchenHome';
 import CaptainLogin from './admin/pages/CaptainLogin';
 import CaptainHome from './admin/pages/CaptainHome';
+import ReceptionLogin from './admin/pages/ReceptionLogin';
+import ReceptionHome from './admin/pages/ReceptionHome';
 import RestaurantVerification from './admin/pages/RestaurantVerification';
 import LoginSelection from './admin/pages/LoginSelection';
 
@@ -216,6 +218,58 @@ function App() {
                 <AdminRestaurantProvider>
                   <ProtectedRoute role="captain">
                     <CaptainHome />
+                  </ProtectedRoute>
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            }
+          />
+
+          {/* Reception Login */}
+          <Route 
+            path="/reception/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ReceptionLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
+          {/* Reception Login with Restaurant Slug */}
+          <Route 
+            path="/:restaurantSlug/reception/login" 
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ReceptionLogin />
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            } 
+          />
+
+          {/* Reception Dashboard - Protected */}
+          <Route
+            path="/reception/dashboard"
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ProtectedRoute role="reception">
+                    <ReceptionHome />
+                  </ProtectedRoute>
+                </AdminRestaurantProvider>
+              </AdminAuthProvider>
+            }
+          />
+
+          {/* Reception Dashboard with Restaurant Slug - Protected */}
+          <Route
+            path="/:restaurantSlug/reception/dashboard"
+            element={
+              <AdminAuthProvider>
+                <AdminRestaurantProvider>
+                  <ProtectedRoute role="reception">
+                    <ReceptionHome />
                   </ProtectedRoute>
                 </AdminRestaurantProvider>
               </AdminAuthProvider>

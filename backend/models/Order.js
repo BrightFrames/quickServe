@@ -82,6 +82,30 @@ const Order = sequelize.define('Order', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  paymentProcessedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  paymentProcessedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id',
+    },
+  },
+  orderedBy: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  captainId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id',
+    },
+  },
 }, {
   timestamps: true,
   tableName: 'orders',

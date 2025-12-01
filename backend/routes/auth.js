@@ -211,6 +211,66 @@ router.post("/captain/login", async (req, res) => {
 });
 
 // ============================
+// Reception Login Route
+// ============================
+router.post("/reception/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    console.log("[AUTH] Reception login attempt:", username);
+
+    const user = await User.findOne({
+      where: { 
+        username,
+        role: "reception"
+      },
+    });
+
+    if (!user) {
+      console.log("[AUTH] Reception user not found");
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      console.log("[AUTH] Invalid password for reception");
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // Update online status
+    await user.update({
+      isOnline: true,
+      lastActive: new Date(),
+    });
+
+    const token = jwt.sign(
+      { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role,
+        restaurantId: user.restaurantId 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    console.log("[AUTH] Reception login successful");
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        restaurantId: user.restaurantId,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("[AUTH] Server error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// ============================
 // Logout Route
 // ============================
 router.post("/logout", async (req, res) => {
