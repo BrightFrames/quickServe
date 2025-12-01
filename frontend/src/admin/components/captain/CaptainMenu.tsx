@@ -37,13 +37,22 @@ const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
       const restaurantId = user.restaurantId;
 
+      console.log('[CAPTAIN MENU] User data:', { 
+        userId: user.id, 
+        username: user.username, 
+        restaurantId: user.restaurantId,
+        role: user.role 
+      });
+
       if (!restaurantId) {
+        console.error('[CAPTAIN MENU] No restaurantId found in user object');
         setError("Restaurant information not found");
         setLoading(false);
         return;
       }
 
-      console.log('[CAPTAIN] Fetching menu for restaurant:', restaurantId);
+      console.log('[CAPTAIN] Fetching menu for restaurant ID:', restaurantId);
+      console.log('[CAPTAIN] Captain user:', user);
 
       // Use captain-specific endpoint
       const response = await axios.get(
@@ -54,6 +63,8 @@ const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
       );
       
       console.log('[CAPTAIN] Menu items fetched:', response.data.length);
+      console.log('[CAPTAIN] Sample menu item restaurantId:', response.data[0]?.restaurantId);
+      console.log('[CAPTAIN] Sample menu item:', response.data[0]);
       const items = response.data || [];
       setMenuItems(items);
 

@@ -140,6 +140,17 @@ router.get("/menu/:restaurantId", authenticateCaptain, async (req, res) => {
     });
     
     console.log(`[CAPTAIN] Retrieved ${menuItems.length} menu items for restaurant ${restaurantId}`);
+    
+    // Log first item to verify restaurantId
+    if (menuItems.length > 0) {
+      console.log(`[CAPTAIN] Sample menu item:`, {
+        id: menuItems[0].id,
+        name: menuItems[0].name,
+        restaurantId: menuItems[0].restaurantId,
+        category: menuItems[0].category
+      });
+    }
+    
     res.json(menuItems);
   } catch (error) {
     console.error('[CAPTAIN] Error fetching menu:', error);
