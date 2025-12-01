@@ -80,6 +80,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
         
         const { user, token } = response.data;
+        console.log('[AUTH] Captain response data:', response.data);
+        console.log('[AUTH] Captain user:', user);
         setUser(user);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('token', token);
@@ -88,6 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         console.log('[AUTH] Captain login successful');
+        return response.data; // Return for redirect with slug
       } else if (role === 'reception') {
         // Reception login
         const response = await axios.post(`${apiUrl}/api/auth/reception/login`, {

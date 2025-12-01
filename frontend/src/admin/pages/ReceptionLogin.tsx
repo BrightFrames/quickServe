@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { UserCircle, Lock, DollarSign } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -9,6 +9,7 @@ const ReceptionLogin: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { restaurantSlug } = useParams();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,8 +18,11 @@ const ReceptionLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(username, password, 'reception');
-      navigate("/reception/dashboard");
+      const userData = await login(username, password, 'reception');
+      
+      // Use slug from URL params or from user data
+      const slug = restaurantSlug || userData?.user?.restaurantSlug;
+      navigate(`/${slug}/reception/dashboard`);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Login failed");
     } finally {

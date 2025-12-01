@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Users, AlertCircle } from "lucide-react";
+import { Users, AlertCircle, Receipt, Utensils } from "lucide-react";
+import BillingPanel from "./BillingPanel";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -23,6 +24,7 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [billingTable, setBillingTable] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTables();
@@ -32,25 +34,31 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
     try {
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const restaurantId = user.restaurantId;
+      const restaurantSlug = user.restaurantSlug;
 
-      if (!restaurantId) {
+      if (!restaurantSlug) {
         setError("Restaurant information not found. Please login again.");
         setLoading(false);
         return;
       }
 
-      console.log('[CAPTAIN] Fetching tables for restaurant:', restaurantId);
+      console.log('[CAPTAIN FRONTEND] User info:', {
+        username: user.username,
+        role: user.role,
+        restaurantSlug: user.restaurantSlug
+      });
+      console.log('[CAPTAIN FRONTEND] Fetching tables for restaurant:', restaurantSlug);
 
       // Use captain-specific endpoint that doesn't require restaurant token
       const response = await axios.get(
-        `${apiUrl}/api/captain/tables/${restaurantId}`,
+        `${apiUrl}/api/captain/tables/${restaurantSlug}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       
-      console.log('[CAPTAIN] Tables fetched:', response.data);
+      console.log('[CAPTAIN FRONTEND] Tables received:', response.data);
+      console.log('[CAPTAIN FRONTEND] Number of tables:', response.data?.length || 0);
       setTables(response.data || []);
     } catch (err: any) {
       console.error('[CAPTAIN] Error fetching tables:', err);
@@ -84,6 +92,51 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
       default:
         return status;
     }
+  };
+
+  const handleFreeTable = async (tableNumber: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent table selection
+    
+    if (!confirm(`Are you sure you want to free Table ${tableNumber}? This will mark all orders as completed.`)) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const restaurantSlug = user.restaurantSlug;
+
+      console.log('[CAPTAIN] Freeing table:', tableNumber);
+      
+      const response = await axios.post(
+        `${apiUrl}/api/captain/tables/${restaurantSlug}/free/${tableNumber}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      console.log('[CAPTAIN] Table freed successfully');
+      
+      // Refresh tables list
+      fetchTables();
+    } catch (err: any) {
+      console.error('[CAPTAIN] Error freeing table:', err);
+      alert(err.response?.data?.message || "Failed to free table");
+    }
+  };
+
+  const handleShowBilling = (tableNumber: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBillingTable(tableNumber);
+  };
+
+  const handleBillingClose = () => {
+    setBillingTable(null);
+  };
+
+  const handlePaymentComplete = () => {
+    fetchTables(); // Refresh table list
   };
 
   if (loading) {
@@ -126,29 +179,50 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {tables.map((table) => (
-            <button
+            <div
               key={table.id}
-              onClick={() => onSelectTable(table.tableNumber)}
-              className={`
-                relative p-6 rounded-xl border-2 transition-all hover:scale-105 active:scale-95
-                ${getStatusColor(table.status)}
-              `}
+              className="relative"
             >
-              <div className="text-center">
-                <div className="text-3xl font-bold mb-2">
-                  {table.tableName || `#${table.tableNumber}`}
+              <button
+                onClick={() => onSelectTable(table.tableNumber)}
+                className={`
+                  w-full p-6 rounded-xl border-2 transition-all hover:scale-105 active:scale-95
+                  ${getStatusColor(table.status)}
+                `}
+              >
+                <Utensils className="w-8 h-8 mx-auto mb-2" />
+                <div className="text-lg font-bold">Table {table.tableNumber}</div>
+                <div className="text-sm capitalize mt-1">{table.status}</div>
+              </button>
+              
+              {table.status === "occupied" && (
+                <div className="absolute -top-2 -right-2 flex gap-2">
+                  <button
+                    onClick={(e) => handleShowBilling(table.tableNumber, e)}
+                    className="bg-white border-2 border-blue-600 text-blue-600 px-3 py-1 rounded-full text-xs font-semibold hover:bg-blue-600 hover:text-white transition-colors shadow-md flex items-center gap-1"
+                  >
+                    <Receipt className="w-3 h-3" />
+                    Bill
+                  </button>
+                  <button
+                    onClick={(e) => handleFreeTable(table.tableNumber, e)}
+                    className="bg-white border-2 border-green-600 text-green-600 px-3 py-1 rounded-full text-xs font-semibold hover:bg-green-600 hover:text-white transition-colors shadow-md"
+                  >
+                    Free
+                  </button>
                 </div>
-                <div className="flex items-center justify-center gap-1 text-xs mb-1">
-                  <Users className="w-3 h-3" />
-                  <span>{table.capacity}</span>
-                </div>
-                <div className="text-xs font-medium uppercase">
-                  {getStatusText(table.status)}
-                </div>
-              </div>
-            </button>
+              )}
+            </div>
           ))}
         </div>
+      )}
+
+      {billingTable && (
+        <BillingPanel
+          tableNumber={billingTable}
+          onClose={handleBillingClose}
+          onPaymentComplete={handlePaymentComplete}
+        />
       )}
     </div>
   );

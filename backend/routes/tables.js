@@ -101,7 +101,13 @@ router.post("/", async (req, res) => {
       restaurantId: req.restaurantId,
     });
 
-    console.log(`[TABLES] ✓ Table created for restaurant ${req.restaurantId}: ${tableId}`);
+    console.log(`[ADMIN TABLE CREATE] ✓ Table created:`, {
+      tableId: table.tableId,
+      tableName: table.tableName,
+      restaurantId: table.restaurantId,
+      isActive: table.isActive,
+      id: table.id
+    });
     res.status(201).json(table);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

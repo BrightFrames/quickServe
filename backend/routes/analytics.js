@@ -171,4 +171,89 @@ router.get('/', async (req, res) => {
   }
 })
 
+// Get inventory consumption tracking
+router.get('/inventory-consumption', async (req, res) => {
+  try {
+    const { days = 7 } = req.query;
+    const restaurantId = req.restaurantId;
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
+    startDate.setHours(0, 0, 0, 0);
+    
+    console.log(`[ANALYTICS] Fetching inventory consumption for last ${days} days`);
+    
+    // Get item-wise consumption
+    const itemConsumption = await sequelize.query(`
+      SELECT 
+        oi."menuItemId" as "itemId",
+        mi.name as "itemName",
+        mi.category,
+        mi.price,
+        SUM(oi.quantity) as "totalQuantity",
+        SUM(oi.quantity * mi.price) as "totalRevenue"
+      FROM "OrderItems" oi
+      INNER JOIN "Orders" o ON oi."orderId" = o.id
+      INNER JOIN "MenuItems" mi ON oi."menuItemId" = mi.id
+      WHERE o."restaurantId" = :restaurantId
+        AND o."createdAt" >= :startDate
+        AND o.status IN ('preparing', 'prepared', 'delivered')
+      GROUP BY oi."menuItemId", mi.name, mi.category, mi.price
+      ORDER BY "totalQuantity" DESC
+    `, {
+      replacements: { restaurantId, startDate },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    // Get daily breakdown
+    const dailyConsumption = await sequelize.query(`
+      SELECT 
+        DATE(o."createdAt") as date,
+        COUNT(DISTINCT o.id) as "totalOrders",
+        SUM(o.total) as "totalRevenue",
+        json_agg(
+          json_build_object(
+            'itemName', mi.name,
+            'quantity', oi.quantity,
+            'revenue', oi.quantity * mi.price
+          )
+        ) as items
+      FROM "Orders" o
+      INNER JOIN "OrderItems" oi ON o.id = oi."orderId"
+      INNER JOIN "MenuItems" mi ON oi."menuItemId" = mi.id
+      WHERE o."restaurantId" = :restaurantId
+        AND o."createdAt" >= :startDate
+        AND o.status IN ('preparing', 'prepared', 'delivered')
+      GROUP BY DATE(o."createdAt")
+      ORDER BY date DESC
+    `, {
+      replacements: { restaurantId, startDate },
+      type: sequelize.QueryTypes.SELECT
+    });
+    
+    console.log(`[ANALYTICS] Found ${itemConsumption.length} items consumed`);
+    console.log(`[ANALYTICS] Found ${dailyConsumption.length} days of data`);
+    
+    res.json({
+      itemConsumption: itemConsumption.map(item => ({
+        itemId: parseInt(item.itemId),
+        itemName: item.itemName,
+        category: item.category,
+        price: parseFloat(item.price),
+        totalQuantity: parseInt(item.totalQuantity),
+        totalRevenue: parseFloat(item.totalRevenue)
+      })),
+      dailyConsumption: dailyConsumption.map(day => ({
+        date: day.date,
+        totalOrders: parseInt(day.totalOrders),
+        totalRevenue: parseFloat(day.totalRevenue),
+        items: day.items
+      }))
+    });
+  } catch (error) {
+    console.error('[ANALYTICS] Inventory consumption error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 export default router

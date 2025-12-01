@@ -28,7 +28,7 @@ const AdminLogin = () => {
       // Pass restaurantCode for restaurant-specific admin access
       await login(username, password, 'admin', restaurantCode || undefined)
       toast.success('Login successful!')
-      navigate('/admin/dashboard')
+      navigate(`/${restaurantSlug}/admin/dashboard`)
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Invalid credentials')
     } finally {

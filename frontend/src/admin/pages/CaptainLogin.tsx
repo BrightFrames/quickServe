@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { UserCircle, Lock, ChefHat } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -9,6 +9,7 @@ const CaptainLogin: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,7 +20,16 @@ const CaptainLogin: React.FC = () => {
     try {
       // Use captain-specific login endpoint via AuthContext
       await login(username, password, 'captain');
-      navigate("/captain/dashboard");
+      
+      // ALWAYS use slug from URL (where captain accessed login), not from backend
+      if (!restaurantSlug) {
+        setError('Please access login through restaurant-specific URL');
+        setLoading(false);
+        return;
+      }
+      
+      // Redirect to dashboard with URL slug
+      navigate(`/${restaurantSlug}/captain/dashboard`);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Login failed");
     } finally {

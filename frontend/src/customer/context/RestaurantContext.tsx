@@ -19,6 +19,16 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Load restaurant data from URL params or localStorage on mount
   useEffect(() => {
+    // Check if in captain mode first
+    const captainData = localStorage.getItem('customer_restaurant_data');
+    if (captainData) {
+      const data = JSON.parse(captainData);
+      setRestaurantName(data.restaurantName);
+      setRestaurantSlug(data.restaurantSlug);
+      setToken(data.token);
+      return; // Skip URL validation in captain mode
+    }
+    
     // Check URL parameters first
     const urlParams = new URLSearchParams(window.location.search);
     const paramRestaurantName = urlParams.get('restaurantName');

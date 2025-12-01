@@ -161,8 +161,14 @@ const ReceptionHome: React.FC = () => {
   };
 
   const handleLogout = () => {
+    const restaurantSlug = user?.restaurantSlug;
     logout();
-    navigate("/login");
+    // Redirect to restaurant dashboard after logout
+    if (restaurantSlug) {
+      navigate(`/${restaurantSlug}/dashboard`);
+    } else {
+      navigate("/login");
+    }
   };
 
   if (loading) {

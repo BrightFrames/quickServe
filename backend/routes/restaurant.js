@@ -246,8 +246,8 @@ router.post("/verify-admin-password", async (req, res) => {
       });
     }
 
-    // Verify password
-    const isValidPassword = await restaurant.comparePassword(password);
+    // Verify admin password from environment
+    const isValidPassword = password === process.env.ADMIN_PASSWORD;
     
     if (!isValidPassword) {
       console.log("[ADMIN ACCESS GUARD] Invalid password");
@@ -268,6 +268,60 @@ router.post("/verify-admin-password", async (req, res) => {
     console.error("[ADMIN ACCESS GUARD] Verification error:", error);
     res.status(500).json({ 
       success: false,
+      message: "Server error during verification" 
+    });
+  }
+});
+
+// ============================
+// Verify Admin Access (code-only verification for admin panel)
+// ============================
+router.post("/verify-admin", async (req, res) => {
+  try {
+    const { code } = req.body;
+
+    console.log("[ADMIN VERIFY] Verifying with code:", code);
+
+    if (!code) {
+      return res.status(400).json({ 
+        verified: false,
+        message: "Restaurant code is required" 
+      });
+    }
+
+    // Find restaurant by code
+    const restaurant = await Restaurant.findOne({ 
+      where: { 
+        restaurantCode: code.toUpperCase().trim(),
+        isActive: true 
+      }
+    });
+
+    if (!restaurant) {
+      console.log("[ADMIN VERIFY] Restaurant not found");
+      return res.status(404).json({ 
+        verified: false,
+        message: "Restaurant not found with this code" 
+      });
+    }
+
+    console.log("[ADMIN VERIFY] Restaurant found:", restaurant.name);
+    
+    res.json({
+      verified: true,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+        restaurantCode: restaurant.restaurantCode,
+        email: restaurant.email
+      }
+    });
+
+  } catch (error) {
+    console.error("[ADMIN VERIFY] Verification error:", error);
+    res.status(500).json({ 
+      verified: false,
       message: "Server error during verification" 
     });
   }

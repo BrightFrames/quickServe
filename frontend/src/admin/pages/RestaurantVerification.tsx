@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 const RestaurantVerification = () => {
   const { restaurantSlug } = useParams<{ restaurantSlug: string }>();
   const location = useLocation();
@@ -18,9 +20,41 @@ const RestaurantVerification = () => {
         const restaurantCode = searchParams.get('code');
         const panelType = searchParams.get('type');
         
-        if (!restaurantCode || !panelType) {
+        // For admin panel, slug is optional - use code only
+        if (panelType === 'admin' && restaurantCode) {
+          console.log('Admin verification - using code only:', restaurantCode);
+          
+          // Verify restaurant with backend using code only
+          const response = await axios.post(`${apiUrl}/api/restaurant/verify-admin`, {
+            code: restaurantCode.toUpperCase()
+          });
+
+          if (response.data.verified) {
+            setStatus('success');
+            setMessage(`Welcome to ${response.data.restaurant.name}!`);
+            
+            // Store restaurant data for admin login
+            localStorage.setItem('restaurantName', response.data.restaurant.name);
+            localStorage.setItem('restaurantCode', response.data.restaurant.restaurantCode);
+            localStorage.setItem('restaurantSlug', response.data.restaurant.slug);
+            localStorage.setItem('restaurantEmail', response.data.restaurant.email || '');
+            localStorage.setItem('restaurantId', response.data.restaurant.id);
+
+            // Redirect to admin login
+            setTimeout(() => {
+              navigate(`/${response.data.restaurant.slug}/admin/login`, { replace: true });
+            }, 1000);
+          } else {
+            setStatus('error');
+            setMessage('Restaurant verification failed. Invalid code.');
+          }
+          return;
+        }
+        
+        // For kitchen/captain/reception, require slug
+        if (!restaurantSlug || !restaurantCode || !panelType) {
           setStatus('error');
-          setMessage('Invalid URL format. Please use: /:slug?code=QS1234&type=admin');
+          setMessage('Invalid URL format. Please use: /:slug?code=QS1234&type=kitchen');
           return;
         }
 
@@ -28,7 +62,7 @@ const RestaurantVerification = () => {
 
         // Verify restaurant with backend
         const response = await axios.get(
-          `/api/restaurant/verify/${restaurantSlug}/${restaurantCode.toUpperCase()}`
+          `${apiUrl}/api/restaurant/verify/${restaurantSlug}/${restaurantCode.toUpperCase()}`
         );
 
         if (response.data.verified) {
@@ -64,12 +98,7 @@ const RestaurantVerification = () => {
       }
     };
 
-    if (restaurantSlug) {
-      verifyRestaurant();
-    } else {
-      setStatus('error');
-      setMessage('Restaurant slug is missing from URL');
-    }
+    verifyRestaurant();
   }, [restaurantSlug, location.search, navigate]);
 
   return (

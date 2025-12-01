@@ -32,22 +32,31 @@ export const authenticateRestaurant = (req, res, next) => {
     
     console.log('[AUTH] Token decoded:', { 
       id: decoded.id, 
+      username: decoded.username,
+      role: decoded.role,
       email: decoded.email, 
-      type: decoded.type 
+      type: decoded.type,
+      restaurantId: decoded.restaurantId
     });
     
-    // Check if token is for restaurant (not kitchen/admin user)
-    if (decoded.type !== 'restaurant') {
-      console.log('[AUTH] Invalid token type:', decoded.type);
+    // Allow restaurant, kitchen, captain, and reception users
+    if (decoded.type === 'restaurant') {
+      // Restaurant owner - use their ID as restaurantId
+      req.restaurantId = decoded.id;
+      req.restaurantEmail = decoded.email;
+    } else if (decoded.role && ['kitchen', 'captain', 'reception'].includes(decoded.role)) {
+      // Staff users - use their restaurantId from token
+      req.restaurantId = decoded.restaurantId;
+      req.userId = decoded.id;
+      req.userRole = decoded.role;
+      req.username = decoded.username;
+    } else {
+      console.log('[AUTH] Invalid token type/role:', decoded.type, decoded.role);
       return res.status(403).json({ 
         message: 'Access denied',
-        error: 'This endpoint requires restaurant authentication'
+        error: 'This endpoint requires restaurant or staff authentication'
       });
     }
-
-    // Add restaurantId to request for use in routes
-    req.restaurantId = decoded.id;
-    req.restaurantEmail = decoded.email;
     
     console.log('[AUTH] ✓ Restaurant authenticated:', req.restaurantId);
     next();

@@ -126,7 +126,7 @@ router.post("/login", async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, role: user.role, restaurantId: user.restaurantId },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
@@ -136,6 +136,7 @@ router.post("/login", async (req, res) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        restaurantId: user.restaurantId,
       },
       token,
     });
@@ -184,6 +185,14 @@ router.post("/captain/login", async (req, res) => {
 
     console.log("[AUTH] ✓ Captain credentials valid");
 
+    // Get restaurant details including slug
+    const restaurant = await Restaurant.findByPk(user.restaurantId);
+    console.log("[AUTH] Captain restaurant data:", {
+      restaurantId: user.restaurantId,
+      restaurantSlug: restaurant?.slug,
+      restaurantName: restaurant?.name
+    });
+
     // Update user status
     user.isOnline = true;
     user.lastActive = new Date();
@@ -195,15 +204,20 @@ router.post("/captain/login", async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.json({
+    const responseData = {
       user: {
         id: user.id,
         username: user.username,
         role: user.role,
         restaurantId: user.restaurantId,
+        restaurantSlug: restaurant?.slug || null,
+        restaurantName: restaurant?.name || null,
       },
       token,
-    });
+    };
+    
+    console.log("[AUTH] Captain login response:", JSON.stringify(responseData, null, 2));
+    res.json(responseData);
   } catch (error) {
     console.error("[AUTH] Server error:", error);
     res.status(500).json({ message: "Server error", error: error.message });

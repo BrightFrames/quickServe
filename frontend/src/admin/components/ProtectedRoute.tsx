@@ -28,15 +28,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
   if (user?.role !== role) {
     console.warn('[SECURITY] Role mismatch. Required:', role, 'Got:', user?.role)
     
+    // Get restaurant slug for redirect
+    const restaurantSlug = (user as any)?.restaurantSlug || '';
+    const slugPrefix = restaurantSlug ? `/${restaurantSlug}` : '';
+    
     // Redirect to appropriate dashboard based on user's actual role
     if (user?.role === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />
+      return <Navigate to={`${slugPrefix}/admin/dashboard`} replace />
     } else if (user?.role === 'kitchen') {
-      return <Navigate to="/kitchen/dashboard" replace />
+      return <Navigate to={`${slugPrefix}/kitchen/dashboard`} replace />
     } else if (user?.role === 'captain') {
-      return <Navigate to="/captain/dashboard" replace />
+      return <Navigate to={`${slugPrefix}/captain/dashboard`} replace />
     } else if (user?.role === 'reception') {
-      return <Navigate to="/reception/dashboard" replace />
+      return <Navigate to={`${slugPrefix}/reception/dashboard`} replace />
     }
     
     // If no valid role, redirect to login

@@ -34,6 +34,14 @@ export const MenuPage = () => {
     // Only check once
     if (hasCheckedTable) return;
     
+    // Check if in captain mode
+    const captainTable = sessionStorage.getItem('captainTableNumber');
+    if (captainTable) {
+      setTableNumber(captainTable);
+      setHasCheckedTable(true);
+      return;
+    }
+    
     // Priority: URL params > query params > default to t1
     if (urlTableNumber) {
       setTableNumber(urlTableNumber);

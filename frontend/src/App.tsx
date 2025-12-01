@@ -154,28 +154,14 @@ function App() {
             } 
           />
 
-          {/* Admin Dashboard - Protected */}
+          {/* Admin Dashboard - Protected (with slug) */}
           <Route
-            path="/admin/dashboard"
+            path="/:restaurantSlug/admin/dashboard"
             element={
               <AdminAuthProvider>
                 <AdminRestaurantProvider>
                   <ProtectedRoute role="admin">
                     <AdminHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
-
-          {/* Kitchen Dashboard - Protected */}
-          <Route
-            path="/kitchen/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="kitchen">
-                    <KitchenHome />
                   </ProtectedRoute>
                 </AdminRestaurantProvider>
               </AdminAuthProvider>
@@ -196,19 +182,7 @@ function App() {
             }
           />
 
-          {/* Captain Dashboard - Protected */}
-          <Route
-            path="/captain/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="captain">
-                    <CaptainHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
+
 
           {/* Captain Dashboard with Restaurant Slug - Protected */}
           <Route
@@ -248,19 +222,7 @@ function App() {
             } 
           />
 
-          {/* Reception Dashboard - Protected */}
-          <Route
-            path="/reception/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="reception">
-                    <ReceptionHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
+
 
           {/* Reception Dashboard with Restaurant Slug - Protected */}
           <Route

@@ -15,6 +15,7 @@ import {
 import Dashboard from "../components/admin/Dashboard";
 import MenuManagement from "../components/admin/MenuManagement";
 import InventoryManagement from "../components/admin/InventoryManagement";
+import InventoryTracking from "../components/admin/InventoryTracking";
 import UserManagement from "../components/admin/UserManagement";
 import RestaurantInfo from "../components/admin/RestaurantInfo";
 import PaymentSettings from "../components/admin/PaymentSettings";
@@ -22,7 +23,7 @@ import PromoCodeManagement from "../components/admin/PromoCodeManagement";
 import TableManagement from "../components/admin/TableManagement";
 import axios from "axios";
 
-type Tab = "dashboard" | "menu" | "inventory" | "users" | "info" | "payment" | "promos" | "tables";
+type Tab = "dashboard" | "menu" | "inventory" | "tracking" | "users" | "info" | "payment" | "promos" | "tables";
 
 const AdminHome = () => {
   const { logout, user } = useAuth();
@@ -64,7 +65,14 @@ const AdminHome = () => {
   };
 
   const handleLogout = () => {
+    const restaurantSlug = user?.restaurantSlug;
     logout();
+    // Redirect to restaurant dashboard after logout
+    if (restaurantSlug) {
+      navigate(`/${restaurantSlug}/dashboard`);
+    } else {
+      navigate("/login");
+    }
   };
 
   const tabs = [
@@ -72,6 +80,7 @@ const AdminHome = () => {
     { id: "menu" as Tab, name: "Menu Management", icon: MenuIcon },
     { id: "tables" as Tab, name: "Table Management", icon: Utensils },
     { id: "inventory" as Tab, name: "Inventory", icon: Package },
+    { id: "tracking" as Tab, name: "Consumption Tracking", icon: TrendingUp },
     { id: "users" as Tab, name: "Kitchen Staff", icon: Users },
     { id: "promos" as Tab, name: "Promo Codes", icon: Tag },
     { id: "info" as Tab, name: "Restaurant Info", icon: Building2 },
@@ -155,6 +164,7 @@ const AdminHome = () => {
           {activeTab === "menu" && <MenuManagement />}
           {activeTab === "tables" && <TableManagement />}
           {activeTab === "inventory" && <InventoryManagement />}
+          {activeTab === "tracking" && <InventoryTracking />}
           {activeTab === "users" && <UserManagement />}
           {activeTab === "promos" && <PromoCodeManagement />}
           {activeTab === "info" && <RestaurantInfo />}

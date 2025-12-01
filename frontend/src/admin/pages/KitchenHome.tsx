@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, Bell, Clock, CheckCircle, Truck } from "lucide-react";
+import axios from "axios";
 import {
   DndContext,
   DragEndEvent,
@@ -9,8 +10,9 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import OrderColumn from "../components/kitchen/OrderColumn";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 import { useSocket } from "../hooks/useSocket";
-import axios from "axios";
 import { toast } from "sonner";
 import { notificationSounds } from "../utils/notificationSounds";
 
@@ -115,7 +117,10 @@ const KitchenHome = () => {
 
   const fetchOrders = async () => {
     try {
-      const response = await axios.get("/api/orders/active");
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${apiUrl}/api/orders/active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setOrders(response.data);
     } catch (error) {
       toast.error("Failed to fetch orders");
@@ -129,7 +134,11 @@ const KitchenHome = () => {
     newStatus: Order["status"]
   ) => {
     try {
-      await axios.put(`/api/orders/${orderId}/status`, { status: newStatus });
+      const token = localStorage.getItem("token");
+      await axios.put(`${apiUrl}/api/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setOrders((prev) =>
         prev.map((order) =>
           (order.id || order._id) === orderId ? { ...order, status: newStatus } : order
@@ -252,7 +261,15 @@ const KitchenHome = () => {
               )}
             </div>
             <button 
-              onClick={logout}
+              onClick={() => {
+                const restaurantSlug = user?.restaurantSlug;
+                logout();
+                if (restaurantSlug) {
+                  window.location.href = `/${restaurantSlug}/dashboard`;
+                } else {
+                  window.location.href = "/login";
+                }
+              }}
               className="flex items-center space-x-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
               title="Logout"
             >

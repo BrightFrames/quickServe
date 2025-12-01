@@ -230,8 +230,53 @@ app.use((req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+  
+  // Start cleanup job for old orders
+  startOrderCleanupJob();
 });
+
+// ============================
+// Order Cleanup Job
+// ============================
+import Order from "./models/Order.js";
+import { Op } from "sequelize";
+
+function startOrderCleanupJob() {
+  console.log('[CLEANUP] Starting daily order cleanup job');
+  
+  // Run cleanup immediately on startup
+  cleanupOldOrders();
+  
+  // Run cleanup every 24 hours
+  setInterval(cleanupOldOrders, 24 * 60 * 60 * 1000);
+}
+
+async function cleanupOldOrders() {
+  try {
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    
+    // Delete orders older than 1 day that are delivered/completed
+    const deletedCount = await Order.destroy({
+      where: {
+        status: {
+          [Op.in]: ['delivered', 'completed']
+        },
+        paymentStatus: 'paid',
+        updatedAt: {
+          [Op.lt]: oneDayAgo
+        }
+      }
+    });
+    
+    if (deletedCount > 0) {
+      console.log(`[CLEANUP] ✓ Deleted ${deletedCount} old paid orders (>1 day old)`);
+    }
+  } catch (error) {
+    console.error('[CLEANUP] Error cleaning up old orders:', error.message);
+  }
+}
 
 export { io };

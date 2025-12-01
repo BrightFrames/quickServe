@@ -1,71 +1,53 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import CaptainTableSelection from "../components/captain/CaptainTableSelection";
-import CaptainMenu from "../components/captain/CaptainMenu";
-import CaptainCart from "../components/captain/CaptainCart";
+import { RestaurantProvider } from "../../customer/context/RestaurantContext";
+import { CartProvider } from "../../customer/context/CartContext";
+import { MenuPage } from "../../customer/pages/MenuPage";
 
 const CaptainHome: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
-  const [cartItems, setCartItems] = useState<any[]>([]);
 
   const handleLogout = () => {
+    const restaurantSlug = user?.restaurantSlug;
     logout();
-    navigate("/captain/login");
-  };
-
-  const handleTableSelect = (tableId: number) => {
-    setSelectedTable(tableId);
-    setCartItems([]); // Reset cart when selecting new table
-  };
-
-  const handleBackToTables = () => {
-    setSelectedTable(null);
-    setCartItems([]);
-  };
-
-  const handleAddToCart = (item: any) => {
-    const existingItem = cartItems.find((i) => i.id === item.id);
-    if (existingItem) {
-      setCartItems(
-        cartItems.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        )
-      );
+    // Redirect to restaurant's customer dashboard after logout
+    if (restaurantSlug) {
+      navigate(`/${restaurantSlug}/dashboard`);
     } else {
-      setCartItems([...cartItems, { ...item, quantity: 1, notes: "" }]);
+      navigate("/login");
     }
   };
 
-  const handleUpdateQuantity = (itemId: number, change: number) => {
-    setCartItems(
-      cartItems
-        .map((item) =>
-          item.id === itemId
-            ? { ...item, quantity: Math.max(0, item.quantity + change) }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
+  const handleTableSelect = (tableNumber: number) => {
+    console.log('[CAPTAIN] Table selected:', tableNumber);
+    
+    // Get captain's restaurant data
+    if (user?.restaurantSlug) {
+      // Navigate to customer app with restaurant slug and table number
+      const customerUrl = `/${user.restaurantSlug}/customer/menu/table/${tableNumber}`;
+      
+      // Set restaurant data for customer context
+      const restaurantData = {
+        restaurantName: user.restaurantName || 'Restaurant',
+        restaurantSlug: user.restaurantSlug,
+        token: localStorage.getItem('token') || ''
+      };
+      localStorage.setItem('customer_restaurant_data', JSON.stringify(restaurantData));
+      sessionStorage.setItem('captainTableNumber', tableNumber.toString());
+      
+      // Open in same tab
+      window.location.href = customerUrl;
+    } else {
+      console.error('[CAPTAIN] No restaurant slug found');
+    }
   };
 
-  const handleUpdateNotes = (itemId: number, notes: string) => {
-    setCartItems(
-      cartItems.map((item) =>
-        item.id === itemId ? { ...item, notes } : item
-      )
-    );
-  };
-
-  const handleRemoveItem = (itemId: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== itemId));
-  };
-
-  const handleOrderPlaced = () => {
-    setCartItems([]);
+  const handleBackToTables = () => {
     setSelectedTable(null);
   };
 
@@ -74,13 +56,23 @@ const CaptainHome: React.FC = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Captain Dashboard
-            </h1>
-            <p className="text-sm text-gray-600">
-              {selectedTable ? `Table ${selectedTable}` : "Select a table"}
-            </p>
+          <div className="flex items-center gap-4">
+            {selectedTable && (
+              <button
+                onClick={handleBackToTables}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                Captain Dashboard
+              </h1>
+              <p className="text-sm text-gray-600">
+                {selectedTable ? `Table ${selectedTable}` : "Select a table to start order"}
+              </p>
+            </div>
           </div>
           <button
             onClick={handleLogout}
@@ -97,24 +89,11 @@ const CaptainHome: React.FC = () => {
         {!selectedTable ? (
           <CaptainTableSelection onSelectTable={handleTableSelect} />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <CaptainMenu
-                onAddToCart={handleAddToCart}
-                onBack={handleBackToTables}
-              />
-            </div>
-            <div className="lg:col-span-1">
-              <CaptainCart
-                items={cartItems}
-                tableNumber={selectedTable}
-                onUpdateQuantity={handleUpdateQuantity}
-                onUpdateNotes={handleUpdateNotes}
-                onRemoveItem={handleRemoveItem}
-                onOrderPlaced={handleOrderPlaced}
-              />
-            </div>
-          </div>
+          <RestaurantProvider>
+            <CartProvider>
+              <MenuPage />
+            </CartProvider>
+          </RestaurantProvider>
         )}
       </div>
     </div>

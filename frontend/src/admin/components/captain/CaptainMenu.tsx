@@ -11,7 +11,7 @@ interface MenuItem {
   price: number;
   category: string;
   image?: string;
-  isAvailable: boolean;
+  available: boolean;
 }
 
 interface CaptainMenuProps {
@@ -35,28 +35,28 @@ const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
     try {
       const token = localStorage.getItem("token");
       const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const restaurantId = user.restaurantId;
+      const restaurantSlug = user.restaurantSlug;
 
       console.log('[CAPTAIN MENU] User data:', { 
         userId: user.id, 
         username: user.username, 
-        restaurantId: user.restaurantId,
+        restaurantSlug: user.restaurantSlug,
         role: user.role 
       });
 
-      if (!restaurantId) {
-        console.error('[CAPTAIN MENU] No restaurantId found in user object');
+      if (!restaurantSlug) {
+        console.error('[CAPTAIN MENU] No restaurantSlug found in user object');
         setError("Restaurant information not found");
         setLoading(false);
         return;
       }
 
-      console.log('[CAPTAIN] Fetching menu for restaurant ID:', restaurantId);
+      console.log('[CAPTAIN] Fetching menu for restaurant slug:', restaurantSlug);
       console.log('[CAPTAIN] Captain user:', user);
 
       // Use captain-specific endpoint
       const response = await axios.get(
-        `${apiUrl}/api/captain/menu/${restaurantId}`,
+        `${apiUrl}/api/captain/menu/${restaurantSlug}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -87,7 +87,7 @@ const CaptainMenu: React.FC<CaptainMenuProps> = ({ onAddToCart, onBack }) => {
     const matchesSearch = item.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch && item.isAvailable;
+    return matchesCategory && matchesSearch && item.available;
   });
 
   if (loading) {

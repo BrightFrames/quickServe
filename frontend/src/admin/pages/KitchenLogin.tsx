@@ -29,12 +29,8 @@ const KitchenLogin = () => {
       // Pass restaurantCode for restaurant-specific kitchen access
       await login(username, password, 'kitchen', restaurantCode || undefined)
       toast.success('Login successful!')
-      // Navigate with restaurant slug if available
-      if (restaurantSlug) {
-        navigate(`/${restaurantSlug}/kitchen/dashboard`)
-      } else {
-        navigate('/kitchen/dashboard')
-      }
+      // Always navigate with restaurant slug
+      navigate(`/${restaurantSlug}/kitchen/dashboard`)
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Invalid credentials')
     } finally {

@@ -89,10 +89,6 @@ const Order = sequelize.define('Order', {
   paymentProcessedBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id',
-    },
   },
   orderedBy: {
     type: DataTypes.STRING,
@@ -101,10 +97,6 @@ const Order = sequelize.define('Order', {
   captainId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id',
-    },
   },
 }, {
   timestamps: true,
