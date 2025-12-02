@@ -12,6 +12,8 @@ router.use(authenticateRestaurant);
 // Get all tables
 router.get("/", async (req, res) => {
   try {
+    console.log(`[TABLES] GET / - restaurantId: ${req.restaurantId}, userId: ${req.userId}, email: ${req.restaurantEmail}`);
+    
     const tables = await Table.findAll({
       where: { restaurantId: req.restaurantId },
       order: [['tableId', 'ASC']],
@@ -20,6 +22,7 @@ router.get("/", async (req, res) => {
     console.log(`[TABLES] Retrieved ${tables.length} tables for restaurant ${req.restaurantId}`);
     res.json(tables);
   } catch (error) {
+    console.error(`[TABLES] Error in GET /: ${error.message}`, error.stack);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -65,6 +68,9 @@ router.get("/by-table-id/:tableId", async (req, res) => {
 // Create new table
 router.post("/", async (req, res) => {
   try {
+    console.log('[TABLES] POST / - Creating table for restaurantId:', req.restaurantId);
+    console.log('[TABLES] Request body:', req.body);
+    
     const { tableId, tableName, seats, location } = req.body;
 
     // Check if table ID already exists for this restaurant
@@ -75,11 +81,20 @@ router.post("/", async (req, res) => {
       } 
     });
     if (existingTable) {
+      console.log('[TABLES] Table ID already exists:', tableId);
       return res.status(400).json({ message: "Table ID already exists" });
     }
 
     // Get restaurant slug for QR code URL
+    console.log('[TABLES] Finding restaurant by ID:', req.restaurantId);
     const restaurant = await Restaurant.findByPk(req.restaurantId);
+    
+    if (!restaurant) {
+      console.error('[TABLES] Restaurant not found for ID:', req.restaurantId);
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+    
+    console.log('[TABLES] Restaurant found:', restaurant.slug);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
     const orderUrl = `${baseUrl}/${restaurant.slug}?table=${tableId}`;
 
@@ -110,6 +125,8 @@ router.post("/", async (req, res) => {
     });
     res.status(201).json(table);
   } catch (error) {
+    console.error(`[TABLES] Error creating table:`, error.message);
+    console.error('[TABLES] Stack:', error.stack);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

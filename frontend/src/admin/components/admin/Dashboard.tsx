@@ -45,11 +45,15 @@ const Dashboard = () => {
   const dashboardRef = useRef<HTMLDivElement>(null)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
-  const getAxiosConfig = () => ({
-    headers: {
-      'x-restaurant-slug': restaurantSlug || '',
-    }
-  })
+  const getAxiosConfig = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-restaurant-slug': restaurantSlug || '',
+      }
+    };
+  };
 
   useEffect(() => {
     fetchAnalytics()

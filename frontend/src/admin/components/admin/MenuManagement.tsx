@@ -49,11 +49,15 @@ const MenuManagement = () => {
   });
 
   // Helper to get axios config with restaurant slug header
-  const getAxiosConfig = () => ({
-    headers: {
-      'x-restaurant-slug': restaurantSlug || '',
-    }
-  });
+  const getAxiosConfig = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-restaurant-slug': restaurantSlug || '',
+      }
+    };
+  };
 
   useEffect(() => {
     fetchMenuItems();
