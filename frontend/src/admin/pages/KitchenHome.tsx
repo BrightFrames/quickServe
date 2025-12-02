@@ -27,7 +27,7 @@ export interface Order {
     quantity: number;
     specialInstructions?: string;
   }>;
-  status: "preparing" | "prepared" | "delivered";
+  status: "pending" | "preparing" | "ready" | "served" | "completed" | "cancelled";
   createdAt: string;
   totalAmount: number;
 }
@@ -76,7 +76,11 @@ const KitchenHome = () => {
   useEffect(() => {
     fetchOrders();
 
-    if (socket) {
+    if (socket && user?.restaurantId) {
+      // Join kitchen-specific room
+      socket.emit("join-kitchen", user.restaurantId);
+      console.log(`Joined kitchen room for restaurant ${user.restaurantId}`);
+
       socket.on("new-order", (order: Order) => {
         setOrders((prev) => [...prev, order]);
         
@@ -113,7 +117,7 @@ const KitchenHome = () => {
         socket.off("order-updated");
       };
     }
-  }, [socket]);
+  }, [socket, user]);
 
   const fetchOrders = async () => {
     try {
@@ -145,8 +149,8 @@ const KitchenHome = () => {
         )
       );
       
-      // Play success sound when order is marked as delivered
-      if (newStatus === "delivered") {
+      // Play success sound when order is marked as ready
+      if (newStatus === "ready") {
         notificationSounds.playSuccessSound();
       }
       
@@ -168,8 +172,8 @@ const KitchenHome = () => {
   };
 
   const preparingOrders = orders.filter((o) => o.status === "preparing");
-  const preparedOrders = orders.filter((o) => o.status === "prepared");
-  const deliveredOrders = orders.filter((o) => o.status === "delivered");
+  const readyOrders = orders.filter((o) => o.status === "ready");
+  const servedOrders = orders.filter((o) => o.status === "served");
 
   // Filter orders based on selected status
   const filteredOrders = selectedStatus === "all" 
@@ -351,11 +355,11 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
   const getStatusBadge = (status: Order["status"]) => {
     switch (status) {
       case "preparing":
-        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Takeaway</span>;
-      case "prepared":
-        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Dine-In</span>;
-      case "delivered":
-        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Delivered</span>;
+        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Cooking</span>;
+      case "ready":
+        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Ready</span>;
+      case "served":
+        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Served</span>;
       default:
         return null;
     }
@@ -367,9 +371,15 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
   };
 
   const getNextStatus = (): Order["status"] | null => {
-    if (order.status === "preparing") return "prepared";
-    if (order.status === "prepared") return "delivered";
+    if (order.status === "preparing") return "ready";
+    if (order.status === "ready") return "served";
     return null;
+  };
+
+  const getButtonText = () => {
+    if (order.status === "preparing") return "Mark Ready";
+    if (order.status === "ready") return "Mark Served";
+    return "Update";
   };
 
   const nextStatus = getNextStatus();
@@ -413,13 +423,12 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
         <button
           onClick={() => onStatusChange(orderId, nextStatus)}
           className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${
-            nextStatus === "prepared" 
-              ? "bg-blue-500 hover:bg-blue-600" 
-              : "bg-green-500 hover:bg-green-600"
+            nextStatus === "ready" 
+              ? "bg-green-600 hover:bg-green-700" 
+              : "bg-blue-600 hover:bg-blue-700"
           }`}
         >
-          {nextStatus === "prepared" && "Start Preparing"}
-          {nextStatus === "delivered" && "Mark as Prepared"}
+          {getButtonText()}
         </button>
       )}
     </div>

@@ -2,6 +2,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import helmet from "helmet";
 import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 import { setupAssociations } from "./models/index.js";
 
@@ -107,7 +108,29 @@ app.use((req, res, next) => {
 // Middleware
 // ============================
 
+// Import logging and error handling utilities
+import { requestLoggerMiddleware } from "./utils/logger.js";
+import { errorHandler } from "./utils/errorHandler.js";
+
+// Security headers with Helmet
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+      },
+    },
+    crossOriginEmbedderPolicy: false, // Allow embedding for QR codes
+  })
+);
+
 app.use(express.json());
+
+// Add request logging middleware (logs all API requests)
+app.use(requestLoggerMiddleware);
 
 // ============================
 // Database Connection (SQLite)
@@ -131,6 +154,8 @@ connectDatabase();
 // Socket.IO Setup
 // ============================
 
+import { getRestaurantRoom, getKitchenRoom, getCaptainRoom } from "./utils/orderLifecycle.js";
+
 const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
@@ -140,6 +165,27 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
+
+  // Join restaurant-specific rooms
+  socket.on("join-restaurant", (restaurantId) => {
+    const restaurantRoom = getRestaurantRoom(restaurantId);
+    socket.join(restaurantRoom);
+    console.log(`Socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
+  });
+
+  // Join kitchen room
+  socket.on("join-kitchen", (restaurantId) => {
+    const kitchenRoom = getKitchenRoom(restaurantId);
+    socket.join(kitchenRoom);
+    console.log(`Socket ${socket.id} joined kitchen room: ${kitchenRoom}`);
+  });
+
+  // Join captain room
+  socket.on("join-captain", (restaurantId) => {
+    const captainRoom = getCaptainRoom(restaurantId);
+    socket.join(captainRoom);
+    console.log(`Socket ${socket.id} joined captain room: ${captainRoom}`);
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
@@ -223,6 +269,9 @@ app.use((req, res, next) => {
     method: req.method,
   });
 });
+
+// Global error handler (must be last middleware)
+app.use(errorHandler);
 
 // ============================
 // Start Server

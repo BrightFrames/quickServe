@@ -1,5 +1,7 @@
 import express from "express";
 import Order from "../models/Order.js";
+import { paymentRateLimiter } from "../utils/rateLimiter.js";
+import { validatePaymentStatus } from "../utils/validators.js";
 
 const router = express.Router();
 
@@ -7,7 +9,7 @@ const router = express.Router();
 // UPI Payment Intent
 // ============================
 // Get UPI payment details for initiating payment
-router.post("/upi/initiate", async (req, res) => {
+router.post("/upi/initiate", paymentRateLimiter, async (req, res) => {
   try {
     const { orderId, amount } = req.body;
 
@@ -48,7 +50,7 @@ router.post("/upi/initiate", async (req, res) => {
 // Update Payment Status
 // ============================
 // Called after payment completion to update order status
-router.post("/status", async (req, res) => {
+router.post("/status", paymentRateLimiter, validatePaymentStatus, async (req, res) => {
   try {
     const { orderId, paymentMethod, paymentStatus, transactionId } = req.body;
 

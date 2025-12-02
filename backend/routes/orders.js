@@ -3,6 +3,17 @@ import { Op } from "sequelize";
 import { authenticateRestaurant, optionalRestaurantAuth } from "../middleware/auth.js";
 import { sanitizeCustomerInput, rateLimitCustomer } from "../middleware/customerSecurity.js";
 import { sendInvoiceViaWhatsApp, sendInvoiceViaEmail } from "../services/invoiceService.js";
+import { orderRateLimiter } from "../utils/rateLimiter.js";
+import { validateOrderCreation } from "../utils/validators.js";
+import { 
+  validateStatusTransition, 
+  getRestaurantRoom,
+  getKitchenRoom,
+  getCaptainRoom,
+  ORDER_STATUS,
+  isActiveOrder
+} from "../utils/orderLifecycle.js";
+import { createLogger } from "../utils/logger.js";
 import Restaurant from "../models/Restaurant.js";
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
@@ -10,11 +21,12 @@ import Table from "../models/Table.js";
 import PromoCode from "../models/PromoCode.js";
 
 const router = express.Router();
+const logger = createLogger("Orders");
 
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
 const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
 
-// Get all active orders (not delivered or cancelled) - requires authentication
+// Get all active orders (not completed or cancelled) - requires authentication
 router.get("/active", authenticateRestaurant, async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
@@ -24,7 +36,7 @@ router.get("/active", authenticateRestaurant, async (req, res) => {
     const whereClause = {
       restaurantId: req.restaurantId,
       status: {
-        [Op.in]: ["pending", "preparing", "prepared"],
+        [Op.in]: ["pending", "preparing", "ready", "served"],
       },
     };
     
@@ -33,9 +45,15 @@ router.get("/active", authenticateRestaurant, async (req, res) => {
       order: [['createdAt', 'DESC']],
     });
     
-    console.log(`[ORDERS] Retrieved ${orders.length} active orders for restaurant ${req.restaurantId}`);
+    logger.info(`Retrieved ${orders.length} active orders`, {
+      restaurantId: req.restaurantId,
+    });
     res.json(orders);
   } catch (error) {
+    logger.error("Error fetching active orders", {
+      restaurantId: req.restaurantId,
+      error: error.message,
+    });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -102,7 +120,7 @@ router.get("/by-table/:tableId", authenticateRestaurant, async (req, res) => {
 
 // Create order - public endpoint, restaurantId from request body
 // Apply rate limiting and input sanitization for customer protection
-router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
+router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, validateOrderCreation, async (req, res) => {
   try {
     
     const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode, restaurantId, slug } = req.body;
@@ -286,13 +304,26 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      console.log(`[ORDERS] Order processing transient: ${order.orderNumber}`);
+      logger.info("Order processing transient", { orderNumber: order.orderNumber });
     }
 
-    // Emit socket event for new order
+    // Emit socket event for new order to restaurant-specific rooms
     const io = req.app.get("io");
-    console.log(`[SOCKET] Emitting new-order for ${"single-tenant"}:`, order.orderNumber);
-    io.emit("new-order", order);
+    const restaurantRoom = getRestaurantRoom(finalRestaurantId);
+    const kitchenRoom = getKitchenRoom(finalRestaurantId);
+    const captainRoom = getCaptainRoom(finalRestaurantId);
+
+    // Broadcast to all relevant rooms
+    io.to(restaurantRoom).emit("new-order", order);
+    io.to(kitchenRoom).emit("new-order", order);
+    io.to(captainRoom).emit("new-order", order);
+
+    logger.orderFlow("New order created and broadcasted", {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      restaurantId: finalRestaurantId,
+      rooms: [restaurantRoom, kitchenRoom, captainRoom],
+    });
 
     // Send invoice via Email if email provided and order was saved
     if (SAVE_ORDERS && customerEmail && order.id) {
@@ -348,11 +379,15 @@ router.post("/", rateLimitCustomer, sanitizeCustomerInput, async (req, res) => {
   }
 });
 
-// Update order status
+// Update order status with lifecycle validation
 router.put("/:id/status", authenticateRestaurant, async (req, res) => {
   try {
-    
     const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+    
     let order;
     
     if (SAVE_ORDERS) {
@@ -362,24 +397,69 @@ router.put("/:id/status", authenticateRestaurant, async (req, res) => {
           restaurantId: req.restaurantId 
         } 
       });
+      
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
+
+      // Validate status transition
+      try {
+        validateStatusTransition(order.status, status, order.orderNumber);
+      } catch (validationError) {
+        logger.warn("Status transition validation failed", {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          error: validationError.message,
+        });
+        return res.status(400).json({ 
+          message: validationError.message,
+          currentStatus: order.status,
+        });
+      }
+
+      // Update order status
+      const oldStatus = order.status;
       await order.update({ status });
+
+      logger.orderFlow("Order status updated", {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        from: oldStatus,
+        to: status,
+        restaurantId: req.restaurantId,
+      });
     } else {
       order = {
         id: req.params.id,
         status,
         updatedAt: new Date(),
+        restaurantId: req.restaurantId,
       };
     }
 
-    // Emit socket event for order update
+    // Emit socket event for order update to restaurant-specific rooms
     const io = req.app.get("io");
-    io.emit("order-updated", order);
+    const restaurantRoom = getRestaurantRoom(req.restaurantId);
+    const kitchenRoom = getKitchenRoom(req.restaurantId);
+    const captainRoom = getCaptainRoom(req.restaurantId);
+
+    // Broadcast to all relevant rooms
+    io.to(restaurantRoom).emit("order-updated", order);
+    io.to(kitchenRoom).emit("order-updated", order);
+    io.to(captainRoom).emit("order-updated", order);
+
+    logger.info("Socket.IO events emitted for order update", {
+      orderId: order.id,
+      rooms: [restaurantRoom, kitchenRoom, captainRoom],
+    });
 
     res.json(order);
   } catch (error) {
+    logger.error("Error updating order status", {
+      orderId: req.params.id,
+      error: error.message,
+      stack: error.stack,
+    });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

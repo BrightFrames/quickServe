@@ -3,13 +3,15 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Restaurant from "../models/Restaurant.js";
 import User from "../models/User.js";
+import { signupRateLimiter } from "../utils/rateLimiter.js";
+import { validateRestaurantSignup } from "../utils/validators.js";
 
 const router = express.Router();
 
 // ============================
 // Restaurant Signup Route
 // ============================
-router.post("/signup", async (req, res) => {
+router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, res) => {
   console.log("[RESTAURANT AUTH] Signup request received");
   console.log("[RESTAURANT AUTH] Body:", req.body);
 

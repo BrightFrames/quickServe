@@ -63,8 +63,9 @@ const Order = sequelize.define('Order', {
     allowNull: true,
   },
   status: {
-    type: DataTypes.ENUM('pending', 'preparing', 'prepared', 'delivered', 'cancelled'),
+    type: DataTypes.ENUM('pending', 'preparing', 'ready', 'served', 'completed', 'cancelled'),
     defaultValue: 'pending',
+    comment: 'Order lifecycle: pending → preparing → ready → served → completed',
   },
   totalAmount: {
     type: DataTypes.DECIMAL(10, 2),

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useSocket } from "../hooks/useSocket";
 import CaptainTableSelection from "../components/captain/CaptainTableSelection";
 import { RestaurantProvider } from "../../customer/context/RestaurantContext";
 import { CartProvider } from "../../customer/context/CartContext";
@@ -10,7 +11,16 @@ import { MenuPage } from "../../customer/pages/MenuPage";
 const CaptainHome: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const socket = useSocket();
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+
+  // Join captain-specific Socket.IO room
+  useEffect(() => {
+    if (socket && user?.restaurantId) {
+      socket.emit("join-captain", user.restaurantId);
+      console.log(`[CAPTAIN] Joined captain room for restaurant ${user.restaurantId}`);
+    }
+  }, [socket, user]);
 
   const handleLogout = () => {
     const restaurantSlug = user?.restaurantSlug;

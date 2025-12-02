@@ -257,13 +257,13 @@ router.get("/tables/:restaurantSlug/orders/:tableNumber", authenticateCaptain, r
     const restaurant = await Restaurant.findByPk(restaurantId);
     const taxPercentage = restaurant?.taxPercentage || 5.0; // Default 5% if not set
     
-    // Only fetch ACTIVE orders (not delivered/completed)
+    // Only fetch ACTIVE orders (not completed)
     const orders = await Order.findAll({
       where: {
         restaurantId: parseInt(restaurantId),
         tableNumber: parseInt(tableNumber),
         status: {
-          [Op.in]: ['pending', 'preparing', 'prepared']
+          [Op.in]: ['pending', 'preparing', 'ready', 'served']
         },
         paymentStatus: {
           [Op.ne]: 'paid'
@@ -327,26 +327,26 @@ router.post("/tables/:restaurantSlug/mark-paid/:tableNumber", authenticateCaptai
     
     console.log(`[CAPTAIN PAYMENT] Marking table ${tableNumber} as paid by ${req.username}`);
     
-    // Update all cash orders for this table to paid status and delivered
+    // Update all orders for this table to completed status and paid
     const [updatedCount] = await Order.update(
       { 
-        status: 'delivered',
+        status: 'completed',
         paymentStatus: 'paid',
-        deliveredAt: new Date()
+        paymentProcessedAt: new Date(),
+        paymentProcessedBy: req.id
       },
       {
         where: {
           restaurantId: parseInt(restaurantId),
           tableNumber: parseInt(tableNumber),
-          paymentMethod: 'cash',
           status: {
-            [Op.in]: ['pending', 'preparing', 'prepared']
+            [Op.in]: ['pending', 'preparing', 'ready', 'served']
           }
         }
       }
     );
     
-    console.log(`[CAPTAIN PAYMENT] ✓ Marked ${updatedCount} cash orders as paid for table ${tableNumber}`);
+    console.log(`[CAPTAIN PAYMENT] ✓ Marked ${updatedCount} orders as completed for table ${tableNumber}`);
     
     res.json({
       success: true,

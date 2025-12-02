@@ -4,13 +4,15 @@ import jwt from "jsonwebtoken";
 import { Op } from "sequelize";
 import User from "../models/User.js";
 import Restaurant from "../models/Restaurant.js";
+import { loginRateLimiter } from "../utils/rateLimiter.js";
+import { validateLogin } from "../utils/validators.js";
 
 const router = express.Router();
 
 // ============================
 // Login Route
 // ============================
-router.post("/login", async (req, res) => {
+router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
   console.log("[AUTH] Login request received");
   console.log("[AUTH] Body:", req.body);
 
@@ -149,7 +151,7 @@ router.post("/login", async (req, res) => {
 // ============================
 // Captain Login Route
 // ============================
-router.post("/captain/login", async (req, res) => {
+router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) => {
   console.log("[AUTH] Captain login request received");
   console.log("[AUTH] Body:", req.body);
 
@@ -227,7 +229,7 @@ router.post("/captain/login", async (req, res) => {
 // ============================
 // Reception Login Route
 // ============================
-router.post("/reception/login", async (req, res) => {
+router.post("/reception/login", loginRateLimiter, validateLogin, async (req, res) => {
   try {
     const { username, password } = req.body;
     console.log("[AUTH] Reception login attempt:", username);
