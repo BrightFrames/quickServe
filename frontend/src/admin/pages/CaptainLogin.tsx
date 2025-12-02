@@ -18,15 +18,23 @@ const CaptainLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      // Use captain-specific login endpoint via AuthContext
-      await login(username, password, 'captain');
-      
-      // ALWAYS use slug from URL (where captain accessed login), not from backend
+      // Check slug first
       if (!restaurantSlug) {
         setError('Please access login through restaurant-specific URL');
         setLoading(false);
         return;
       }
+      
+      // Use captain-specific login endpoint via AuthContext
+      const userData = await login(username, password, 'captain');
+      
+      // Override backend slug with URL slug and save to localStorage
+      const updatedUser = {
+        ...userData.user,
+        restaurantSlug: restaurantSlug // Force URL slug, not backend database slug
+      };
+      
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // Redirect to dashboard with URL slug
       navigate(`/${restaurantSlug}/captain/dashboard`);

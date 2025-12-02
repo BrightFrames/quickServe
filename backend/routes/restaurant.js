@@ -2,6 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Restaurant from "../models/Restaurant.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 
@@ -94,6 +95,27 @@ router.post("/signup", async (req, res) => {
 
     console.log("[RESTAURANT AUTH] ✓ Restaurant created successfully");
 
+    // Auto-create captain account for this restaurant
+    const captainUsername = `captain_${uniqueSlug.replace(/-/g, '_')}`;
+    const captainPassword = 'captain123'; // Default password
+    const hashedCaptainPassword = await bcrypt.hash(captainPassword, 10);
+
+    try {
+      const captain = await User.create({
+        username: captainUsername,
+        password: hashedCaptainPassword,
+        role: 'captain',
+        restaurantId: restaurant.id,
+        isOnline: false,
+        lastActive: new Date()
+      });
+      
+      console.log(`[RESTAURANT AUTH] ✓ Auto-created captain account: ${captainUsername}`);
+    } catch (captainError) {
+      console.error('[RESTAURANT AUTH] Failed to create captain account:', captainError.message);
+      // Continue even if captain creation fails - restaurant is already created
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       { 
@@ -105,7 +127,7 @@ router.post("/signup", async (req, res) => {
       { expiresIn: "30d" }
     );
 
-    // Return restaurant data (excluding password)
+    // Return restaurant data (excluding password) with captain info
     const restaurantData = {
       id: restaurant.id,
       name: restaurant.name,
@@ -114,6 +136,8 @@ router.post("/signup", async (req, res) => {
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
+      captainUsername: captainUsername,
+      captainPassword: captainPassword, // Show default password in signup response
     };
 
     res.status(201).json({

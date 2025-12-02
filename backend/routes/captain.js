@@ -11,6 +11,7 @@ const router = express.Router();
 /**
  * Middleware to resolve restaurant slug to ID
  * Converts :restaurantSlug param to restaurantId and validates access
+ * MUST be called AFTER authenticateCaptain
  */
 const resolveRestaurantSlug = async (req, res, next) => {
   try {
@@ -32,18 +33,27 @@ const resolveRestaurantSlug = async (req, res, next) => {
       });
     }
 
-    // Validate captain can only access their own restaurant
-    if (req.restaurantId && parseInt(restaurant.id) !== req.restaurantId) {
+    // CRITICAL: Validate captain can ONLY access their assigned restaurant
+    // req.restaurantId comes from JWT token (set by authenticateCaptain middleware)
+    if (!req.restaurantId) {
+      return res.status(401).json({ 
+        message: 'Authentication required',
+        error: 'Captain restaurant ID not found in token'
+      });
+    }
+
+    if (parseInt(restaurant.id) !== parseInt(req.restaurantId)) {
+      console.log(`[SLUG RESOLVER] ✗ ACCESS DENIED: Captain ${req.username} (RestaurantID: ${req.restaurantId}) tried to access ${restaurantSlug} (RestaurantID: ${restaurant.id})`);
       return res.status(403).json({ 
         message: 'Access denied',
-        error: `You can only access your assigned restaurant (${req.restaurantId}), not ${restaurant.id}`
+        error: `You can only access your assigned restaurant. Your restaurant ID: ${req.restaurantId}, Requested: ${restaurant.id}`
       });
     }
 
     req.resolvedRestaurantId = restaurant.id;
     req.restaurantName = restaurant.name;
     
-    console.log(`[SLUG RESOLVER] ✓ ${restaurantSlug} → Restaurant ID: ${restaurant.id}`);
+    console.log(`[SLUG RESOLVER] ✓ ${req.username} (RestaurantID: ${req.restaurantId}) → ${restaurantSlug} (ID: ${restaurant.id}) ALLOWED`);
     next();
   } catch (error) {
     console.error('[SLUG RESOLVER] Error:', error.message);
