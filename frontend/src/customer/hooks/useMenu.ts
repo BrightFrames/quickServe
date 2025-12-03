@@ -6,15 +6,24 @@ export const useMenu = () => {
   const [menu, setMenu] = useState<MenuCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { restaurantSlug } = useRestaurant();
+  const { restaurantSlug, restaurantId } = useRestaurant(); // CORE FIX: Get restaurantId
 
   const fetchMenu = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await menuService.getMenu(restaurantSlug || undefined);
+      
+      // CORE FIX: Pass restaurantId as primary identifier, slug as fallback
+      console.log('[USE MENU] Fetching menu - restaurantId:', restaurantId, 'slug:', restaurantSlug);
+      const data = await menuService.getMenu(
+        restaurantSlug || undefined, 
+        restaurantId || undefined
+      );
+      
+      console.log('[USE MENU] Loaded', data.length, 'categories');
       setMenu(data);
     } catch (err) {
+      console.error('[USE MENU] Error:', err);
       setError(err instanceof Error ? err.message : 'Failed to load menu');
     } finally {
       setLoading(false);
@@ -22,19 +31,21 @@ export const useMenu = () => {
   };
 
   useEffect(() => {
-    if (restaurantSlug) {
+    // CORE FIX: Fetch when either restaurantId or slug is available (prefer restaurantId)
+    if (restaurantId || restaurantSlug) {
+      console.log('[USE MENU] Triggering fetch - restaurantId:', restaurantId, 'slug:', restaurantSlug);
       fetchMenu();
     }
     
     // Simulate real-time updates
     const interval = setInterval(() => {
-      if (restaurantSlug) {
+      if (restaurantId || restaurantSlug) {
         fetchMenu();
       }
     }, 60000); // Refresh every minute
     
     return () => clearInterval(interval);
-  }, [restaurantSlug]);
+  }, [restaurantSlug, restaurantId]); // CORE FIX: Re-fetch when restaurantId changes
 
   const searchItems = (query: string): MenuItem[] => {
     const lowerQuery = query.toLowerCase();

@@ -45,10 +45,30 @@ export default defineConfig(({ mode }) => ({
       compress: {
         drop_console: mode === "production",
         drop_debugger: true,
+        passes: 2, // Two-pass compression for better results
+      },
+      mangle: {
+        safari10: true, // Safari 10+ compatibility
+      },
+      format: {
+        comments: false, // Remove all comments
       },
     },
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Target modern browsers for smaller bundle
+    target: 'es2020',
+    // Optimize chunk loading
+    reportCompressedSize: false, // Faster builds
+    sourcemap: mode === 'development',
   },
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom", "axios"],
+    exclude: ['@vite/client', '@vite/env'], // Exclude Vite internals
+  },
+  // Performance optimizations
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }, // Suppress warnings
+    treeShaking: true,
   },
 }));

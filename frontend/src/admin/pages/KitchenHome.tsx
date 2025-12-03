@@ -74,12 +74,14 @@ const KitchenHome = () => {
   );
 
   useEffect(() => {
+    console.log('[KITCHEN] Current user:', user)
+    console.log('[KITCHEN] User restaurantId:', user?.restaurantId)
     fetchOrders();
 
     if (socket && user?.restaurantId) {
       // Join kitchen-specific room
       socket.emit("join-kitchen", user.restaurantId);
-      console.log(`Joined kitchen room for restaurant ${user.restaurantId}`);
+      console.log(`[KITCHEN] Joined kitchen room for restaurant ${user.restaurantId}`);
 
       socket.on("new-order", (order: Order) => {
         setOrders((prev) => [...prev, order]);
@@ -172,7 +174,9 @@ const KitchenHome = () => {
   };
 
   const preparingOrders = orders.filter((o) => o.status === "preparing");
+  const preparedOrders = orders.filter((o) => o.status === "ready");
   const readyOrders = orders.filter((o) => o.status === "ready");
+  const deliveredOrders = orders.filter((o) => o.status === "served");
   const servedOrders = orders.filter((o) => o.status === "served");
 
   // Filter orders based on selected status

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useState, useEffect } from 'react';
 
@@ -32,6 +33,9 @@ import { RestaurantProvider as AdminRestaurantProvider } from './admin/context/R
 import { RestaurantProvider as CustomerRestaurantProvider } from './customer/context/RestaurantContext';
 import { CartProvider } from './customer/context/CartContext';
 
+// Performance: React Query Client
+import { queryClient } from './customer/config/queryClient';
+
 // Components
 import ProtectedRoute from './admin/components/ProtectedRoute';
 
@@ -57,9 +61,10 @@ function App() {
   }
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <div className="min-h-screen bg-gray-50">
-        <Routes>
+    <QueryClientProvider client={queryClient}>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <div className="min-h-screen bg-gray-50">
+          <Routes>
           {/* Landing Routes - Public */}
           <Route 
             path="/" 
@@ -281,6 +286,7 @@ function App() {
         <Toaster position="top-right" richColors />
       </div>
     </Router>
+    </QueryClientProvider>
   );
 }
 

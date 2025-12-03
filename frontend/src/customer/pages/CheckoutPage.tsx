@@ -39,10 +39,16 @@ export const CheckoutPage = () => {
         if (savedData) {
           const data = JSON.parse(savedData);
           const slug = data.restaurantSlug;
-          console.log("[TAX] Restaurant slug:", slug);
+          const cachedRestaurantId = data.restaurantId; // CORE FIX: Check for cached restaurantId
+          
+          console.log("[TAX] Restaurant slug:", slug, "restaurantId:", cachedRestaurantId);
           
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-          const url = `${apiUrl}/api/restaurant/info/${slug}`;
+          
+          // CORE FIX: Use restaurantId if available, otherwise use slug
+          const identifier = cachedRestaurantId || slug;
+          const url = `${apiUrl}/api/restaurant/info/${identifier}`;
+          
           console.log("[TAX] Fetching from:", url);
           
           const response = await fetch(url);
@@ -52,6 +58,13 @@ export const CheckoutPage = () => {
             const restaurantInfo = await response.json();
             console.log("[TAX] Restaurant info:", restaurantInfo);
             console.log("[TAX] Tax percentage from API:", restaurantInfo.taxPercentage);
+            
+            // CORE FIX: Cache restaurantId if we received it and don't have it yet
+            if (restaurantInfo.id && !cachedRestaurantId) {
+              const updatedData = { ...data, restaurantId: restaurantInfo.id };
+              localStorage.setItem("customer_restaurant_data", JSON.stringify(updatedData));
+              console.log("[TAX] Cached restaurantId:", restaurantInfo.id);
+            }
             
             const taxValue = parseFloat(restaurantInfo.taxPercentage) || 5.0;
             console.log("[TAX] Setting tax to:", taxValue);

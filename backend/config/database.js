@@ -13,12 +13,20 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
     }
   },
   pool: {
-    max: 5,
-    min: 0,
+    max: 10, // Increased for better concurrency
+    min: 2, // Keep minimum connections ready
     acquire: 30000,
-    idle: 10000
+    idle: 10000,
+    evict: 1000, // Evict idle connections faster
+    maxUses: 1000 // Recycle connections after 1000 uses
   },
   logging: false, // Set to console.log to see SQL queries
+  benchmark: false, // Disable query benchmarking in production for speed
+  define: {
+    timestamps: true,
+    underscored: false,
+    freezeTableName: true // Prevent Sequelize from pluralizing table names
+  }
 });
 
 export const testConnection = async () => {

@@ -136,7 +136,9 @@ export const validateOrderCreation = [
 
   body("items.*.menuItemId")
     .optional()
-    .isInt({ min: 1 })
+    .isString()
+    .trim()
+    .isLength({ min: 1 })
     .withMessage("Invalid menu item ID"),
 
   body("items.*.name")

@@ -5,6 +5,7 @@ import Restaurant from "../models/Restaurant.js";
 import User from "../models/User.js";
 import { signupRateLimiter } from "../utils/rateLimiter.js";
 import { validateRestaurantSignup } from "../utils/validators.js";
+import { cache, cacheKeys } from "../utils/cache.js";
 
 const router = express.Router();
 
@@ -711,17 +712,40 @@ router.put("/update-credentials/:restaurantCode", async (req, res) => {
 });
 
 // ============================
-// Get Restaurant Info by Slug (Public - for customers)
+// Get Restaurant Info by Slug or ID (Public - for customers)
 // ============================
-router.get("/info/:slug", async (req, res) => {
+router.get("/info/:identifier", async (req, res) => {
   try {
-    const { slug } = req.params;
-    console.log(`[RESTAURANT INFO] Request for slug: ${slug}`);
+    const { identifier } = req.params;
+    console.log(`[RESTAURANT INFO] Request for identifier: ${identifier}`);
     
-    const restaurant = await Restaurant.findOne({ 
-      where: { slug: slug.toLowerCase().trim() },
-      attributes: ['id', 'name', 'slug', 'restaurantCode', 'taxPercentage', 'address', 'phone', 'isActive']
-    });
+    // Check cache first
+    const cacheKey = cacheKeys.restaurant(identifier);
+    const cachedRestaurant = cache.get(cacheKey);
+    
+    if (cachedRestaurant) {
+      console.log(`[CACHE] Restaurant info cache HIT for ${identifier}`);
+      return res.json(cachedRestaurant);
+    }
+    
+    let restaurant = null;
+    
+    // Check if identifier is a numeric ID
+    const numericId = parseInt(identifier, 10);
+    if (!isNaN(numericId) && numericId > 0) {
+      // CORE FIX: Use primary key (id) directly for fastest, most reliable lookup
+      console.log(`[RESTAURANT INFO] Looking up by restaurantId: ${numericId}`);
+      restaurant = await Restaurant.findByPk(numericId, {
+        attributes: ['id', 'name', 'slug', 'restaurantCode', 'taxPercentage', 'address', 'phone', 'isActive']
+      });
+    } else {
+      // Fallback: treat as slug and map to restaurantId
+      console.log(`[RESTAURANT INFO] Looking up by slug: ${identifier}`);
+      restaurant = await Restaurant.findOne({ 
+        where: { slug: identifier.toLowerCase().trim() },
+        attributes: ['id', 'name', 'slug', 'restaurantCode', 'taxPercentage', 'address', 'phone', 'isActive']
+      });
+    }
     
     console.log(`[RESTAURANT INFO] Found restaurant:`, restaurant ? {
       id: restaurant.id,
@@ -736,7 +760,7 @@ router.get("/info/:slug", async (req, res) => {
     }
 
     const response = {
-      id: restaurant.id,
+      id: restaurant.id, // Always return the primary key for frontend caching
       name: restaurant.name,
       slug: restaurant.slug,
       restaurantCode: restaurant.restaurantCode,
@@ -745,7 +769,10 @@ router.get("/info/:slug", async (req, res) => {
       phone: restaurant.phone
     };
     
-    console.log(`[RESTAURANT INFO] Sending response:`, response);
+    // Cache for 15 minutes
+    cache.set(cacheKey, response, 15 * 60 * 1000);
+    console.log(`[RESTAURANT INFO] Sending response with restaurantId: ${response.id}`);
+    
     res.json(response);
 
   } catch (error) {

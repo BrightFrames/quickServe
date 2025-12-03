@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import compression from "compression";
 import sequelize, { testConnection, syncDatabase } from "./config/database.js";
 import { setupAssociations } from "./models/index.js";
 
@@ -101,6 +102,47 @@ app.use((req, res, next) => {
     }
   }
 
+  next();
+});
+
+// ============================
+// PERFORMANCE OPTIMIZATIONS
+// ============================
+
+// Enable gzip/deflate compression for all responses
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: 6, // Balance between compression ratio and speed
+  threshold: 1024, // Only compress responses > 1KB
+}));
+
+// Optimize Express settings
+app.set('trust proxy', 1); // Trust first proxy
+app.set('x-powered-by', false); // Hide Express fingerprint
+app.set('etag', 'strong'); // Enable strong ETags for caching
+
+// Add response time tracking
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (duration > 1000) { // Log slow requests (>1s)
+      console.log(`[PERF] Slow request: ${req.method} ${req.path} - ${duration}ms`);
+    }
+  });
+  next();
+});
+
+// Cache-Control headers for static assets
+app.use((req, res, next) => {
+  if (req.path.match(/\.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$/)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
   next();
 });
 

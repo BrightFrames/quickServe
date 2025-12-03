@@ -26,6 +26,33 @@ const logger = createLogger("Orders");
 // Toggle to control whether orders are persisted to DB. Set SAVE_ORDERS=true to enable saves.
 const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
 
+/**
+ * Helper: Map restaurant slug to restaurantId (primary key)
+ * Ensures all order queries use the database primary key
+ * @param {string} slug - Restaurant slug
+ * @returns {Promise<number|null>} Restaurant ID or null
+ */
+async function getRestaurantIdBySlug(slug) {
+  if (!slug || typeof slug !== 'string') return null;
+  
+  const restaurant = await Restaurant.findOne({ 
+    where: { slug: slug.toLowerCase().trim() },
+    attributes: ['id']
+  });
+  
+  return restaurant ? restaurant.id : null;
+}
+
+/**
+ * Helper: Validate restaurant ID
+ * @param {any} id - Restaurant ID to validate
+ * @returns {boolean} True if valid
+ */
+function isValidRestaurantId(id) {
+  const numId = parseInt(id, 10);
+  return !isNaN(numId) && numId > 0;
+}
+
 // Get all active orders (not completed or cancelled) - requires authentication
 router.get("/active", authenticateRestaurant, async (req, res) => {
   try {
@@ -125,18 +152,26 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     
     const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode, restaurantId, slug } = req.body;
 
-    // Get restaurantId from slug if not provided directly
-    let finalRestaurantId = restaurantId;
-    if (!finalRestaurantId && slug) {
-      const restaurant = await Restaurant.findOne({ where: { slug } });
-      if (!restaurant) {
+    // CORE FIX: Get restaurantId from slug if not provided directly
+    // Always use restaurantId (primary key) for all subsequent queries
+    let finalRestaurantId = null;
+    
+    // Prefer direct restaurantId if provided and valid
+    if (restaurantId && isValidRestaurantId(restaurantId)) {
+      finalRestaurantId = parseInt(restaurantId, 10);
+      logger.info('Order creation with direct restaurantId', { restaurantId: finalRestaurantId });
+    } 
+    // Fallback to slug lookup
+    else if (slug) {
+      logger.info('Order creation with slug, mapping to restaurantId', { slug });
+      finalRestaurantId = await getRestaurantIdBySlug(slug);
+      
+      if (!finalRestaurantId) {
+        logger.warn('Restaurant not found for slug', { slug });
         return res.status(404).json({ message: "Restaurant not found" });
       }
-      finalRestaurantId = restaurant.id;
-    }
-
-    // Validate restaurantId
-    if (!finalRestaurantId) {
+    } else {
+      logger.warn('Order creation without restaurantId or slug');
       return res.status(400).json({ message: "Restaurant ID or slug is required" });
     }
 
@@ -162,9 +197,10 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     // Log customer access for analytics
     console.log(`[ORDER] Restaurant ${finalRestaurantId}, Table: ${tableNumber || tableId}`);
 
-    // Get restaurant info for tax percentage
+    // CORE FIX: Get restaurant info using restaurantId (primary key)
     const restaurant = await Restaurant.findByPk(finalRestaurantId);
     if (!restaurant) {
+      logger.error('Restaurant not found', { restaurantId: finalRestaurantId });
       return res.status(404).json({ message: "Restaurant not found" });
     }
     const taxPercentage = restaurant.taxPercentage || 5.0; // Default 5% if not set

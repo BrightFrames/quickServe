@@ -28,7 +28,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken')
     
     if (storedUser && token) {
-      setUser(JSON.parse(storedUser))
+      const parsedUser = JSON.parse(storedUser)
+      console.log('[AUTH] Restoring session for user:', parsedUser)
+      console.log('[AUTH] User restaurantId:', parsedUser.restaurantId)
+      setUser(parsedUser)
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       console.log('[AUTH] Restored session with token')
     }
@@ -122,6 +125,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const response = await axios.post(`${apiUrl}/api/auth/login`, payload);
         
         const { user, token } = response.data;
+        console.log('[AUTH] Kitchen login response:', { user, token: token.substring(0, 20) + '...' })
+        console.log('[AUTH] Kitchen user restaurantId:', user.restaurantId)
         setUser(user);
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('token', token);
