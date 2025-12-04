@@ -97,6 +97,7 @@ const AdminLogin = () => {
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter your restaurant email"
+                  autoComplete="email"
                   required
                 />
               </div>
