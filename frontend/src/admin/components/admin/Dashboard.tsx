@@ -61,10 +61,18 @@ const Dashboard = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await axios.get(`/api/analytics?period=${period}`)
+      const response = await axios.get(`${apiUrl}/api/analytics?period=${period}`, getAxiosConfig())
       setAnalytics(response.data)
     } catch (error) {
       console.error('Error fetching analytics:', error)
+      // Set empty analytics on error to prevent crash
+      setAnalytics({
+        revenue: { today: 0, last7Days: 0, last30Days: 0 },
+        orders: { total: 0, completed: 0, inProgress: 0, cancelled: 0 },
+        popularItems: [],
+        revenueChart: [],
+        orderStatusChart: []
+      })
     } finally {
       setLoading(false)
     }
