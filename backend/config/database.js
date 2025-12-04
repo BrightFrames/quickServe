@@ -25,7 +25,8 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   define: {
     timestamps: true,
     underscored: false,
-    freezeTableName: true // Prevent Sequelize from pluralizing table names
+    // Remove freezeTableName to allow explicit tableName in models
+    // freezeTableName: true
   }
 });
 

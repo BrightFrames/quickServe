@@ -148,6 +148,9 @@ const Restaurant = sequelize.define('Restaurant', {
       fields: ['restaurantCode'],
     },
   ],
+}, {
+  tableName: 'Restaurants', // Explicitly set table name to match database
+  timestamps: true,
 });
 
 // Instance method to compare passwords

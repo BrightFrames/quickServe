@@ -181,24 +181,23 @@ router.get('/inventory-consumption', async (req, res) => {
     startDate.setDate(startDate.getDate() - parseInt(days));
     startDate.setHours(0, 0, 0, 0);
     
-    console.log(`[ANALYTICS] Fetching inventory consumption for last ${days} days`);
+    console.log(`[ANALYTICS] Fetching inventory consumption for restaurant ${restaurantId}, last ${days} days`);
     
-    // Get item-wise consumption
-    const itemConsumption = await sequelize.query(`
+    // Get item-wise consumption from JSONB items array
+    const [itemConsumption] = await sequelize.query(`
       SELECT 
-        oi."menuItemId" as "itemId",
-        mi.name as "itemName",
-        mi.category,
-        mi.price,
-        SUM(oi.quantity) as "totalQuantity",
-        SUM(oi.quantity * mi.price) as "totalRevenue"
-      FROM "OrderItems" oi
-      INNER JOIN "Orders" o ON oi."orderId" = o.id
-      INNER JOIN "MenuItems" mi ON oi."menuItemId" = mi.id
+        item->>'menuItemId' as "itemId",
+        item->>'name' as "itemName",
+        CAST(item->>'price' AS DECIMAL) as price,
+        SUM(CAST(item->>'quantity' AS INTEGER)) as "totalQuantity",
+        SUM(CAST(item->>'quantity' AS INTEGER) * CAST(item->>'price' AS DECIMAL)) as "totalRevenue",
+        COUNT(DISTINCT o.id) as "totalOrders"
+      FROM orders o,
+      jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
         AND o.status IN ('preparing', 'prepared', 'delivered')
-      GROUP BY oi."menuItemId", mi.name, mi.category, mi.price
+      GROUP BY item->>'menuItemId', item->>'name', item->>'price'
       ORDER BY "totalQuantity" DESC
     `, {
       replacements: { restaurantId, startDate },
@@ -206,21 +205,20 @@ router.get('/inventory-consumption', async (req, res) => {
     });
     
     // Get daily breakdown
-    const dailyConsumption = await sequelize.query(`
+    const [dailyConsumption] = await sequelize.query(`
       SELECT 
         DATE(o."createdAt") as date,
         COUNT(DISTINCT o.id) as "totalOrders",
-        SUM(o.total) as "totalRevenue",
+        SUM(CAST(o."totalAmount" AS DECIMAL)) as "totalRevenue",
         json_agg(
           json_build_object(
-            'itemName', mi.name,
-            'quantity', oi.quantity,
-            'revenue', oi.quantity * mi.price
+            'itemName', item->>'name',
+            'quantity', CAST(item->>'quantity' AS INTEGER),
+            'revenue', CAST(item->>'quantity' AS INTEGER) * CAST(item->>'price' AS DECIMAL)
           )
         ) as items
-      FROM "Orders" o
-      INNER JOIN "OrderItems" oi ON o.id = oi."orderId"
-      INNER JOIN "MenuItems" mi ON oi."menuItemId" = mi.id
+      FROM orders o,
+      jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
         AND o.status IN ('preparing', 'prepared', 'delivered')
@@ -236,18 +234,18 @@ router.get('/inventory-consumption', async (req, res) => {
     
     res.json({
       itemConsumption: itemConsumption.map(item => ({
-        itemId: parseInt(item.itemId),
+        itemId: item.itemId,
         itemName: item.itemName,
-        category: item.category,
-        price: parseFloat(item.price),
-        totalQuantity: parseInt(item.totalQuantity),
-        totalRevenue: parseFloat(item.totalRevenue)
+        price: parseFloat(item.price || 0),
+        totalQuantity: parseInt(item.totalQuantity || 0),
+        totalRevenue: parseFloat(item.totalRevenue || 0),
+        totalOrders: parseInt(item.totalOrders || 0)
       })),
       dailyConsumption: dailyConsumption.map(day => ({
         date: day.date,
-        totalOrders: parseInt(day.totalOrders),
-        totalRevenue: parseFloat(day.totalRevenue),
-        items: day.items
+        totalOrders: parseInt(day.totalOrders || 0),
+        totalRevenue: parseFloat(day.totalRevenue || 0),
+        items: day.items || []
       }))
     });
   } catch (error) {

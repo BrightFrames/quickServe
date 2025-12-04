@@ -39,6 +39,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => {
     try {
+      // CRITICAL FIX: Clear any existing session before new login
+      // This prevents old restaurantId from being used
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('restaurantToken');
+      localStorage.removeItem('captainToken');
+      localStorage.removeItem('receptionToken');
+      delete axios.defaults.headers.common['Authorization'];
+      console.log('[AUTH] Cleared old session data before new login');
+      
       // For admin role, use restaurant login endpoint
       if (role === 'admin') {
         // Use username as email (admin login now asks for email)

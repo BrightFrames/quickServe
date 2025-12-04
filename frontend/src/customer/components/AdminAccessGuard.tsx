@@ -134,6 +134,17 @@ export const AdminAccessGuard = () => {
 
         {/* Form */}
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          {/* Hidden username field for accessibility */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={restaurantSlug || ''}
+            readOnly
+            style={{ display: 'none' }}
+            aria-hidden="true"
+          />
+          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Restaurant Password
@@ -147,6 +158,7 @@ export const AdminAccessGuard = () => {
                 className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
                 disabled={isVerifying || attemptCount >= 3}
                 autoFocus
+                autoComplete="current-password"
               />
               <button
                 type="button"

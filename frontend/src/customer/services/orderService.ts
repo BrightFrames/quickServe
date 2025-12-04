@@ -111,7 +111,8 @@ class OrderService {
         restaurantId: orderPayload.restaurantId,
         slug: orderPayload.slug,
         tableNumber: orderPayload.tableNumber,
-        itemCount: orderPayload.items.length
+        itemCount: orderPayload.items.length,
+        fullPayload: orderPayload // Log complete payload for debugging
       });
       const response = await axios.post(`${this.apiUrl}/orders`, orderPayload);
 
@@ -144,6 +145,12 @@ class OrderService {
         "Error creating order:",
         error.response?.data || error.message
       );
+      console.error("Full error details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        errors: error.response?.data?.errors // Log validation errors
+      });
       throw new Error(
         error.response?.data?.message || "Failed to create order"
       );

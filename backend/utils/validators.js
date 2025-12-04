@@ -135,11 +135,13 @@ export const validateOrderCreation = [
     .withMessage("Order must contain at least one item"),
 
   body("items.*.menuItemId")
-    .optional()
+    .exists()
+    .withMessage("Menu item ID is required")
     .isString()
+    .withMessage("Menu item ID must be a string")
     .trim()
-    .isLength({ min: 1 })
-    .withMessage("Invalid menu item ID"),
+    .notEmpty()
+    .withMessage("Menu item ID cannot be empty"),
 
   body("items.*.name")
     .trim()
@@ -151,13 +153,23 @@ export const validateOrderCreation = [
     .withMessage("Quantity must be between 1 and 50"),
 
   body("items.*.price")
-    .isFloat({ min: 0 })
-    .withMessage("Price must be a positive number"),
+    .custom((value) => {
+      // Accept both number and string, convert to float
+      const num = parseFloat(value);
+      if (isNaN(num) || num < 0) {
+        throw new Error("Price must be a positive number");
+      }
+      return true;
+    }),
 
   body("tableNumber")
     .optional()
-    .matches(/^[a-zA-Z0-9\-_]+$/)
-    .withMessage("Table number must be alphanumeric"),
+    .custom((value) => {
+      if (value && !/^[a-zA-Z0-9\-_]+$/.test(String(value))) {
+        throw new Error("Table number must be alphanumeric");
+      }
+      return true;
+    }),
 
   body("paymentMethod")
     .optional()
@@ -166,8 +178,12 @@ export const validateOrderCreation = [
 
   body("customerPhone")
     .optional()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Invalid phone number format"),
+    .custom((value) => {
+      if (value && !/^[6-9]\d{9}$/.test(String(value))) {
+        throw new Error("Invalid phone number format");
+      }
+      return true;
+    }),
 
   body("customerEmail")
     .optional()

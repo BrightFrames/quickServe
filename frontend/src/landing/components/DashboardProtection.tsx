@@ -144,6 +144,17 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
 
             {/* Password Form */}
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {/* Hidden username field for accessibility */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={restaurantSlug || ''}
+                readOnly
+                style={{ display: 'none' }}
+                aria-hidden="true"
+              />
+              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Restaurant Password
@@ -157,6 +168,7 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
                     className="pr-12"
                     disabled={isVerifying || attemptCount >= 5}
                     autoFocus
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
