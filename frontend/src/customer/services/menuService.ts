@@ -28,7 +28,8 @@ export interface MenuCategory {
 }
 
 class MenuService {
-  private apiUrl = "/api/menu";
+  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
+  private apiUrl = `${this.baseUrl}/api/menu`;
 
   /**
    * CORE FIX: Fetch menu using restaurantId (primary key) preferentially
@@ -44,13 +45,14 @@ class MenuService {
       if (restaurantId && restaurantId > 0) {
         // Use restaurantId (primary key) - fastest and most reliable
         url = `${this.apiUrl}?restaurantId=${restaurantId}`;
-        console.log('[MENU SERVICE] Fetching menu by restaurantId:', restaurantId);
+        console.log('[MENU SERVICE] Fetching menu by restaurantId:', restaurantId, 'URL:', url);
       } else if (restaurantSlug) {
         // Fallback to slug - will be mapped to restaurantId on backend
         url = `${this.apiUrl}?slug=${restaurantSlug}`;
-        console.log('[MENU SERVICE] Fetching menu by slug:', restaurantSlug);
+        console.log('[MENU SERVICE] Fetching menu by slug:', restaurantSlug, 'URL:', url);
       }
       
+      console.log('[MENU SERVICE] Full request URL:', url);
       const response = await axios.get(url);
       const menuItems: MenuItem[] = response.data;
       console.log(`[MENU SERVICE] Retrieved ${menuItems.length} items`);

@@ -33,7 +33,8 @@ export interface Order {
 }
 
 class OrderService {
-  private apiUrl = "/api";
+  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
+  private apiUrl = `${this.baseUrl}/api`;
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {

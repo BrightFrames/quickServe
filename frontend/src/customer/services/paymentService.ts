@@ -1,7 +1,8 @@
 import axios from "axios";
 
 class PaymentService {
-  private apiUrl = "/api/payment";
+  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
+  private apiUrl = `${this.baseUrl}/api/payment`;
 
   /**
    * Initiate UPI payment and get deep link
