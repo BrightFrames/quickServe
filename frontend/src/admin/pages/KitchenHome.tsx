@@ -48,6 +48,17 @@ const KitchenHome = () => {
     read: boolean;
   }>>([]);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  
+  // Clear notifications and orders when user logs out
+  useEffect(() => {
+    if (!user) {
+      console.log('[KITCHEN] User logged out, clearing state');
+      setOrders([]);
+      setNotifications([]);
+      setUnreadCount(0);
+      setPendingOrder(null);
+    }
+  }, [user]);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('kitchenSoundEnabled');
     return saved !== null ? JSON.parse(saved) : true;
@@ -88,6 +99,13 @@ const KitchenHome = () => {
   useEffect(() => {
     console.log('[KITCHEN] Current user:', user)
     console.log('[KITCHEN] User restaurantId:', user?.restaurantId)
+    
+    // Only fetch orders and setup socket if user is authenticated
+    if (!user || !user.restaurantId) {
+      console.log('[KITCHEN] User not authenticated, skipping socket setup');
+      return;
+    }
+    
     fetchOrders();
 
     if (socket && user?.restaurantId) {
@@ -96,6 +114,14 @@ const KitchenHome = () => {
       console.log(`[KITCHEN] Joined kitchen room for restaurant ${user.restaurantId}`);
 
       socket.on("new-order", (order: Order) => {
+        console.log('[KITCHEN] Received new order, user authenticated:', !!user);
+        
+        // Double-check user is still authenticated before showing notification
+        if (!user || !user.restaurantId) {
+          console.log('[KITCHEN] User not authenticated, ignoring notification');
+          return;
+        }
+        
         setOrders((prev) => [...prev, order]);
         
         // Add notification

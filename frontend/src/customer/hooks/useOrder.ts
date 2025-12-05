@@ -8,12 +8,35 @@ export const useOrder = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load persisted order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('currentOrder');
+    if (savedOrder) {
+      try {
+        const order = JSON.parse(savedOrder);
+        setCurrentOrder(order);
+        console.log('[ORDER] Restored order from localStorage:', order.id || order._id);
+      } catch (err) {
+        console.error('[ORDER] Failed to restore order:', err);
+      }
+    }
+  }, []);
+
   const placeOrder = async (orderData: Partial<Order>) => {
     try {
       setLoading(true);
       setError(null);
       const order = await orderService.createOrder(orderData);
       setCurrentOrder(order);
+      
+      // Persist order ID to localStorage for recovery
+      if (order.id || order._id) {
+        const orderId = order.id || order._id;
+        localStorage.setItem('currentOrderId', orderId!);
+        localStorage.setItem('currentOrder', JSON.stringify(order));
+        console.log('[ORDER] Order persisted to localStorage:', orderId);
+      }
+      
       return order;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to place order';
@@ -28,6 +51,13 @@ export const useOrder = () => {
     try {
       const order = await orderService.getOrderById(orderId);
       setCurrentOrder(order);
+      
+      // Update localStorage with latest order
+      if (order) {
+        localStorage.setItem('currentOrder', JSON.stringify(order));
+        console.log('[ORDER] Updated order in localStorage:', order.status);
+      }
+      
       return order;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch order status');
@@ -38,7 +68,11 @@ export const useOrder = () => {
   const updateOrderStatus = useCallback((orderId: string, status: OrderStatus) => {
     setCurrentOrder((prev) => {
       if (prev && (prev.id === orderId || prev._id === orderId)) {
-        return { ...prev, status };
+        const updated = { ...prev, status };
+        // Update localStorage
+        localStorage.setItem('currentOrder', JSON.stringify(updated));
+        console.log('[ORDER] Real-time status update:', status);
+        return updated;
       }
       return prev;
     });

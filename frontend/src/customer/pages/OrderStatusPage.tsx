@@ -18,6 +18,17 @@ export const OrderStatusPage = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showRating, setShowRating] = useState(false);
 
+  // Restore order ID from localStorage if missing in URL
+  useEffect(() => {
+    if (!orderId) {
+      const savedOrderId = localStorage.getItem('currentOrderId');
+      if (savedOrderId) {
+        console.log('[OrderStatus] Restoring order ID from localStorage:', savedOrderId);
+        navigate(`?orderId=${savedOrderId}`, { replace: true });
+      }
+    }
+  }, [orderId, navigate]);
+
   // Initialize WebSocket connection for real-time updates
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -27,6 +38,12 @@ export const OrderStatusPage = () => {
 
     newSocket.on("connect", () => {
       console.log("[OrderStatus] Socket connected:", newSocket.id);
+      
+      // Join restaurant-specific room to receive order updates
+      if (currentOrder?.restaurantId) {
+        newSocket.emit("join-restaurant", currentOrder.restaurantId);
+        console.log("[OrderStatus] Joined restaurant room:", currentOrder.restaurantId);
+      }
     });
 
     newSocket.on("disconnect", () => {
@@ -38,7 +55,7 @@ export const OrderStatusPage = () => {
     return () => {
       newSocket.close();
     };
-  }, []);
+  }, [currentOrder?.restaurantId]);
 
   // Listen for order status updates via WebSocket
   useEffect(() => {

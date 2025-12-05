@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Users, AlertCircle, Receipt, Utensils } from "lucide-react";
 import { useSocket } from "../../hooks/useSocket";
+import { useAuth } from "../../context/AuthContext";
 import BillingPanel from "./BillingPanel";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -27,20 +28,25 @@ const CaptainTableSelection: React.FC<CaptainTableSelectionProps> = ({
   const [error, setError] = useState("");
   const [billingTable, setBillingTable] = useState<number | null>(null);
   const socket = useSocket();
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchTables();
-  }, []);
+    if (user) {
+      fetchTables();
+    }
+  }, [user]);
 
   // Listen for real-time order updates
   useEffect(() => {
-    if (socket) {
+    if (socket && user) {
       socket.on("order-updated", () => {
+        console.log('[CAPTAIN] Order updated, user authenticated:', !!user);
         // Refresh tables when orders are updated
         fetchTables();
       });
 
       socket.on("new-order", () => {
+        console.log('[CAPTAIN] New order, user authenticated:', !!user);
         // Refresh tables when new orders arrive
         fetchTables();
       });
