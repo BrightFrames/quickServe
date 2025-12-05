@@ -74,14 +74,13 @@ export const validateRestaurantSignup = [
 
   body("password")
     .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters long")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage("Password must contain at least one uppercase letter, one lowercase letter, and one number"),
+    .withMessage("Password must be at least 6 characters long"),
 
   body("phone")
     .trim()
-    .matches(/^[6-9]\d{9}$/)
-    .withMessage("Please provide a valid 10-digit Indian phone number"),
+    .matches(/^\+?[\d\s\-()]+$/)
+    .isLength({ min: 10, max: 15 })
+    .withMessage("Please provide a valid phone number (10-15 digits)"),
 
   body("address")
     .trim()
