@@ -216,7 +216,7 @@ export const OrderStatusPage = () => {
             </div>
             <h1 className="text-3xl font-bold mb-2">Order Confirmed!</h1>
             <p className="text-muted-foreground text-lg mb-1">
-              Order #{currentOrder.id}
+              Order #{currentOrder.orderNumber || currentOrder.id}
             </p>
           </Card>
 
