@@ -10,6 +10,8 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import OrderColumn from "../components/kitchen/OrderColumn";
+import { OrderNotificationModal } from "../components/kitchen/OrderNotificationModal";
+import { KitchenSettings } from "../components/kitchen/KitchenSettings";
 
 const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 import { useSocket } from "../hooks/useSocket";
@@ -45,8 +47,18 @@ const KitchenHome = () => {
     time: string;
     read: boolean;
   }>>([]);
+  const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('kitchenSoundEnabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const socket = useSocket();
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Persist sound settings
+  useEffect(() => {
+    localStorage.setItem('kitchenSoundEnabled', JSON.stringify(soundEnabled));
+  }, [soundEnabled]);
 
   // Close notification dropdown when clicking outside
   useEffect(() => {
@@ -96,10 +108,15 @@ const KitchenHome = () => {
         setNotifications((prev) => [newNotification, ...prev].slice(0, 10)); // Keep last 10
         setUnreadCount((prev) => prev + 1);
         
-        // Play notification sound
-        notificationSounds.playNewOrderSound();
+        // Play notification sound if enabled
+        if (soundEnabled) {
+          notificationSounds.playNewOrderSound();
+        }
         
-        // Show toast notification
+        // Show modal notification (always visible)
+        setPendingOrder(order);
+        
+        // Show toast notification as backup
         toast.success(`New order #${order.orderNumber} received!`, {
           description: `Table ${order.tableNumber} - ${order.items.length} items`,
           duration: 5000,
@@ -217,6 +234,13 @@ const KitchenHome = () => {
             <h1 className="text-lg font-bold text-gray-900">QuickServe Kitchen</h1>
           </div>
           <div className="flex items-center space-x-2">
+            {/* Kitchen Settings */}
+            <KitchenSettings
+              soundEnabled={soundEnabled}
+              onSoundToggle={setSoundEnabled}
+            />
+            
+            {/* Notification Bell */}
             <div className="relative" ref={notificationRef}>
               <button 
                 onClick={handleNotificationClick}
@@ -434,6 +458,13 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
           {getButtonText()}
         </button>
       )}
+    </div>
+      
+      {/* Order Notification Modal */}
+      <OrderNotificationModal
+        order={pendingOrder}
+        onAcknowledge={() => setPendingOrder(null)}
+      />
     </div>
   );
 };
