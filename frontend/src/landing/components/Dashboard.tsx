@@ -95,7 +95,7 @@ const Dashboard: React.FC = () => {
       // Navigate to customer app with restaurant slug and data
       // Pass restaurant data via URL params which CustomerRestaurantProvider expects
       const token = localStorage.getItem('token') || '';
-      navigate(`/${restaurant.slug}/customer/menu/table/t1?restaurantName=${encodeURIComponent(restaurant.name)}&token=${encodeURIComponent(token)}`);
+      navigate(`/${restaurant.slug}/customer/menu/table/t1?restaurantName=${encodeURIComponent(restaurant.name)}&restaurantId=${restaurant.id}&token=${encodeURIComponent(token)}`);
     }
   };
 

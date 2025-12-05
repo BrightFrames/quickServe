@@ -96,7 +96,7 @@ router.post("/", async (req, res) => {
     
     console.log('[TABLES] Restaurant found:', restaurant.slug);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${tableId}`;
+    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${tableId}&restaurantName=${encodeURIComponent(restaurant.name)}&restaurantId=${restaurant.id}&token=${restaurant.restaurantCode}`;
 
     // Generate QR code as base64 image
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
@@ -176,7 +176,7 @@ router.post("/:id/regenerate-qr", async (req, res) => {
     // Get restaurant slug for QR code URL
     const restaurant = await Restaurant.findByPk(req.restaurantId);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${table.tableId}`;
+    const orderUrl = `${baseUrl}/${restaurant.slug}?table=${table.tableId}&restaurantName=${encodeURIComponent(restaurant.name)}&restaurantId=${restaurant.id}&token=${restaurant.restaurantCode}`;
       
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
       errorCorrectionLevel: "H",
