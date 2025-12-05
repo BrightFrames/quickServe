@@ -1,8 +1,19 @@
 import axios from "axios";
 
 class PaymentService {
-  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
-  private apiUrl = `${this.baseUrl}/api/payment`;
+  private getBaseUrl() {
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://quickserve-51ek.onrender.com';
+    }
+    return 'http://localhost:3000';
+  }
+  
+  private get apiUrl() {
+    return `${this.getBaseUrl()}/api/payment`;
+  }
 
   /**
    * Initiate UPI payment and get deep link

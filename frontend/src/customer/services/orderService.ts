@@ -33,8 +33,19 @@ export interface Order {
 }
 
 class OrderService {
-  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
-  private apiUrl = `${this.baseUrl}/api`;
+  private getBaseUrl() {
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://quickserve-51ek.onrender.com';
+    }
+    return 'http://localhost:3000';
+  }
+  
+  private get apiUrl() {
+    return `${this.getBaseUrl()}/api`;
+  }
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {

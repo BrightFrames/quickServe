@@ -28,8 +28,22 @@ export interface MenuCategory {
 }
 
 class MenuService {
-  private baseUrl = import.meta.env.VITE_API_URL || 'https://quickserve-51ek.onrender.com';
-  private apiUrl = `${this.baseUrl}/api/menu`;
+  private getBaseUrl() {
+    // Check environment variable first
+    if (import.meta.env.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    // Runtime detection - if on Vercel (production), use Render backend
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://quickserve-51ek.onrender.com';
+    }
+    // Local development
+    return 'http://localhost:3000';
+  }
+  
+  private get apiUrl() {
+    return `${this.getBaseUrl()}/api/menu`;
+  }
 
   /**
    * CORE FIX: Fetch menu using restaurantId (primary key) preferentially
