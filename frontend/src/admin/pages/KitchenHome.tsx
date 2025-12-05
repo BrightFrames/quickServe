@@ -393,6 +393,14 @@ const KitchenHome = () => {
           ))
         )}
       </div>
+      
+      {/* Order Notification Modal */}
+      {pendingOrder && (
+        <OrderNotificationModal
+          order={pendingOrder}
+          onAcknowledge={() => setPendingOrder(null)}
+        />
+      )}
     </div>
   );
 };
@@ -483,15 +491,6 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
         >
           {getButtonText()}
         </button>
-      )}
-    </div>
-      
-      {/* Order Notification Modal */}
-      {pendingOrder && (
-        <OrderNotificationModal
-          order={pendingOrder}
-          onAcknowledge={() => setPendingOrder(null)}
-        />
       )}
     </div>
   );
