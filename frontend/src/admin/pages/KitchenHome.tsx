@@ -487,10 +487,12 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
     </div>
       
       {/* Order Notification Modal */}
-      <OrderNotificationModal
-        order={pendingOrder}
-        onAcknowledge={() => setPendingOrder(null)}
-      />
+      {pendingOrder && (
+        <OrderNotificationModal
+          order={pendingOrder}
+          onAcknowledge={() => setPendingOrder(null)}
+        />
+      )}
     </div>
   );
 };
