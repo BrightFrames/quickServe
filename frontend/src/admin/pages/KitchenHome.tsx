@@ -174,9 +174,8 @@ const KitchenHome = () => {
   };
 
   const preparingOrders = orders.filter((o) => o.status === "preparing");
-  const preparedOrders = orders.filter((o) => o.status === "ready");
+  const preparedOrders = orders.filter((o) => o.status === "prepared");
   const readyOrders = orders.filter((o) => o.status === "ready");
-  const deliveredOrders = orders.filter((o) => o.status === "served");
   const servedOrders = orders.filter((o) => o.status === "served");
 
   // Filter orders based on selected status
@@ -316,14 +315,14 @@ const KitchenHome = () => {
           Preparing {preparedOrders.length}
         </button>
         <button 
-          onClick={() => setSelectedStatus("delivered")}
+          onClick={() => setSelectedStatus("ready")}
           className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
-            selectedStatus === "delivered" 
+            selectedStatus === "ready" 
               ? "bg-blue-100 text-blue-800" 
               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
           }`}
         >
-          Prepared {deliveredOrders.length}
+          Ready {readyOrders.length}
         </button>
       </div>
 
