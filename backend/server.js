@@ -212,7 +212,8 @@ io.on("connection", (socket) => {
   socket.on("join-restaurant", (restaurantId) => {
     const restaurantRoom = getRestaurantRoom(restaurantId);
     socket.join(restaurantRoom);
-    console.log(`Socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
+    console.log(`[SOCKET] ✅ Socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
+    console.log(`[SOCKET] 📊 Clients in ${restaurantRoom}:`, io.sockets.adapter.rooms.get(restaurantRoom)?.size || 0);
   });
 
   // Join kitchen room

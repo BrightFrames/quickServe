@@ -31,6 +31,11 @@ export const OrderStatusPage = () => {
 
   // Initialize WebSocket connection for real-time updates
   useEffect(() => {
+    if (!orderId || !currentOrder?.restaurantId) {
+      console.log("[OrderStatus] Waiting for order data before connecting socket");
+      return;
+    }
+
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
     const newSocket = io(apiUrl, {
       transports: ["websocket", "polling"],
@@ -40,14 +45,17 @@ export const OrderStatusPage = () => {
       console.log("[OrderStatus] Socket connected:", newSocket.id);
       
       // Join restaurant-specific room to receive order updates
-      if (currentOrder?.restaurantId) {
-        newSocket.emit("join-restaurant", currentOrder.restaurantId);
-        console.log("[OrderStatus] Joined restaurant room:", currentOrder.restaurantId);
-      }
+      const restaurantId = currentOrder.restaurantId;
+      newSocket.emit("join-restaurant", restaurantId);
+      console.log("[OrderStatus] Joined restaurant room:", restaurantId);
     });
 
     newSocket.on("disconnect", () => {
       console.log("[OrderStatus] Socket disconnected");
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("[OrderStatus] Socket connection error:", error);
     });
 
     setSocket(newSocket);
@@ -55,7 +63,7 @@ export const OrderStatusPage = () => {
     return () => {
       newSocket.close();
     };
-  }, [currentOrder?.restaurantId]);
+  }, [orderId, currentOrder?.restaurantId]);
 
   // Listen for order status updates via WebSocket
   useEffect(() => {
@@ -66,8 +74,9 @@ export const OrderStatusPage = () => {
     // Listen for order update events
     socket.on("order-updated", (updatedOrder) => {
       console.log("[OrderStatus] Order updated:", updatedOrder);
-      if (updatedOrder._id === orderId || updatedOrder.id === orderId) {
+      if (updatedOrder._id === orderId || updatedOrder.id === orderId || String(updatedOrder.id) === orderId) {
         // Refresh order status
+        console.log("[OrderStatus] Order ID matched, refreshing order status");
         getOrderStatus(orderId);
       }
     });
@@ -75,7 +84,21 @@ export const OrderStatusPage = () => {
     return () => {
       socket.off("order-updated");
     };
-  }, [socket, orderId]);
+  }, [socket, orderId, getOrderStatus]);
+
+  // Polling fallback: Check order status every 15 seconds
+  useEffect(() => {
+    if (!orderId) return;
+
+    const pollingInterval = setInterval(() => {
+      console.log("[OrderStatus] Polling for order updates...");
+      getOrderStatus(orderId);
+    }, 15000); // Poll every 15 seconds
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [orderId, getOrderStatus]);
 
   // Fetch initial order status
   useEffect(() => {

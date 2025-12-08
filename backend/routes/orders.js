@@ -479,14 +479,23 @@ router.put("/:id/status", authenticateRestaurant, async (req, res) => {
     const kitchenRoom = getKitchenRoom(req.restaurantId);
     const captainRoom = getCaptainRoom(req.restaurantId);
 
-    // Broadcast to all relevant rooms
+    // Broadcast to all relevant rooms including customers
     io.to(restaurantRoom).emit("order-updated", order);
     io.to(kitchenRoom).emit("order-updated", order);
     io.to(captainRoom).emit("order-updated", order);
 
     logger.info("Socket.IO events emitted for order update", {
       orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
       rooms: [restaurantRoom, kitchenRoom, captainRoom],
+    });
+
+    console.log(`[ORDER-UPDATE] ✅ Status updated: Order ${order.id} -> ${order.status}`);
+    console.log(`[ORDER-UPDATE] 📡 Broadcasted to rooms:`, {
+      restaurant: restaurantRoom,
+      kitchen: kitchenRoom,
+      captain: captainRoom
     });
 
     res.json(order);
