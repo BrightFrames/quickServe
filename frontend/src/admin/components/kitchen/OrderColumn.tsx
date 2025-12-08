@@ -149,7 +149,7 @@ const OrderCard = ({ order, nextStatus, onStatusChange }: OrderCardProps) => {
             )}
           </div>
           <p className="text-sm text-gray-600">
-            Table {order.tableId || `#${order.tableNumber}`}
+            Table #{order.tableNumber}
           </p>
         </div>
         <div className="text-right">

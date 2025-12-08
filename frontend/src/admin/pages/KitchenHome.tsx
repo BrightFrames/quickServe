@@ -108,6 +108,14 @@ const KitchenHome = () => {
     
     fetchOrders();
 
+    // Set up polling as backup for real-time updates (every 30 seconds)
+    const pollingInterval = setInterval(() => {
+      if (user && user.restaurantId) {
+        console.log('[KITCHEN] Polling for order updates...');
+        fetchOrders();
+      }
+    }, 30000); // Poll every 30 seconds
+
     if (socket && user?.restaurantId) {
       // Join kitchen-specific room
       socket.emit("join-kitchen", user.restaurantId);
@@ -150,6 +158,7 @@ const KitchenHome = () => {
       });
 
       socket.on("order-updated", (updatedOrder: Order) => {
+        console.log('[KITCHEN] Received order update:', updatedOrder);
         setOrders((prev) =>
           prev.map((order) =>
             (order.id || order._id) === (updatedOrder.id || updatedOrder._id) ? updatedOrder : order
@@ -160,9 +169,14 @@ const KitchenHome = () => {
       return () => {
         socket.off("new-order");
         socket.off("order-updated");
+        clearInterval(pollingInterval);
       };
     }
-  }, [socket, user]);
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [socket, user, soundEnabled]);
 
   const fetchOrders = async () => {
     try {
@@ -451,7 +465,7 @@ const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-base font-bold text-gray-900">#{order.orderNumber}</h3>
-          <p className="text-sm text-gray-500">{getTimeAgo(order.createdAt)}</p>
+          <p className="text-sm text-gray-500">Table #{order.tableNumber} • {getTimeAgo(order.createdAt)}</p>
         </div>
         <div className="flex items-center space-x-2">
           <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
