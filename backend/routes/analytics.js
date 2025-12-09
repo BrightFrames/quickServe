@@ -3,11 +3,14 @@ import { Op } from 'sequelize'
 import Order from '../models/Order.js'
 import sequelize from '../config/database.js'
 import { authenticateRestaurant } from '../middleware/auth.js'
+import { enforceTenantIsolation, requirePermission } from '../middleware/rbac.js'
 
 const router = express.Router()
 
 // Apply authentication to all routes
 router.use(authenticateRestaurant);
+router.use(enforceTenantIsolation);
+router.use(requirePermission('view:analytics'));
 
 // Get analytics
 router.get('/', async (req, res) => {

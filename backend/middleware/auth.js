@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 /**
  * Middleware to authenticate restaurant JWT token and extract restaurantId
  * Adds restaurantId to req.restaurantId for use in routes
+ * 
+ * SECURITY: Validates token and ensures user can only access their restaurant's data
  */
 export const authenticateRestaurant = (req, res, next) => {
   try {
@@ -39,13 +41,25 @@ export const authenticateRestaurant = (req, res, next) => {
       restaurantId: decoded.restaurantId
     });
     
+    // Store full user info in request
+    req.user = decoded;
+    
     // Allow restaurant, kitchen, captain, and reception users
     if (decoded.type === 'restaurant') {
       // Restaurant owner - use their ID as restaurantId
       req.restaurantId = decoded.id;
       req.restaurantEmail = decoded.email;
-    } else if (decoded.role && ['kitchen', 'captain', 'reception'].includes(decoded.role)) {
+      req.userRole = 'admin'; // Restaurant owner is admin
+    } else if (decoded.role && ['kitchen', 'cook', 'captain', 'reception', 'cashier', 'viewer'].includes(decoded.role)) {
       // Staff users - use their restaurantId from token
+      if (!decoded.restaurantId) {
+        console.log('[AUTH] Staff user missing restaurantId in token');
+        return res.status(403).json({ 
+          message: 'Access denied',
+          error: 'Invalid token: missing restaurant association'
+        });
+      }
+      
       req.restaurantId = decoded.restaurantId;
       req.userId = decoded.id;
       req.userRole = decoded.role;
@@ -58,7 +72,7 @@ export const authenticateRestaurant = (req, res, next) => {
       });
     }
     
-    console.log('[AUTH] ✓ Restaurant authenticated:', req.restaurantId);
+    console.log('[AUTH] ✓ Restaurant authenticated:', req.restaurantId, 'Role:', req.userRole);
     next();
   } catch (error) {
     console.error('[AUTH MIDDLEWARE] Error:', error.message);
@@ -93,9 +107,16 @@ export const optionalRestaurantAuth = (req, res, next) => {
     
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      req.user = decoded;
+      
       if (decoded.type === 'restaurant') {
         req.restaurantId = decoded.id;
         req.restaurantEmail = decoded.email;
+      } else if (decoded.restaurantId) {
+        req.restaurantId = decoded.restaurantId;
+        req.userId = decoded.id;
+        req.userRole = decoded.role;
       }
     }
     

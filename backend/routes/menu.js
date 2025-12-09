@@ -2,6 +2,7 @@ import express from 'express'
 import MenuItem from '../models/MenuItem.js'
 import Restaurant from '../models/Restaurant.js'
 import { authenticateRestaurant, optionalRestaurantAuth } from '../middleware/auth.js'
+import { enforceTenantIsolation, requirePermission } from '../middleware/rbac.js'
 import { cache, cacheKeys } from '../utils/cache.js'
 
 const router = express.Router()
@@ -147,7 +148,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create menu item (authenticated - ensures restaurantId consistency)
-router.post('/', async (req, res) => {
+router.post('/', authenticateRestaurant, enforceTenantIsolation, requirePermission('manage:menu'), async (req, res) => {
   try {
     // Validate restaurantId from auth middleware
     if (!req.restaurantId || !isValidRestaurantId(req.restaurantId)) {
@@ -178,7 +179,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update menu item
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateRestaurant, enforceTenantIsolation, requirePermission('manage:menu'), async (req, res) => {
   try {
     const item = await MenuItem.findOne({
       where: { 
@@ -229,7 +230,7 @@ router.put('/:id/inventory', async (req, res) => {
 });
 
 // Delete menu item
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateRestaurant, enforceTenantIsolation, requirePermission('manage:menu'), async (req, res) => {
   try {
     const item = await MenuItem.findOne({
       where: { 

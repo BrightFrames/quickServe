@@ -101,6 +101,7 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials. Please use staff credentials." });
     }
     
+    // SECURITY FIX: Find user by username first
     const user = await User.findOne({
       where: {
         username,
@@ -109,15 +110,18 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
         },
       },
     });
+    
+    // Return generic error if user not found (don't reveal username exists)
     if (!user) {
       console.log("[AUTH] ✗ User not found");
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // SECURITY FIX: Validate password using comparePassword method
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log("[AUTH] ✗ Invalid password");
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
     console.log("[AUTH] ✓ Kitchen/cook credentials valid");
@@ -166,7 +170,7 @@ router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) 
 
     console.log(`[AUTH] Attempting captain login for user: ${username}`);
 
-    // Find captain user
+    // SECURITY FIX: Find captain user by username first
     const user = await User.findOne({
       where: {
         username,
@@ -174,15 +178,17 @@ router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) 
       },
     });
 
+    // Return generic error if user not found (don't reveal username exists)
     if (!user) {
       console.log("[AUTH] ✗ Captain not found");
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // SECURITY FIX: Validate password using comparePassword method
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.log("[AUTH] ✗ Invalid password");
-      return res.status(401).json({ message: "Invalid credentials" });
+      console.log("[AUTH] ✗ Invalid password for captain");
+      return res.status(401).json({ message: "Invalid username or password" });
     }
 
     console.log("[AUTH] ✓ Captain credentials valid");

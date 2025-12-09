@@ -111,7 +111,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true, message: 'Registration successful! Please login with your credentials.' };
       } else {
         console.error('[AUTH] Signup failed:', data.message);
-        return { success: false, message: data.message || 'Registration failed. Please try again.' };
+        // If there are specific validation errors, show them
+        let errorMessage = data.message || 'Registration failed. Please try again.';
+        
+        // Handle database connection errors specially
+        if (response.status === 503 || errorMessage.includes('Database')) {
+          errorMessage = 'Database connection issue. Please try again in a moment. If the problem persists, the service may be temporarily unavailable.';
+        } else if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors.map((err: any) => `${err.field}: ${err.message}`).join('\n');
+        }
+        return { success: false, message: errorMessage };
       }
     } catch (error) {
       console.error('[AUTH] Signup error:', error);

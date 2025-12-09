@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useEffect } from 'react'
+import LoadingScreen from './LoadingScreen'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -8,20 +9,25 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const location = useLocation()
 
   // Security: Log unauthorized access attempts
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isLoading) {
       console.warn('[SECURITY] Unauthorized access attempt to:', location.pathname)
     }
-  }, [isAuthenticated, location.pathname])
+  }, [isAuthenticated, isLoading, location.pathname])
+
+  // Show loading screen while validating token
+  if (isLoading) {
+    return <LoadingScreen />
+  }
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     console.warn('[SECURITY] Blocked unauthenticated access to:', location.pathname)
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" replace state={{ from: location }} />
   }
 
   // Redirect if user role doesn't match required role

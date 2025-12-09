@@ -9,6 +9,40 @@ import { cache, cacheKeys } from "../utils/cache.js";
 
 const router = express.Router();
 
+// Helper function to normalize email addresses consistently
+const normalizeEmail = (email) => {
+  if (!email) return email;
+  let normalized = email.toLowerCase().trim();
+  // Remove dots from Gmail addresses (Gmail ignores dots)
+  if (normalized.endsWith('@gmail.com')) {
+    const [localPart, domain] = normalized.split('@');
+    normalized = localPart.replace(/\./g, '') + '@' + domain;
+  }
+  return normalized;
+};
+
+// Helper function to retry database operations
+const retryDatabaseOperation = async (operation, maxRetries = 3, delay = 1000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isConnectionError = 
+        error.name === 'SequelizeDatabaseError' || 
+        error.message?.includes('Connection terminated') ||
+        error.message?.includes('connect ECONNREFUSED') ||
+        error.message?.includes('connect ETIMEDOUT');
+      
+      if (isConnectionError && attempt < maxRetries) {
+        console.log(`[DB RETRY] Attempt ${attempt} failed, retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
 // ============================
 // Restaurant Signup Route
 // ============================
@@ -42,8 +76,12 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       });
     }
 
-    // Check if restaurant already exists
-    const existingRestaurant = await Restaurant.findOne({ where: { email: email.toLowerCase() } });
+    // Check if restaurant already exists (with retry)
+    const normalizedEmail = normalizeEmail(email);
+    const existingRestaurant = await retryDatabaseOperation(async () => {
+      return await Restaurant.findOne({ where: { email: normalizedEmail } });
+    });
+    
     if (existingRestaurant) {
       console.log("[RESTAURANT AUTH] Email already registered");
       return res.status(400).json({ 
@@ -60,15 +98,22 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
     
-    // Check if slug already exists and make it unique
+    // Check if slug already exists and make it unique (with retry)
     let uniqueSlug = slug;
     let counter = 1;
-    while (await Restaurant.findOne({ where: { slug: uniqueSlug } })) {
+    let slugExists = await retryDatabaseOperation(async () => {
+      return await Restaurant.findOne({ where: { slug: uniqueSlug } });
+    });
+    
+    while (slugExists) {
       uniqueSlug = `${slug}-${counter}`;
       counter++;
+      slugExists = await retryDatabaseOperation(async () => {
+        return await Restaurant.findOne({ where: { slug: uniqueSlug } });
+      });
     }
 
-    // Generate unique restaurant code (QS + 4 digits)
+    // Generate unique restaurant code (QS + 4 digits) with retry
     let restaurantCode;
     let isCodeUnique = false;
     while (!isCodeUnique) {
@@ -76,8 +121,11 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       restaurantCode = `QS${randomNum}`;
       
-      // Check if code already exists
-      const existingCode = await Restaurant.findOne({ where: { restaurantCode } });
+      // Check if code already exists (with retry)
+      const existingCode = await retryDatabaseOperation(async () => {
+        return await Restaurant.findOne({ where: { restaurantCode } });
+      });
+      
       if (!existingCode) {
         isCodeUnique = true;
       }
@@ -85,15 +133,17 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
 
     console.log(`[RESTAURANT AUTH] Generated unique code: ${restaurantCode}`);
 
-    // Create new restaurant (password will be hashed by Sequelize hook)
-    const restaurant = await Restaurant.create({
-      name: name.trim(),
-      slug: uniqueSlug,
-      restaurantCode: restaurantCode,
-      email: email.toLowerCase().trim(),
-      password: password,
-      phone: phone.trim(),
-      address: address.trim(),
+    // Create new restaurant (password will be hashed by Sequelize hook) with retry
+    const restaurant = await retryDatabaseOperation(async () => {
+      return await Restaurant.create({
+        name: name.trim(),
+        slug: uniqueSlug,
+        restaurantCode: restaurantCode,
+        email: normalizedEmail,
+        password: password,
+        phone: phone.trim(),
+        address: address.trim(),
+      });
     });
 
     console.log("[RESTAURANT AUTH] ✓ Restaurant created successfully");
@@ -151,6 +201,26 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Signup error:", error);
+    
+    // Handle specific database connection errors
+    if (error.name === 'SequelizeDatabaseError' || 
+        error.message.includes('Connection terminated') ||
+        error.message.includes('connect ECONNREFUSED') ||
+        error.message.includes('connect ETIMEDOUT')) {
+      console.error("[RESTAURANT AUTH] Database connection error detected");
+      return res.status(503).json({ 
+        message: "Database connection error. Please try again in a moment.", 
+        error: "Database temporarily unavailable"
+      });
+    }
+    
+    // Handle duplicate email error
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ 
+        message: "A restaurant with this email already exists" 
+      });
+    }
+    
     res.status(500).json({ 
       message: "Server error during registration", 
       error: error.message 
@@ -178,10 +248,14 @@ router.post("/login", async (req, res) => {
 
     console.log(`[RESTAURANT AUTH] Attempting login for: ${email}`);
 
+    // Normalize email for consistent lookup
+    const normalizedEmail = normalizeEmail(email);
+    console.log(`[RESTAURANT AUTH] Normalized email: ${normalizedEmail}`);
+
     // Find restaurant by email
     const restaurant = await Restaurant.findOne({ 
       where: {
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         isActive: true 
       }
     });

@@ -1,6 +1,7 @@
 import express from "express";
 import QRCode from "qrcode";
 import { authenticateRestaurant } from "../middleware/auth.js";
+import { enforceTenantIsolation, requirePermission } from "../middleware/rbac.js";
 import Table from "../models/Table.js";
 import Restaurant from "../models/Restaurant.js";
 
@@ -10,7 +11,7 @@ const router = express.Router();
 router.use(authenticateRestaurant);
 
 // Get all tables
-router.get("/", async (req, res) => {
+router.get("/", enforceTenantIsolation, requirePermission('read:tables'), async (req, res) => {
   try {
     console.log(`[TABLES] GET / - restaurantId: ${req.restaurantId}, userId: ${req.userId}, email: ${req.restaurantEmail}`);
     
@@ -28,7 +29,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get single table by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", enforceTenantIsolation, requirePermission('read:tables'), async (req, res) => {
   try {
     const table = await Table.findOne({ 
       where: { 
@@ -47,7 +48,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Get table by tableId
-router.get("/by-table-id/:tableId", async (req, res) => {
+router.get("/by-table-id/:tableId", enforceTenantIsolation, requirePermission('read:tables'), async (req, res) => {
   try {
     const table = await Table.findOne({ 
       where: { 
@@ -66,7 +67,7 @@ router.get("/by-table-id/:tableId", async (req, res) => {
 });
 
 // Create new table
-router.post("/", async (req, res) => {
+router.post("/", enforceTenantIsolation, requirePermission('write:tables'), async (req, res) => {
   try {
     console.log('[TABLES] POST / - Creating table for restaurantId:', req.restaurantId);
     console.log('[TABLES] Request body:', req.body);
@@ -132,7 +133,7 @@ router.post("/", async (req, res) => {
 });
 
 // Update table
-router.put("/:id", async (req, res) => {
+router.put("/:id", enforceTenantIsolation, requirePermission('write:tables'), async (req, res) => {
   try {
     const { tableName, seats, location, isActive } = req.body;
 
@@ -193,7 +194,7 @@ router.post("/:id/regenerate-qr", async (req, res) => {
 });
 
 // Delete table
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", enforceTenantIsolation, requirePermission('delete:all'), async (req, res) => {
   try {
     const table = await Table.findOne({ 
       where: { 

@@ -10,15 +10,31 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
     ssl: {
       require: true,
       rejectUnauthorized: false // Required for Supabase
-    }
+    },
+    // Add connection timeout and keepalive settings
+    connectTimeout: 60000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
   },
   pool: {
     max: 10, // Increased for better concurrency
     min: 2, // Keep minimum connections ready
-    acquire: 30000,
+    acquire: 60000, // Increased timeout for acquiring connections
     idle: 10000,
     evict: 1000, // Evict idle connections faster
     maxUses: 1000 // Recycle connections after 1000 uses
+  },
+  retry: {
+    max: 3, // Retry failed operations up to 3 times
+    match: [
+      /SequelizeConnectionError/,
+      /SequelizeConnectionRefusedError/,
+      /SequelizeHostNotFoundError/,
+      /SequelizeHostNotReachableError/,
+      /SequelizeInvalidConnectionError/,
+      /SequelizeConnectionTimedOutError/,
+      /Connection terminated unexpectedly/,
+    ],
   },
   logging: false, // Set to console.log to see SQL queries
   benchmark: false, // Disable query benchmarking in production for speed

@@ -6,20 +6,35 @@ export const useSocket = () => {
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL || undefined;
+    const token = localStorage.getItem("token");
+    
+    if (!token) {
+      console.log('[SOCKET] No token found, skipping socket connection');
+      return;
+    }
+    
     const socketInstance = io(socketUrl, {
       path: "/socket.io",
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       auth: {
-        token: localStorage.getItem("token"),
+        token: token, // Send token for authentication
       },
     });
 
     socketInstance.on("connect", () => {
-      console.log("Socket connected");
+      console.log("[SOCKET] Connected successfully");
     });
 
     socketInstance.on("disconnect", () => {
-      console.log("Socket disconnected");
+      console.log("[SOCKET] Disconnected");
+    });
+    
+    socketInstance.on("error", (error) => {
+      console.error("[SOCKET] Error:", error);
+    });
+    
+    socketInstance.on("connect_error", (error) => {
+      console.error("[SOCKET] Connection error:", error.message);
     });
 
     setSocket(socketInstance);

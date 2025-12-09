@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { Op } from 'sequelize'
 import User from '../models/User.js'
 import { authenticateRestaurant } from '../middleware/auth.js'
+import { enforceTenantIsolation, requireRole } from '../middleware/rbac.js'
 
 const router = express.Router()
 
@@ -31,7 +32,7 @@ router.get('/kitchen', async (req, res) => {
 })
 
 // Create kitchen user
-router.post('/kitchen', async (req, res) => {
+router.post('/kitchen', enforceTenantIsolation, requireRole(['admin']), async (req, res) => {
   try {
     const { username, password, role } = req.body
 
@@ -68,7 +69,7 @@ router.post('/kitchen', async (req, res) => {
 })
 
 // Update user
-router.put('/:id', async (req, res) => {
+router.put('/:id', enforceTenantIsolation, requireRole(['admin']), async (req, res) => {
   try {
     const { username, password, role } = req.body
     const updateData = { username, role }
@@ -100,7 +101,7 @@ router.put('/:id', async (req, res) => {
 })
 
 // Delete user
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', enforceTenantIsolation, requireRole(['admin']), async (req, res) => {
   try {
     const user = await User.findOne({ 
       where: { 

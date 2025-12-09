@@ -64,6 +64,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
       }, 1500);
     } else {
       console.error('[SIGNUP] Failed:', result.message);
+      // Show detailed validation errors if available
       setError(result.message || 'Registration failed. Please try again.');
     }
   };
@@ -144,7 +145,7 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
                 id="address"
                 name="address"
                 type="text"
-                placeholder="123 Main St, City, State"
+                placeholder="123 Main St (min 5 characters)"
                 value={formData.address}
                 onChange={handleInputChange}
                 className="pl-10"
@@ -202,8 +203,8 @@ const SignupForm: React.FC<SignupFormProps> = ({ onSwitchToLogin }) => {
           </div>
 
           {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 border border-red-200 rounded-md p-3">
-              {error}
+            <div className="text-red-500 text-sm bg-red-50 border border-red-200 rounded-md p-3">
+              <div className="whitespace-pre-line">{error}</div>
             </div>
           )}
           

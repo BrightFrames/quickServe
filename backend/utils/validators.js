@@ -69,8 +69,8 @@ export const validateRestaurantSignup = [
   body("email")
     .trim()
     .isEmail()
-    .withMessage("Please provide a valid email address")
-    .normalizeEmail(),
+    .withMessage("Please provide a valid email address"),
+    // Note: Email normalization is handled in the route itself
 
   body("password")
     .isLength({ min: 6 })
@@ -84,8 +84,8 @@ export const validateRestaurantSignup = [
 
   body("address")
     .trim()
-    .isLength({ min: 10, max: 500 })
-    .withMessage("Address must be between 10 and 500 characters"),
+    .isLength({ min: 5, max: 500 })
+    .withMessage("Address must be between 5 and 500 characters"),
 
   validateRequest,
 ];

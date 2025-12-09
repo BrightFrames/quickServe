@@ -12,6 +12,7 @@ import restaurantRoutes from "./routes/restaurant.js";
 import menuRoutes from "./routes/menu.js";
 import orderRoutes from "./routes/orders.js";
 import userRoutes from "./routes/users.js";
+import userCredentialsRoutes from "./routes/userCredentials.js";
 import analyticsRoutes from "./routes/analytics.js";
 import tableRoutes from "./routes/tables.js";
 import paymentRoutes from "./routes/payment.js";
@@ -179,15 +180,25 @@ app.use(requestLoggerMiddleware);
 // ============================
 
 const connectDatabase = async () => {
-  const connected = await testConnection();
-  if (connected) {
-    // Setup model associations before syncing
-    setupAssociations();
-    await syncDatabase();
-  } else {
-    console.error("Failed to connect to database");
-    process.exit(1);
+  let retries = 5;
+  while (retries > 0) {
+    const connected = await testConnection();
+    if (connected) {
+      // Setup model associations before syncing
+      setupAssociations();
+      await syncDatabase();
+      return;
+    } else {
+      retries--;
+      console.log(`Database connection failed. Retries remaining: ${retries}`);
+      if (retries > 0) {
+        console.log('Retrying in 5 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+    }
   }
+  console.error("Failed to connect to database after multiple attempts");
+  process.exit(1);
 };
 
 connectDatabase();
@@ -197,6 +208,7 @@ connectDatabase();
 // ============================
 
 import { getRestaurantRoom, getKitchenRoom, getCaptainRoom } from "./utils/orderLifecycle.js";
+import jwt from "jsonwebtoken";
 
 const io = new Server(httpServer, {
   cors: {
@@ -205,26 +217,101 @@ const io = new Server(httpServer, {
   },
 });
 
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    
+    if (!token) {
+      console.log('[SOCKET] Connection rejected: No token provided');
+      return next(new Error('Authentication required'));
+    }
+    
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Attach user data to socket
+    socket.user = {
+      id: decoded.id,
+      username: decoded.username,
+      role: decoded.role,
+      restaurantId: decoded.restaurantId || decoded.id, // Restaurant owner uses their ID
+      type: decoded.type,
+    };
+    
+    console.log('[SOCKET] ✓ Authenticated socket:', socket.user);
+    next();
+  } catch (error) {
+    console.error('[SOCKET] Authentication failed:', error.message);
+    return next(new Error('Invalid token'));
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
+  console.log("Client user:", socket.user);
 
-  // Join restaurant-specific rooms
+  // Join restaurant-specific rooms (with validation)
   socket.on("join-restaurant", (restaurantId) => {
+    // SECURITY FIX: Use strict equality (===) and convert types properly
+    const userRestaurantId = parseInt(socket.user.restaurantId, 10);
+    const requestedRestaurantId = parseInt(restaurantId, 10);
+    
+    if (userRestaurantId !== requestedRestaurantId) {
+      console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join restaurant ${requestedRestaurantId}`);
+      socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s room' });
+      return;
+    }
+    
     const restaurantRoom = getRestaurantRoom(restaurantId);
     socket.join(restaurantRoom);
     console.log(`[SOCKET] ✅ Socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
     console.log(`[SOCKET] 📊 Clients in ${restaurantRoom}:`, io.sockets.adapter.rooms.get(restaurantRoom)?.size || 0);
   });
 
-  // Join kitchen room
+  // Join kitchen room (with validation)
   socket.on("join-kitchen", (restaurantId) => {
+    // SECURITY FIX: Use strict equality (===) and convert types properly
+    const userRestaurantId = parseInt(socket.user.restaurantId, 10);
+    const requestedRestaurantId = parseInt(restaurantId, 10);
+    
+    if (userRestaurantId !== requestedRestaurantId) {
+      console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join kitchen ${requestedRestaurantId}`);
+      socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s kitchen' });
+      return;
+    }
+    
+    // SECURITY: Verify user has kitchen role
+    if (socket.user.role !== 'kitchen' && socket.user.role !== 'cook' && socket.user.type !== 'restaurant') {
+      console.log(`[SOCKET] ❌ Access denied: User with role ${socket.user.role} cannot join kitchen room`);
+      socket.emit('error', { message: 'Access denied: Only kitchen staff can join kitchen room' });
+      return;
+    }
+    
     const kitchenRoom = getKitchenRoom(restaurantId);
     socket.join(kitchenRoom);
     console.log(`Socket ${socket.id} joined kitchen room: ${kitchenRoom}`);
   });
 
-  // Join captain room
+  // Join captain room (with validation)
   socket.on("join-captain", (restaurantId) => {
+    // SECURITY FIX: Use strict equality (===) and convert types properly
+    const userRestaurantId = parseInt(socket.user.restaurantId, 10);
+    const requestedRestaurantId = parseInt(restaurantId, 10);
+    
+    if (userRestaurantId !== requestedRestaurantId) {
+      console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join captain room ${requestedRestaurantId}`);
+      socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s captain room' });
+      return;
+    }
+    
+    // SECURITY: Verify user has captain role
+    if (socket.user.role !== 'captain' && socket.user.type !== 'restaurant') {
+      console.log(`[SOCKET] ❌ Access denied: User with role ${socket.user.role} cannot join captain room`);
+      socket.emit('error', { message: 'Access denied: Only captains can join captain room' });
+      return;
+    }
+    
     const captainRoom = getCaptainRoom(restaurantId);
     socket.join(captainRoom);
     console.log(`Socket ${socket.id} joined captain room: ${captainRoom}`);
@@ -237,6 +324,28 @@ io.on("connection", (socket) => {
 
 // Make io accessible in routes
 app.set("io", io);
+
+// ============================
+// Health Check Endpoint
+// ============================
+app.get("/health", async (req, res) => {
+  try {
+    // Test database connection
+    await sequelize.authenticate();
+    res.json({ 
+      status: "healthy", 
+      database: "connected",
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: "unhealthy", 
+      database: "disconnected",
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
 
 // ============================
 // Routes
@@ -258,6 +367,9 @@ console.log("✓ Order routes registered at /api/orders");
 
 app.use("/api/users", userRoutes);
 console.log("✓ User routes registered at /api/users");
+
+app.use("/api/users", userCredentialsRoutes);
+console.log("✓ User credentials routes registered at /api/users");
 
 app.use("/api/analytics", analyticsRoutes);
 console.log("✓ Analytics routes registered at /api/analytics");

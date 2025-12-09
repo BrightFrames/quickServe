@@ -14,6 +14,7 @@ import {
   isActiveOrder
 } from "../utils/orderLifecycle.js";
 import { createLogger } from "../utils/logger.js";
+import { enforceTenantIsolation, requirePermission } from "../middleware/rbac.js";
 import Restaurant from "../models/Restaurant.js";
 import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
@@ -54,7 +55,7 @@ function isValidRestaurantId(id) {
 }
 
 // Get all active orders (not completed or cancelled) - requires authentication
-router.get("/active", authenticateRestaurant, async (req, res) => {
+router.get("/active", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
@@ -86,7 +87,7 @@ router.get("/active", authenticateRestaurant, async (req, res) => {
 });
 
 // Get all orders - requires authentication
-router.get("/", authenticateRestaurant, async (req, res) => {
+router.get("/", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
@@ -125,8 +126,8 @@ router.get("/", authenticateRestaurant, async (req, res) => {
 });
 
 // Get orders by tableId
-// Get orders by table - requires authentication
-router.get("/by-table/:tableId", authenticateRestaurant, async (req, res) => {
+// Get orders by table - requires authentication  
+router.get("/by-table/:tableId", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.json([]);
@@ -416,7 +417,7 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
 });
 
 // Update order status with lifecycle validation
-router.put("/:id/status", authenticateRestaurant, async (req, res) => {
+router.put("/:id/status", authenticateRestaurant, enforceTenantIsolation, requirePermission('update:order_status'), async (req, res) => {
   try {
     const { status } = req.body;
 
@@ -530,7 +531,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Download invoice for an order
-router.get("/:id/invoice/download", authenticateRestaurant, async (req, res) => {
+router.get("/:id/invoice/download", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
   try {
     if (!SAVE_ORDERS) {
       return res.status(404).json({ message: "Invoice not available (persistence disabled)" });
@@ -581,7 +582,7 @@ router.get("/:id/invoice/download", authenticateRestaurant, async (req, res) => 
 });
 
 // Download PDF invoice
-router.get("/:id/invoice/pdf", authenticateRestaurant, async (req, res) => {
+router.get("/:id/invoice/pdf", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
   try {
     const order = await Order.findOne({ 
       where: { 

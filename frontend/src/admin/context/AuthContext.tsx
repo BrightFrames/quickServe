@@ -15,26 +15,95 @@ interface AuthContextType {
   login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantCode?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // SECURITY FIX: Setup axios interceptor to handle 401 responses globally
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          console.log('[AUTH] 401 Unauthorized - Token expired or invalid')
+          
+          // Clear session and redirect to login
+          setUser(null)
+          localStorage.removeItem('user')
+          localStorage.removeItem('token')
+          localStorage.removeItem('restaurantToken')
+          localStorage.removeItem('captainToken')
+          localStorage.removeItem('receptionToken')
+          delete axios.defaults.headers.common['Authorization']
+          
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            console.log('[AUTH] Redirecting to login due to expired token')
+            window.location.href = '/login'
+          }
+        }
+        return Promise.reject(error)
+      }
+    )
+
+    // Cleanup interceptor on unmount
+    return () => {
+      axios.interceptors.response.eject(interceptor)
+    }
+  }, [])
 
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('user')
-    const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken')
-    
-    if (storedUser && token) {
-      const parsedUser = JSON.parse(storedUser)
-      console.log('[AUTH] Restoring session for user:', parsedUser)
-      console.log('[AUTH] User restaurantId:', parsedUser.restaurantId)
-      setUser(parsedUser)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      console.log('[AUTH] Restored session with token')
+    // SECURITY FIX: Validate token on mount before restoring session
+    const validateSession = async () => {
+      try {
+        const storedUser = localStorage.getItem('user')
+        const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken')
+        
+        if (!storedUser || !token) {
+          console.log('[AUTH] No stored session found')
+          setIsLoading(false)
+          return
+        }
+
+        // Verify token is still valid by making a test request
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        
+        // Make a lightweight validation request
+        try {
+          await axios.get(`${apiUrl}/api/restaurant/profile`)
+          
+          // Token is valid, restore session
+          const parsedUser = JSON.parse(storedUser)
+          console.log('[AUTH] ✓ Session validated, restoring user:', parsedUser)
+          setUser(parsedUser)
+        } catch (validationError: any) {
+          // Token is invalid or expired
+          console.log('[AUTH] ✗ Token validation failed:', validationError.response?.status)
+          
+          if (validationError.response?.status === 401 || validationError.response?.status === 403) {
+            // Clear invalid session
+            console.log('[AUTH] Clearing invalid session')
+            localStorage.removeItem('user')
+            localStorage.removeItem('token')
+            localStorage.removeItem('restaurantToken')
+            localStorage.removeItem('captainToken')
+            localStorage.removeItem('receptionToken')
+            delete axios.defaults.headers.common['Authorization']
+          }
+        }
+      } catch (error) {
+        console.error('[AUTH] Session validation error:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    validateSession()
   }, [])
 
   const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => {
@@ -164,7 +233,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   )
