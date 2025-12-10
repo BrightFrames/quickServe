@@ -11,7 +11,6 @@
     "clear-menu": "node clearMenu.js",
     "generate-qr": "node generateQRCodes.js",
     "create-db": "node createDb.js",
-    "test:security": "node test-security.js",
     "rehash-passwords": "node scripts/rehashPasswords.js"
   },
   "keywords": [],

@@ -7,7 +7,14 @@ interface OrderStatusBannerProps {
   orderId?: string;
 }
 
-const statusConfig = {
+const statusConfig: Record<string, {
+  icon: any;
+  label: string;
+  description: string;
+  color: string;
+  textColor: string;
+  bgColor: string;
+}> = {
   pending: {
     icon: Clock,
     label: "Order Placed",
@@ -24,7 +31,7 @@ const statusConfig = {
     textColor: "text-orange-700",
     bgColor: "bg-orange-50",
   },
-  prepared: {
+  ready: {
     icon: Bell,
     label: "Ready",
     description: "Your order is ready!",
@@ -32,13 +39,21 @@ const statusConfig = {
     textColor: "text-green-700",
     bgColor: "bg-green-50",
   },
-  delivered: {
+  served: {
     icon: Check,
-    label: "Delivered",
-    description: "Enjoy your meal!",
-    color: "bg-success",
-    textColor: "text-success-foreground",
-    bgColor: "bg-success/10",
+    label: "Served",
+    description: "Your order has been served",
+    color: "bg-purple-500",
+    textColor: "text-purple-700",
+    bgColor: "bg-purple-50",
+  },
+  completed: {
+    icon: CheckCircle2,
+    label: "Completed",
+    description: "Thank you! Enjoy your meal!",
+    color: "bg-green-600",
+    textColor: "text-green-800",
+    bgColor: "bg-green-100",
   },
   cancelled: {
     icon: CheckCircle2,
@@ -54,7 +69,7 @@ export const OrderStatusBanner = ({
   status,
   orderId,
 }: OrderStatusBannerProps) => {
-  const config = statusConfig[status];
+  const config = statusConfig[status] || statusConfig.pending; // Fallback to pending if status not found
   const Icon = config.icon;
 
   return (

@@ -4,7 +4,7 @@ import { CheckCircle2, Clock, ChefHat, BellRing, Star } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 
 interface OrderStatus {
-  status: "pending" | "preparing" | "prepared" | "delivered";
+  status: "pending" | "preparing" | "ready" | "served" | "completed";
   timestamp?: Date;
 }
 
@@ -12,8 +12,9 @@ interface OrderTrackingProgressProps {
   currentStatus:
     | "pending"
     | "preparing"
-    | "prepared"
-    | "delivered"
+    | "ready"
+    | "served"
+    | "completed"
     | "cancelled";
   orderNumber?: string;
 }
@@ -45,7 +46,7 @@ export const OrderTrackingProgress = ({
       activeBg: "bg-yellow-100",
     },
     {
-      id: "prepared",
+      id: "ready",
       label: "Ready to Serve",
       icon: BellRing,
       color: "text-gray-500",
@@ -54,7 +55,7 @@ export const OrderTrackingProgress = ({
       activeBg: "bg-blue-100",
     },
     {
-      id: "delivered",
+      id: "served",
       label: "Served",
       icon: Star,
       color: "text-gray-500",
@@ -253,9 +254,9 @@ export const OrderTrackingProgress = ({
             "Your order has been received and is being processed"}
           {currentStatus === "preparing" &&
             "Our chef is preparing your delicious meal"}
-          {currentStatus === "prepared" &&
+          {currentStatus === "ready" &&
             "Your order is ready! Please collect from the counter"}
-          {currentStatus === "delivered" &&
+          {(currentStatus === "served" || currentStatus === "completed") &&
             "Enjoy your meal! Hope you loved it ✨"}
         </p>
       </motion.div>

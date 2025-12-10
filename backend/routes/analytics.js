@@ -96,8 +96,8 @@ router.get('/', async (req, res) => {
 
     const orderStats = {
       total: orders.length,
-      completed: orders.filter((o) => o.status === 'delivered').length,
-      inProgress: orders.filter((o) => ['pending', 'preparing', 'prepared'].includes(o.status)).length,
+      completed: orders.filter((o) => ['completed', 'served'].includes(o.status)).length,
+      inProgress: orders.filter((o) => ['pending', 'preparing', 'ready'].includes(o.status)).length,
       cancelled: orders.filter((o) => o.status === 'cancelled').length,
     }
 
@@ -199,7 +199,7 @@ router.get('/inventory-consumption', async (req, res) => {
       jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
-        AND o.status IN ('preparing', 'prepared', 'delivered')
+        AND o.status IN ('preparing', 'ready', 'served', 'completed')
       GROUP BY item->>'menuItemId', item->>'name', item->>'price'
       ORDER BY "totalQuantity" DESC
     `, {
@@ -224,7 +224,7 @@ router.get('/inventory-consumption', async (req, res) => {
       jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
-        AND o.status IN ('preparing', 'prepared', 'delivered')
+        AND o.status IN ('preparing', 'ready', 'served', 'completed')
       GROUP BY DATE(o."createdAt")
       ORDER BY date DESC
     `, {

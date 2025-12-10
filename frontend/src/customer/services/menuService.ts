@@ -87,9 +87,7 @@ class MenuService {
           name: item.name,
           description: item.description,
           price: item.price,
-          image:
-            item.image ||
-            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop",
+          image: item.image,
           category: item.category,
           inStock: item.available !== false && (item.inventoryCount || 0) > 0,
           available: item.available,

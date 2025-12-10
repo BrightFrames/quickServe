@@ -217,14 +217,16 @@ const io = new Server(httpServer, {
   },
 });
 
-// Socket.IO authentication middleware
+// Socket.IO authentication middleware (optional for customers)
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth.token;
     
     if (!token) {
-      console.log('[SOCKET] Connection rejected: No token provided');
-      return next(new Error('Authentication required'));
+      // Allow connection without auth (for customers tracking orders)
+      console.log('[SOCKET] Connection allowed without token (customer)');
+      socket.user = null; // Mark as unauthenticated
+      return next();
     }
     
     // Verify JWT token
@@ -242,8 +244,10 @@ io.use((socket, next) => {
     console.log('[SOCKET] ✓ Authenticated socket:', socket.user);
     next();
   } catch (error) {
-    console.error('[SOCKET] Authentication failed:', error.message);
-    return next(new Error('Invalid token'));
+    console.error('[SOCKET] Authentication error:', error.message);
+    // Still allow connection but mark as unauthenticated
+    socket.user = null;
+    next();
   }
 });
 
@@ -253,6 +257,14 @@ io.on("connection", (socket) => {
 
   // Join restaurant-specific rooms (with validation)
   socket.on("join-restaurant", (restaurantId) => {
+    // Allow unauthenticated customers to join (for order tracking)
+    if (!socket.user) {
+      const restaurantRoom = getRestaurantRoom(restaurantId);
+      socket.join(restaurantRoom);
+      console.log(`[SOCKET] ✅ Customer socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
+      return;
+    }
+    
     // SECURITY FIX: Use strict equality (===) and convert types properly
     const userRestaurantId = parseInt(socket.user.restaurantId, 10);
     const requestedRestaurantId = parseInt(restaurantId, 10);
@@ -315,6 +327,13 @@ io.on("connection", (socket) => {
     const captainRoom = getCaptainRoom(restaurantId);
     socket.join(captainRoom);
     console.log(`Socket ${socket.id} joined captain room: ${captainRoom}`);
+  });
+
+  // Join order-specific room for customers tracking their order
+  socket.on("join-order", (orderId) => {
+    const orderRoom = `order_${orderId}`;
+    socket.join(orderRoom);
+    console.log(`[SOCKET] ✅ Customer joined order room: ${orderRoom}`);
   });
 
   socket.on("disconnect", () => {
@@ -462,11 +481,11 @@ async function cleanupOldOrders() {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
     
-    // Delete orders older than 1 day that are delivered/completed
+    // Delete orders older than 1 day that are served/completed
     const deletedCount = await Order.destroy({
       where: {
         status: {
-          [Op.in]: ['delivered', 'completed']
+          [Op.in]: ['served', 'completed']
         },
         paymentStatus: 'paid',
         updatedAt: {

@@ -168,7 +168,7 @@ router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug
       where: {
         restaurantId: parseInt(restaurantId),
         status: {
-          [Op.in]: ['pending', 'preparing', 'prepared']
+          [Op.in]: ['pending', 'preparing', 'ready']
         }
       },
       attributes: ['tableNumber']
@@ -212,10 +212,10 @@ router.post("/tables/:restaurantSlug/free/:tableNumber", authenticateCaptain, re
     
     console.log(`[CAPTAIN FREE TABLE] Request to free table ${tableNumber} by ${req.username}`);
     
-    // Update all active orders for this table to 'delivered' status
+    // Update all active orders for this table to 'served' status
     const [updatedCount] = await Order.update(
       { 
-        status: 'delivered',
+        status: 'served',
         deliveredAt: new Date()
       },
       {
@@ -223,13 +223,13 @@ router.post("/tables/:restaurantSlug/free/:tableNumber", authenticateCaptain, re
           restaurantId: parseInt(restaurantId),
           tableNumber: parseInt(tableNumber),
           status: {
-            [Op.in]: ['pending', 'preparing', 'prepared']
+            [Op.in]: ['pending', 'preparing', 'ready']
           }
         }
       }
     );
     
-    console.log(`[CAPTAIN FREE TABLE] ✓ Updated ${updatedCount} orders to delivered for table ${tableNumber}`);
+    console.log(`[CAPTAIN FREE TABLE] ✓ Updated ${updatedCount} orders to served for table ${tableNumber}`);
     
     res.json({
       success: true,

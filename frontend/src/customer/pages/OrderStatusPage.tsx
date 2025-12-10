@@ -48,6 +48,10 @@ export const OrderStatusPage = () => {
       const restaurantId = currentOrder.restaurantId;
       newSocket.emit("join-restaurant", restaurantId);
       console.log("[OrderStatus] Joined restaurant room:", restaurantId);
+      
+      // Join order-specific room for real-time updates
+      newSocket.emit("join-order", orderId);
+      console.log("[OrderStatus] Joined order room:", orderId);
     });
 
     newSocket.on("disconnect", () => {
@@ -107,9 +111,9 @@ export const OrderStatusPage = () => {
     }
   }, [orderId]);
 
-  // Show rating form when order is delivered
+  // Show rating form when order is completed or served
   useEffect(() => {
-    if (currentOrder?.status === "delivered") {
+    if (currentOrder?.status === "completed" || currentOrder?.status === "served") {
       // Delay showing rating to give user time to see completion
       setTimeout(() => setShowRating(true), 2000);
     }
@@ -128,7 +132,7 @@ export const OrderStatusPage = () => {
     );
   }
 
-  const isOrderComplete = currentOrder.status === "delivered";
+  const isOrderComplete = currentOrder.status === "completed" || currentOrder.status === "served";
 
   const handleDownloadInvoice = () => {
     if (!currentOrder) return;
@@ -269,8 +273,8 @@ export const OrderStatusPage = () => {
             />
           </Card>
 
-          {/* Food Rating - Show only when order is delivered */}
-          {showRating && currentOrder.status === "delivered" && (
+          {/* Food Rating - Show only when order is completed or served */}
+          {showRating && (currentOrder.status === "completed" || currentOrder.status === "served") && (
             <FoodRating
               orderId={currentOrder.id || ""}
               orderNumber={currentOrder.orderNumber || currentOrder.id || ""}

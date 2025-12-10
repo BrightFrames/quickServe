@@ -349,17 +349,19 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     const restaurantRoom = getRestaurantRoom(finalRestaurantId);
     const kitchenRoom = getKitchenRoom(finalRestaurantId);
     const captainRoom = getCaptainRoom(finalRestaurantId);
+    const orderRoom = `order_${order.id}`; // Customer-specific order room
 
-    // Broadcast to all relevant rooms
+    // Broadcast to all relevant rooms including customer order room
     io.to(restaurantRoom).emit("new-order", order);
     io.to(kitchenRoom).emit("new-order", order);
     io.to(captainRoom).emit("new-order", order);
+    io.to(orderRoom).emit("order-updated", order); // Notify customer
 
     logger.orderFlow("New order created and broadcasted", {
       orderId: order.id,
       orderNumber: order.orderNumber,
       restaurantId: finalRestaurantId,
-      rooms: [restaurantRoom, kitchenRoom, captainRoom],
+      rooms: [restaurantRoom, kitchenRoom, captainRoom, orderRoom],
     });
 
     // Send invoice via Email if email provided and order was saved
@@ -479,17 +481,19 @@ router.put("/:id/status", authenticateRestaurant, enforceTenantIsolation, requir
     const restaurantRoom = getRestaurantRoom(req.restaurantId);
     const kitchenRoom = getKitchenRoom(req.restaurantId);
     const captainRoom = getCaptainRoom(req.restaurantId);
+    const orderRoom = `order_${order.id}`; // Customer-specific order room
 
-    // Broadcast to all relevant rooms including customers
+    // Broadcast to all relevant rooms including customer order room
     io.to(restaurantRoom).emit("order-updated", order);
     io.to(kitchenRoom).emit("order-updated", order);
     io.to(captainRoom).emit("order-updated", order);
+    io.to(orderRoom).emit("order-updated", order); // Notify customer
 
     logger.info("Socket.IO events emitted for order update", {
       orderId: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
-      rooms: [restaurantRoom, kitchenRoom, captainRoom],
+      rooms: [restaurantRoom, kitchenRoom, captainRoom, orderRoom],
     });
 
     console.log(`[ORDER-UPDATE] ✅ Status updated: Order ${order.id} -> ${order.status}`);

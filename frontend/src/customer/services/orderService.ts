@@ -4,8 +4,9 @@ import axios from "axios";
 export type OrderStatus =
   | "pending"
   | "preparing"
-  | "prepared"
-  | "delivered"
+  | "ready"
+  | "served"
+  | "completed"
   | "cancelled";
 
 export interface Order {
