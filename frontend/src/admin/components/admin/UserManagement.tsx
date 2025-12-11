@@ -9,39 +9,53 @@ import {
   User,
   Key,
   AlertCircle,
+  Shield,
+  ChefHat,
+  UserCog,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRestaurant } from "../../context/RestaurantContext";
 import { GlowCard } from "../ui/spotlight-card";
 
-interface KitchenUser {
+interface StaffUser {
   id?: string;
   username: string;
   password?: string;
   role: string;
   isOnline?: boolean;
   lastActive?: string;
+  restaurantId?: number;
 }
 
 const UserManagement = () => {
   const { restaurantSlug } = useRestaurant();
-  const [users, setUsers] = useState<KitchenUser[]>([]);
+  const [kitchenUsers, setKitchenUsers] = useState<StaffUser[]>([]);
+  const [captainUsers, setCaptainUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  const getAxiosConfig = () => ({
-    headers: {
-      'x-restaurant-slug': restaurantSlug || '',
-    }
-  });
+  const getAxiosConfig = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-restaurant-slug': restaurantSlug || '',
+      }
+    };
+  };
+
   const [showForm, setShowForm] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [editingUser, setEditingUser] = useState<KitchenUser | null>(null);
-  const [passwordChangeUser, setPasswordChangeUser] =
-    useState<KitchenUser | null>(null);
+  const [showDashboardPassword, setShowDashboardPassword] = useState(false);
+  const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
+  const [passwordChangeUser, setPasswordChangeUser] = useState<StaffUser | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [formData, setFormData] = useState<KitchenUser>({
+  const [isUsingDefaultDashboard, setIsUsingDefaultDashboard] = useState(true);
+  const [dashboardOldPassword, setDashboardOldPassword] = useState("");
+  const [dashboardNewPassword, setDashboardNewPassword] = useState("");
+  const [dashboardConfirmPassword, setDashboardConfirmPassword] = useState("");
+  const [formData, setFormData] = useState<StaffUser>({
     username: "",
     password: "",
     role: "kitchen",
@@ -49,16 +63,32 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
+    fetchDashboardPasswordStatus();
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/users/kitchen`, getAxiosConfig());
-      setUsers(response.data);
+      setLoading(true);
+      const config = getAxiosConfig();
+      const [kitchenResponse, captainResponse] = await Promise.all([
+        axios.get(`${apiUrl}/api/users/kitchen`, config),
+        axios.get(`${apiUrl}/api/users/captains`, config)
+      ]);
+      setKitchenUsers(kitchenResponse.data || []);
+      setCaptainUsers(captainResponse.data || []);
     } catch (error) {
-      toast.error("Failed to fetch kitchen users");
+      toast.error("Failed to fetch staff users");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDashboardPasswordStatus = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/api/restaurant/dashboard-password-status`, getAxiosConfig());
+      setIsUsingDefaultDashboard(response.data.isUsingDefault || false);
+    } catch (error) {
+      console.error("Error fetching dashboard password status:", error);
     }
   };
 
@@ -75,13 +105,47 @@ const UserManagement = () => {
         await axios.put(`${apiUrl}/api/users/${editingUser.id}`, formData, getAxiosConfig());
         toast.success("User updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/users/kitchen`, formData, getAxiosConfig());
+        // Use unified staff creation endpoint
+        await axios.post(`${apiUrl}/api/users/staff`, formData, getAxiosConfig());
         toast.success("User added successfully");
       }
       fetchUsers();
       resetForm();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to save user");
+    }
+  };
+
+  const handleDashboardPasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (dashboardNewPassword !== dashboardConfirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+
+    if (dashboardNewPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      await axios.patch(
+        `${apiUrl}/api/restaurant/dashboard-password`,
+        {
+          oldPassword: dashboardOldPassword,
+          newPassword: dashboardNewPassword
+        },
+        getAxiosConfig()
+      );
+      toast.success("Dashboard password updated successfully");
+      setShowDashboardPassword(false);
+      setDashboardOldPassword("");
+      setDashboardNewPassword("");
+      setDashboardConfirmPassword("");
+      fetchDashboardPasswordStatus();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to update password");
     }
   };
 
@@ -107,13 +171,13 @@ const UserManagement = () => {
     setShowForm(false);
   };
 
-  const startEdit = (user: KitchenUser) => {
+  const startEdit = (user: StaffUser) => {
     setEditingUser(user);
     setFormData({ ...user, password: "" });
     setShowForm(true);
   };
 
-  const openPasswordChange = (user: KitchenUser) => {
+  const openPasswordChange = (user: StaffUser) => {
     setPasswordChangeUser(user);
     setNewPassword("");
     setConfirmPassword("");
@@ -163,26 +227,52 @@ const UserManagement = () => {
     );
   }
 
+  const allUsers = [...kitchenUsers, ...captainUsers];
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">
-            Kitchen Staff Management
+            Staff Management
           </h2>
           <p className="text-gray-600 mt-1">
-            Manage kitchen user accounts and credentials
+            Manage kitchen and captain user accounts
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
-        >
-          <Plus className="w-5 h-5" />
-          <span>Add Kitchen User</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowDashboardPassword(true)}
+            className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            <Shield className="w-5 h-5" />
+            <span>Dashboard Password</span>
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center space-x-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Staff</span>
+          </button>
+        </div>
       </div>
+
+      {/* Dashboard Password Warning */}
+      {isUsingDefaultDashboard && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div className="flex items-center">
+            <Shield className="w-5 h-5 text-yellow-600 mr-2" />
+            <div>
+              <h3 className="text-yellow-800 font-semibold">Security Warning</h3>
+              <p className="text-yellow-700 text-sm mt-1">
+                You are using the default dashboard password (admin123). Please change it immediately for security.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Default Credentials Info Banner */}
       <GlowCard glowColor="orange" customSize className="w-full h-auto">
@@ -222,14 +312,14 @@ const UserManagement = () => {
       </GlowCard>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <GlowCard glowColor="orange" customSize className="w-full h-auto">
           <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Total Users</p>
+              <p className="text-gray-600 text-sm">Total Staff</p>
               <p className="text-3xl font-bold text-gray-800 mt-1">
-                {users.length}
+                {allUsers.length}
               </p>
             </div>
             <div className="bg-orange-100 p-3 rounded-lg">
@@ -239,33 +329,49 @@ const UserManagement = () => {
           </div>
         </GlowCard>
 
-        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <GlowCard glowColor="blue" customSize className="w-full h-auto">
           <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Active Now</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">
-                {users.filter((u) => u.isOnline).length}
+              <p className="text-gray-600 text-sm">Kitchen Staff</p>
+              <p className="text-3xl font-bold text-gray-800 mt-1">
+                {kitchenUsers.length}
               </p>
             </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <User className="w-8 h-8 text-green-600" />
+            <div className="bg-blue-100 p-3 rounded-lg">
+              <ChefHat className="w-8 h-8 text-blue-600" />
             </div>
           </div>
           </div>
         </GlowCard>
 
-        <GlowCard glowColor="orange" customSize className="w-full h-auto">
+        <GlowCard glowColor="purple" customSize className="w-full h-auto">
           <div className="bg-white/80 rounded-lg shadow p-6 border-0">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 text-sm">Offline</p>
-              <p className="text-3xl font-bold text-gray-600 mt-1">
-                {users.filter((u) => !u.isOnline).length}
+              <p className="text-gray-600 text-sm">Captains</p>
+              <p className="text-3xl font-bold text-gray-800 mt-1">
+                {captainUsers.length}
               </p>
             </div>
-            <div className="bg-gray-100 p-3 rounded-lg">
-              <User className="w-8 h-8 text-gray-600" />
+            <div className="bg-purple-100 p-3 rounded-lg">
+              <UserCog className="w-8 h-8 text-purple-600" />
+            </div>
+          </div>
+          </div>
+        </GlowCard>
+
+        <GlowCard glowColor="green" customSize className="w-full h-auto">
+          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 text-sm">Active Now</p>
+              <p className="text-3xl font-bold text-green-600 mt-1">
+                {allUsers.filter((u) => u.isOnline).length}
+              </p>
+            </div>
+            <div className="bg-green-100 p-3 rounded-lg">
+              <User className="w-8 h-8 text-green-600" />
             </div>
           </div>
           </div>
@@ -278,7 +384,7 @@ const UserManagement = () => {
           <div className="bg-white rounded-lg p-8 max-w-md w-full">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">
-                {editingUser ? "Edit Kitchen User" : "Add New Kitchen User"}
+                {editingUser ? "Edit Staff User" : "Add New Staff User"}
               </h3>
               <button
                 onClick={resetForm}
@@ -332,6 +438,7 @@ const UserManagement = () => {
                 >
                   <option value="kitchen">Kitchen Staff</option>
                   <option value="cook">Cook</option>
+                  <option value="captain">Captain</option>
                 </select>
               </div>
 
@@ -475,10 +582,15 @@ const UserManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {allUsers.map((user) => (
               <tr key={user.id} className="border-b hover:bg-gray-50">
                 <td className="py-3 px-4">
                   <div className="flex items-center space-x-2">
+                    {user.role === 'captain' ? (
+                      <UserCog className="w-4 h-4 text-purple-600" />
+                    ) : (
+                      <ChefHat className="w-4 h-4 text-blue-600" />
+                    )}
                     <div
                       className={`w-2 h-2 rounded-full ${
                         user.isOnline ? "bg-green-500" : "bg-gray-400"
@@ -487,7 +599,15 @@ const UserManagement = () => {
                     <span className="font-medium">{user.username}</span>
                   </div>
                 </td>
-                <td className="py-3 px-4 capitalize">{user.role}</td>
+                <td className="py-3 px-4">
+                  <span className={`px-2 py-1 rounded text-sm font-semibold ${
+                    user.role === 'captain' 
+                      ? 'bg-purple-100 text-purple-700' 
+                      : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {user.role === 'captain' ? 'Captain' : 'Kitchen'}
+                  </span>
+                </td>
                 <td className="py-3 px-4">
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-semibold ${
@@ -535,6 +655,115 @@ const UserManagement = () => {
         </table>
       </div>
       </GlowCard>
+
+      {/* Dashboard Password Change Modal */}
+      {showDashboardPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-2xl font-bold flex items-center">
+                  <Shield className="w-6 h-6 mr-2 text-blue-600" />
+                  Dashboard Password
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Change your restaurant dashboard password
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDashboardPassword(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {isUsingDefaultDashboard && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-4">
+                <p className="text-yellow-800 text-sm">
+                  ⚠️ You're using the default password. Change it for security.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleDashboardPasswordChange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  value={dashboardOldPassword}
+                  onChange={(e) => setDashboardOldPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter current password"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={dashboardNewPassword}
+                  onChange={(e) => setDashboardNewPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter new password"
+                  minLength={6}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 6 characters
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={dashboardConfirmPassword}
+                  onChange={(e) => setDashboardConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Confirm new password"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              {dashboardNewPassword &&
+                dashboardConfirmPassword &&
+                dashboardNewPassword !== dashboardConfirmPassword && (
+                  <div className="flex items-center space-x-2 text-red-600 text-sm">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Passwords do not match</span>
+                  </div>
+                )}
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                  disabled={dashboardNewPassword !== dashboardConfirmPassword}
+                >
+                  <Shield className="w-5 h-5 inline mr-2" />
+                  Update Password
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDashboardPassword(false)}
+                  className="px-6 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

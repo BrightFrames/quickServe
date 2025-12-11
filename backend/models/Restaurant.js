@@ -40,6 +40,12 @@ const Restaurant = sequelize.define('Restaurant', {
       len: [6, 100],
     },
   },
+  dashboardPassword: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Hashed password for restaurant admin dashboard access (per-restaurant security)',
+  },
   phone: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -126,11 +132,27 @@ const Restaurant = sequelize.define('Restaurant', {
         const salt = await bcrypt.genSalt(10);
         restaurant.password = await bcrypt.hash(restaurant.password, salt);
       }
+      // Set default dashboard password if not provided
+      if (!restaurant.dashboardPassword) {
+        const salt = await bcrypt.genSalt(10);
+        restaurant.dashboardPassword = await bcrypt.hash('admin123', salt);
+      } else if (restaurant.dashboardPassword && !restaurant.dashboardPassword.startsWith('$2')) {
+        // Hash if provided but not already hashed
+        const salt = await bcrypt.genSalt(10);
+        restaurant.dashboardPassword = await bcrypt.hash(restaurant.dashboardPassword, salt);
+      }
     },
     beforeUpdate: async (restaurant) => {
       if (restaurant.changed('password')) {
         const salt = await bcrypt.genSalt(10);
         restaurant.password = await bcrypt.hash(restaurant.password, salt);
+      }
+      if (restaurant.changed('dashboardPassword') && restaurant.dashboardPassword) {
+        // Only hash if it's not already hashed (doesn't start with bcrypt prefix)
+        if (!restaurant.dashboardPassword.startsWith('$2')) {
+          const salt = await bcrypt.genSalt(10);
+          restaurant.dashboardPassword = await bcrypt.hash(restaurant.dashboardPassword, salt);
+        }
       }
     },
   },
@@ -156,6 +178,22 @@ const Restaurant = sequelize.define('Restaurant', {
 // Instance method to compare passwords
 Restaurant.prototype.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to compare dashboard password
+Restaurant.prototype.compareDashboardPassword = async function (candidatePassword) {
+  if (!this.dashboardPassword) {
+    // If no dashboard password set, use default
+    const defaultHash = await bcrypt.hash('admin123', 10);
+    return await bcrypt.compare(candidatePassword, defaultHash);
+  }
+  return await bcrypt.compare(candidatePassword, this.dashboardPassword);
+};
+
+// Instance method to check if using default dashboard password
+Restaurant.prototype.isUsingDefaultDashboardPassword = async function () {
+  if (!this.dashboardPassword) return true;
+  return await bcrypt.compare('admin123', this.dashboardPassword);
 };
 
 export default Restaurant;

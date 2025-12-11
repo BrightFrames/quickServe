@@ -85,7 +85,7 @@ const AdminHome = () => {
     { id: "tables" as Tab, name: "Table Management", icon: Utensils },
     { id: "inventory" as Tab, name: "Inventory", icon: Package },
     { id: "tracking" as Tab, name: "Consumption Tracking", icon: TrendingUp },
-    { id: "users" as Tab, name: "Kitchen Staff", icon: Users },
+    { id: "users" as Tab, name: "Staff Management", icon: Users },
     { id: "promos" as Tab, name: "Promo Codes", icon: Tag },
     { id: "info" as Tab, name: "Restaurant Info", icon: Building2 },
     { id: "payment" as Tab, name: "Payment Settings", icon: Wallet },

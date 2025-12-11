@@ -672,6 +672,169 @@ router.get("/verify/:slug/:code", async (req, res) => {
 });
 
 // ============================
+// Update Dashboard Password
+// ============================
+/**
+ * PATCH /api/restaurant/dashboard-password
+ * 
+ * Updates the per-restaurant dashboard password.
+ * Requires authentication and validates old password before updating.
+ * 
+ * Request Body:
+ * {
+ *   "oldPassword": "admin123",
+ *   "newPassword": "newSecurePassword123"
+ * }
+ */
+router.patch("/dashboard-password", async (req, res) => {
+  console.log("[RESTAURANT] Dashboard password update request");
+  
+  try {
+    // Extract restaurant info from JWT token
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      console.log("[RESTAURANT] ✗ No authentication token provided");
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      console.log("[RESTAURANT] ✗ Invalid token");
+      return res.status(401).json({ message: "Invalid authentication token" });
+    }
+
+    const { oldPassword, newPassword } = req.body;
+
+    // Validate input
+    if (!oldPassword || !newPassword) {
+      console.log("[RESTAURANT] ✗ Missing required fields");
+      return res.status(400).json({ 
+        message: "Old password and new password are required" 
+      });
+    }
+
+    // Validate new password length
+    if (newPassword.length < 6) {
+      console.log("[RESTAURANT] ✗ New password too short");
+      return res.status(400).json({ 
+        message: "New password must be at least 6 characters long" 
+      });
+    }
+
+    // Prevent using default password
+    if (newPassword === 'admin123') {
+      console.log("[RESTAURANT] ✗ Cannot set default password");
+      return res.status(400).json({ 
+        message: "Cannot use 'admin123' as password. Please choose a different password." 
+      });
+    }
+
+    // Get restaurant from token
+    const restaurantId = decoded.id || decoded.restaurantId;
+    if (!restaurantId) {
+      console.log("[RESTAURANT] ✗ Restaurant ID not found in token");
+      return res.status(401).json({ message: "Invalid token structure" });
+    }
+
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      console.log("[RESTAURANT] ✗ Restaurant not found");
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Validate old password
+    const isOldPasswordValid = await restaurant.compareDashboardPassword(oldPassword);
+    if (!isOldPasswordValid) {
+      console.log("[RESTAURANT] ✗ Old password incorrect");
+      return res.status(401).json({ 
+        message: "Current dashboard password is incorrect" 
+      });
+    }
+
+    // Update dashboard password (Sequelize hook will hash it)
+    restaurant.dashboardPassword = newPassword;
+    await restaurant.save();
+
+    console.log(`[RESTAURANT] ✓ Dashboard password updated for restaurant ${restaurant.name}`);
+
+    res.json({
+      message: "Dashboard password updated successfully",
+      isUsingDefault: false
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT] Dashboard password update error:", error);
+    res.status(500).json({ 
+      message: "Server error updating dashboard password", 
+      error: error.message 
+    });
+  }
+});
+
+// ============================
+// Check Dashboard Password Status
+// ============================
+/**
+ * GET /api/restaurant/dashboard-password-status
+ * 
+ * Checks if restaurant is using the default dashboard password.
+ * Requires authentication.
+ * 
+ * Response:
+ * {
+ *   "isUsingDefault": true/false
+ * }
+ */
+router.get("/dashboard-password-status", async (req, res) => {
+  console.log("[RESTAURANT] Dashboard password status check");
+  
+  try {
+    // Extract restaurant info from JWT token
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // Verify and decode token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid authentication token" });
+    }
+
+    const restaurantId = decoded.id || decoded.restaurantId;
+    if (!restaurantId) {
+      return res.status(401).json({ message: "Invalid token structure" });
+    }
+
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    const isUsingDefault = await restaurant.isUsingDefaultDashboardPassword();
+
+    res.json({
+      isUsingDefault,
+      message: isUsingDefault 
+        ? "Using default dashboard password. Please update for security." 
+        : "Using custom dashboard password."
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT] Dashboard password status error:", error);
+    res.status(500).json({ 
+      message: "Server error checking dashboard password status", 
+      error: error.message 
+    });
+  }
+});
+
+// ============================
 // Update Admin/Kitchen Passwords Route
 // ============================
 router.put("/update-credentials/:restaurantCode", async (req, res) => {

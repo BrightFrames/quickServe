@@ -110,7 +110,7 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
     }
     
     // STEP 1: Resolve restaurant ID from identifier (name, email, or phone)
-    console.log(`[AUTH] Resolving restaurant from identifier: ${restaurantIdentifier}`);
+    console.log(`[AUTH] Resolving restaurant from identifier: "${restaurantIdentifier}"`);
     const restaurant = await Restaurant.findOne({
       where: {
         [Op.or]: [
@@ -124,14 +124,16 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
     });
     
     if (!restaurant) {
-      console.log(`[AUTH] ✗ Restaurant not found for identifier: ${restaurantIdentifier}`);
+      console.log(`[AUTH] ✗ Restaurant not found for identifier: "${restaurantIdentifier}"`);
+      console.log(`[AUTH] Tried matching: name, email, phone, slug, restaurantCode`);
       return res.status(401).json({ message: "Invalid credentials" });
     }
     
-    console.log(`[AUTH] ✓ Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id})`);
+    console.log(`[AUTH] ✓ Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id}, Slug: ${restaurant.slug})`);
     
     // STEP 2: Find user by username AND resolved restaurantId to enforce tenant isolation
     // This prevents staff from Restaurant B logging into Restaurant A's portal
+    console.log(`[AUTH] Looking for user - Username: "${username}", RestaurantId: ${restaurant.id}, Role: kitchen/cook/captain`);
     const user = await User.findOne({
       where: {
         username,
@@ -144,14 +146,23 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
     
     // Return generic error if user not found (don't reveal username exists or tenant mismatch)
     if (!user) {
-      console.log(`[AUTH] ✗ User not found. Username: ${username}, RestaurantId: ${restaurant.id}`);
+      console.log(`[AUTH] ✗ User not found. Username: "${username}", RestaurantId: ${restaurant.id}`);
+      // Log all users for this restaurant to help debugging
+      const allUsers = await User.findAll({ where: { restaurantId: restaurant.id }, attributes: ['id', 'username', 'role'] });
+      console.log(`[AUTH] Available users in restaurant ${restaurant.id}:`, allUsers.map(u => ({ username: u.username, role: u.role })));
       return res.status(401).json({ message: "Invalid credentials" });
     }
+    
+    console.log(`[AUTH] ✓ User found: ${user.username} (Role: ${user.role})`);
+
 
     // STEP 3: Validate password using comparePassword method
+    console.log(`[AUTH] Comparing password for user ${user.username}`);
+    console.log(`[AUTH] Hashed password in DB: ${user.password.substring(0, 20)}...`);
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.log("[AUTH] ✗ Invalid password");
+      console.log("[AUTH] ✗ Invalid password - bcrypt comparison failed");
+      console.log("[AUTH] Provided password:", password);
       return res.status(401).json({ message: "Invalid credentials" });
     }
 

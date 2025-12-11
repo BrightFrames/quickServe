@@ -23,15 +23,24 @@ const KitchenLogin = () => {
     sessionStorage.removeItem('adminVerified')
     sessionStorage.removeItem('adminVerifiedAt')
     
+    // Validate restaurant identifier exists
+    const identifier = restaurantSlug || restaurantCode;
+    if (!identifier) {
+      toast.error('Restaurant identifier is missing. Please access login via restaurant URL.');
+      return;
+    }
+    
     setLoading(true)
 
     try {
       // Pass restaurantSlug as identifier for restaurant-specific kitchen access
-      await login(username, password, 'kitchen', restaurantSlug || restaurantCode || undefined)
+      console.log('[KITCHEN LOGIN] Attempting login with identifier:', identifier);
+      await login(username, password, 'kitchen', identifier)
       toast.success('Login successful!')
       // Always navigate with restaurant slug
       navigate(`/${restaurantSlug}/kitchen/dashboard`)
     } catch (error: any) {
+      console.error('[KITCHEN LOGIN] Login failed:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || 'Invalid credentials')
     } finally {
       setLoading(false)

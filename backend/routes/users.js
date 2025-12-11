@@ -14,6 +14,101 @@ const router = express.Router()
 // All routes below require valid JWT token
 router.use(authenticateRestaurant);
 
+// ============================
+// Create Staff User (Kitchen or Captain)
+// ============================
+/**
+ * POST /api/users/staff
+ * 
+ * PROTECTED: Create kitchen or captain staff users.
+ * Requires admin authentication. RestaurantId automatically from JWT.
+ * 
+ * Request Body:
+ * {
+ *   "name": "John Doe",
+ *   "username": "kitchen_john",
+ *   "password": "securePassword123",
+ *   "role": "kitchen" // or "captain"
+ * }
+ */
+router.post('/staff', enforceTenantIsolation, requireRole(['admin']), async (req, res) => {
+  console.log('[USERS] Create staff user request received');
+  
+  try {
+    const { name, username, password, role } = req.body;
+
+    // Validate required fields
+    if (!username || !password || !role) {
+      console.log('[USERS] ✗ Missing required fields');
+      return res.status(400).json({ 
+        message: 'Username, password, and role are required' 
+      });
+    }
+
+    // Validate role
+    if (!['kitchen', 'captain', 'cook'].includes(role)) {
+      console.log('[USERS] ✗ Invalid role');
+      return res.status(400).json({ 
+        message: 'Role must be "kitchen", "cook", or "captain"' 
+      });
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      console.log('[USERS] ✗ Password too short');
+      return res.status(400).json({ 
+        message: 'Password must be at least 6 characters long' 
+      });
+    }
+
+    // SECURITY: restaurantId comes from authenticated JWT token
+    const restaurantId = req.restaurantId;
+
+    // Check if username already exists for this restaurant
+    const existingUser = await User.findOne({
+      where: {
+        username,
+        restaurantId
+      }
+    });
+
+    if (existingUser) {
+      console.log(`[USERS] ✗ Username already exists: ${username}`);
+      return res.status(400).json({ 
+        message: 'Username already exists for this restaurant' 
+      });
+    }
+
+    // Create staff user (password will be auto-hashed by Sequelize hook)
+    const user = await User.create({
+      username,
+      password, // Sequelize beforeCreate hook will hash this
+      role,
+      restaurantId,
+      isOnline: false,
+      lastActive: new Date()
+    });
+
+    console.log(`[USERS] ✓ ${role} user created: ${username} for restaurant ${restaurantId}`);
+
+    // Return user without password
+    const userResponse = user.toJSON();
+    delete userResponse.password;
+
+    res.status(201).json({
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} user created successfully`,
+      user: userResponse
+    });
+
+  } catch (error) {
+    console.error('[USERS] Error creating staff user:', error);
+    res.status(500).json({ 
+      message: 'Server error creating staff user', 
+      error: error.message 
+    });
+  }
+});
+
 // Get all kitchen users - CRITICAL: Tenant isolated
 router.get('/kitchen', enforceTenantIsolation, async (req, res) => {
   try {
@@ -30,6 +125,26 @@ router.get('/kitchen', enforceTenantIsolation, async (req, res) => {
     })
     
     console.log(`[USERS] Retrieved ${users.length} kitchen users for restaurant ${req.restaurantId}`);
+    res.json(users)
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message })
+  }
+})
+
+// Get all captain users - CRITICAL: Tenant isolated
+router.get('/captains', enforceTenantIsolation, async (req, res) => {
+  try {
+    // SECURITY: Only fetch captains from authenticated restaurant
+    const users = await User.findAll({
+      where: {
+        restaurantId: req.restaurantId,
+        role: 'captain',
+      },
+      attributes: { exclude: ['password'] },
+      order: [['username', 'ASC']],
+    })
+    
+    console.log(`[USERS] Retrieved ${users.length} captain users for restaurant ${req.restaurantId}`);
     res.json(users)
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message })
