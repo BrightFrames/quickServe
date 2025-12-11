@@ -12,10 +12,11 @@ router.use(authenticateRestaurant);
 router.use(enforceTenantIsolation);
 router.use(requirePermission('view:analytics'));
 
-// Get analytics
-router.get('/', async (req, res) => {
+// Get analytics - CRITICAL: Tenant isolated
+router.get('/', enforceTenantIsolation, async (req, res) => {
   try {
     const { period = 'today' } = req.query
+    // SECURITY: Use authenticated restaurant ID only
     const restaurantId = req.restaurantId;
 
     // Calculate date range
@@ -174,10 +175,11 @@ router.get('/', async (req, res) => {
   }
 })
 
-// Get inventory consumption tracking
-router.get('/inventory-consumption', async (req, res) => {
+// Get inventory consumption tracking - CRITICAL: Tenant isolated
+router.get('/inventory-consumption', enforceTenantIsolation, async (req, res) => {
   try {
     const { days = 7 } = req.query;
+    // SECURITY: Use authenticated restaurant ID only
     const restaurantId = req.restaurantId;
     
     const startDate = new Date();

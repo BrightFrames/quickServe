@@ -12,7 +12,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantCode?: string) => Promise<void>
+  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantIdentifier?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     validateSession()
   }, [])
 
-  const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantCode?: string) => {
+  const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantIdentifier?: string) => {
     try {
       // CRITICAL FIX: Clear any existing session before new login
       // This prevents old restaurantId from being used
@@ -154,11 +154,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.log('[AUTH] Token set in axios headers');
       } else if (role === 'captain') {
         // Captain login using dedicated endpoint
-        console.log('[AUTH] Attempting captain login');
+        console.log('[AUTH] Attempting captain login with identifier:', restaurantIdentifier);
         
         const response = await axios.post(`${apiUrl}/api/auth/captain/login`, {
           username,
           password,
+          restaurantIdentifier: restaurantIdentifier,
         });
         
         const { user, token } = response.data;
@@ -190,15 +191,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         console.log('[AUTH] Reception login successful');
       } else {
-        // Kitchen staff login using old endpoint
+        // Kitchen staff login
+        console.log('[AUTH] Attempting kitchen login with identifier:', restaurantIdentifier);
+        
         const payload: any = {
           username,
           password,
           role,
         };
         
-        if (restaurantCode) {
-          payload.restaurantCode = restaurantCode;
+        if (restaurantIdentifier) {
+          payload.restaurantIdentifier = restaurantIdentifier;
         }
         
         const response = await axios.post(`${apiUrl}/api/auth/login`, payload);

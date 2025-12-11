@@ -17,7 +17,7 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
   console.log("[AUTH] Body:", req.body);
 
   try {
-    const { username, password, role, restaurantCode } = req.body;
+    const { username, password, role, restaurantCode, restaurantIdentifier } = req.body;
 
     // Validate required fields
     if (!username || !password || !role) {
@@ -95,33 +95,64 @@ router.post("/login", loginRateLimiter, validateLogin, async (req, res) => {
     // Kitchen/Cook/Captain login - ONLY from User table, NOT admin credentials
     console.log("[AUTH] Processing kitchen/cook/captain login...");
     
+    // CRITICAL: Validate restaurantIdentifier is provided for tenant resolution
+    if (!restaurantIdentifier) {
+      console.log("[AUTH] ✗ Restaurant identifier required for staff login");
+      return res.status(400).json({ 
+        message: "Restaurant identifier is required (restaurant name, email, or phone)" 
+      });
+    }
+    
     // Prevent admin credentials from accessing kitchen/captain dashboard
     if (username === process.env.ADMIN_USERNAME) {
       console.log("[AUTH] ✗ Admin credentials cannot be used for staff login");
       return res.status(401).json({ message: "Invalid credentials. Please use staff credentials." });
     }
     
-    // SECURITY FIX: Find user by username first
+    // STEP 1: Resolve restaurant ID from identifier (name, email, or phone)
+    console.log(`[AUTH] Resolving restaurant from identifier: ${restaurantIdentifier}`);
+    const restaurant = await Restaurant.findOne({
+      where: {
+        [Op.or]: [
+          { name: restaurantIdentifier.trim() },
+          { email: restaurantIdentifier.toLowerCase().trim() },
+          { phone: restaurantIdentifier.trim() },
+          { slug: restaurantIdentifier.toLowerCase().trim() },
+          { restaurantCode: restaurantIdentifier.toUpperCase().trim() }
+        ]
+      }
+    });
+    
+    if (!restaurant) {
+      console.log(`[AUTH] ✗ Restaurant not found for identifier: ${restaurantIdentifier}`);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    
+    console.log(`[AUTH] ✓ Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id})`);
+    
+    // STEP 2: Find user by username AND resolved restaurantId to enforce tenant isolation
+    // This prevents staff from Restaurant B logging into Restaurant A's portal
     const user = await User.findOne({
       where: {
         username,
+        restaurantId: restaurant.id,
         role: {
           [Op.in]: ["kitchen", "cook", "captain"],
         },
       },
     });
     
-    // Return generic error if user not found (don't reveal username exists)
+    // Return generic error if user not found (don't reveal username exists or tenant mismatch)
     if (!user) {
-      console.log("[AUTH] ✗ User not found");
-      return res.status(401).json({ message: "Invalid username or password" });
+      console.log(`[AUTH] ✗ User not found. Username: ${username}, RestaurantId: ${restaurant.id}`);
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // SECURITY FIX: Validate password using comparePassword method
+    // STEP 3: Validate password using comparePassword method
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log("[AUTH] ✗ Invalid password");
-      return res.status(401).json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     console.log("[AUTH] ✓ Kitchen/cook credentials valid");
@@ -160,7 +191,7 @@ router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) 
   console.log("[AUTH] Body:", req.body);
 
   try {
-    const { username, password } = req.body;
+    const { username, password, restaurantIdentifier } = req.body;
 
     // Validate required fields
     if (!username || !password) {
@@ -168,37 +199,66 @@ router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) 
       return res.status(400).json({ message: "Username and password are required" });
     }
 
+    // CRITICAL: Validate restaurantIdentifier for tenant resolution
+    if (!restaurantIdentifier) {
+      console.log("[AUTH] ✗ Restaurant identifier required for captain login");
+      return res.status(400).json({ 
+        message: "Restaurant identifier is required (restaurant name, email, or phone)" 
+      });
+    }
+
     console.log(`[AUTH] Attempting captain login for user: ${username}`);
 
-    // SECURITY FIX: Find captain user by username first
+    // STEP 1: Resolve restaurant ID from identifier (name, email, phone, slug, or code)
+    console.log(`[AUTH] Resolving restaurant from identifier: ${restaurantIdentifier}`);
+    const restaurant = await Restaurant.findOne({
+      where: {
+        [Op.or]: [
+          { name: restaurantIdentifier.trim() },
+          { email: restaurantIdentifier.toLowerCase().trim() },
+          { phone: restaurantIdentifier.trim() },
+          { slug: restaurantIdentifier.toLowerCase().trim() },
+          { restaurantCode: restaurantIdentifier.toUpperCase().trim() }
+        ]
+      }
+    });
+    
+    if (!restaurant) {
+      console.log(`[AUTH] ✗ Restaurant not found for identifier: ${restaurantIdentifier}`);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+    
+    console.log(`[AUTH] ✓ Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id})`);
+
+    // STEP 2: Find captain by username AND resolved restaurantId to enforce tenant isolation
     const user = await User.findOne({
       where: {
         username,
+        restaurantId: restaurant.id,
         role: "captain",
       },
     });
 
-    // Return generic error if user not found (don't reveal username exists)
+    // Return generic error if user not found (don't reveal username exists or tenant mismatch)
     if (!user) {
-      console.log("[AUTH] ✗ Captain not found");
-      return res.status(401).json({ message: "Invalid username or password" });
+      console.log(`[AUTH] ✗ Captain not found. Username: ${username}, RestaurantId: ${restaurant.id}`);
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // SECURITY FIX: Validate password using comparePassword method
+    // STEP 3: Validate password using comparePassword method
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       console.log("[AUTH] ✗ Invalid password for captain");
-      return res.status(401).json({ message: "Invalid username or password" });
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
     console.log("[AUTH] ✓ Captain credentials valid");
 
-    // Get restaurant details including slug
-    const restaurant = await Restaurant.findByPk(user.restaurantId);
+    // Restaurant details already loaded during identifier resolution
     console.log("[AUTH] Captain restaurant data:", {
-      restaurantId: user.restaurantId,
-      restaurantSlug: restaurant?.slug,
-      restaurantName: restaurant?.name
+      restaurantId: restaurant.id,
+      restaurantSlug: restaurant.slug,
+      restaurantName: restaurant.name
     });
 
     // Update user status
@@ -218,8 +278,8 @@ router.post("/captain/login", loginRateLimiter, validateLogin, async (req, res) 
         username: user.username,
         role: user.role,
         restaurantId: user.restaurantId,
-        restaurantSlug: restaurant?.slug || null,
-        restaurantName: restaurant?.name || null,
+        restaurantSlug: restaurant.slug,
+        restaurantName: restaurant.name,
       },
       token,
     };

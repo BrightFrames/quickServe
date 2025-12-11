@@ -25,8 +25,8 @@ const CaptainLogin: React.FC = () => {
         return;
       }
       
-      // Use captain-specific login endpoint via AuthContext
-      const userData = await login(username, password, 'captain');
+      // Use captain-specific login endpoint via AuthContext with restaurantSlug
+      const userData = await login(username, password, 'captain', restaurantSlug);
       
       // Override backend slug with URL slug and save to localStorage
       const updatedUser = {

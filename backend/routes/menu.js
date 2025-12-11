@@ -8,21 +8,35 @@ import { cache, cacheKeys } from '../utils/cache.js'
 const router = express.Router()
 
 /**
- * Helper: Map restaurant slug to restaurantId (primary key)
+ * Helper: Resolve restaurant ID from identifier (slug, name, email, phone, code)
  * This ensures all queries use the database primary key for consistency
- * @param {string} slug - Restaurant slug
+ * @param {string} identifier - Restaurant slug, name, email, phone, or code
  * @returns {Promise<number|null>} Restaurant ID or null if not found
  */
-async function getRestaurantIdBySlug(slug) {
-  if (!slug || typeof slug !== 'string') {
-    console.log('[MENU] Invalid slug provided');
+async function resolveRestaurantId(identifier) {
+  if (!identifier || typeof identifier !== 'string') {
+    console.log('[MENU] Invalid identifier provided');
     return null;
   }
   
+  const { Op } = (await import('sequelize')).default;
+  
   const restaurant = await Restaurant.findOne({ 
-    where: { slug: slug.toLowerCase().trim() },
-    attributes: ['id'] // Only fetch the ID for efficiency
+    where: {
+      [Op.or]: [
+        { slug: identifier.toLowerCase().trim() },
+        { name: identifier.trim() },
+        { email: identifier.toLowerCase().trim() },
+        { phone: identifier.trim() },
+        { restaurantCode: identifier.toUpperCase().trim() }
+      ]
+    },
+    attributes: ['id', 'name'] // Fetch ID and name for logging
   });
+  
+  if (restaurant) {
+    console.log(`[MENU] Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id})`);
+  }
   
   return restaurant ? restaurant.id : null;
 }
@@ -37,29 +51,34 @@ function isValidRestaurantId(id) {
   return !isNaN(numId) && numId > 0;
 }
 
-// Public route: Get menu by restaurant slug (for customers)
+// Public route: Get menu by restaurant identifier (for customers)
 router.get('/', async (req, res) => {
   try {
-    const { slug, restaurantId } = req.query;
+    const { slug, restaurantId, restaurantIdentifier } = req.query;
     
-    // If slug or restaurantId provided, this is a public customer request
-    if (slug || restaurantId) {
+    // If any identifier provided, this is a public customer request
+    if (slug || restaurantId || restaurantIdentifier) {
       let finalRestaurantId = null;
       
-      // Prefer direct restaurantId if provided and valid
+      // Priority 1: Direct restaurantId if provided and valid
       if (restaurantId && isValidRestaurantId(restaurantId)) {
         finalRestaurantId = parseInt(restaurantId, 10);
         console.log(`[MENU] Public menu request for restaurantId: ${finalRestaurantId}`);
       } 
-      // Fallback to slug lookup and map to restaurantId
+      // Priority 2: Use restaurantIdentifier (can be name, email, phone, slug, code)
+      else if (restaurantIdentifier) {
+        console.log(`[MENU] Resolving restaurant from identifier: ${restaurantIdentifier}`);
+        finalRestaurantId = await resolveRestaurantId(restaurantIdentifier);
+      }
+      // Priority 3: Legacy slug parameter (backward compatibility)
       else if (slug) {
-        console.log(`[MENU] Public menu request for slug: ${slug}, mapping to restaurantId...`);
-        finalRestaurantId = await getRestaurantIdBySlug(slug);
+        console.log(`[MENU] Resolving restaurant from slug: ${slug}`);
+        finalRestaurantId = await resolveRestaurantId(slug);
       }
       
       // Validate we have a valid restaurantId
       if (!finalRestaurantId) {
-        console.log(`[MENU] Restaurant not found for slug: ${slug} or id: ${restaurantId}`);
+        console.log(`[MENU] Restaurant not found for identifier`);
         return res.status(404).json({ message: 'Restaurant not found' });
       }
       

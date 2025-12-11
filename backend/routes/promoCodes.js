@@ -2,19 +2,23 @@ import express from 'express';
 import PromoCode from '../models/PromoCode.js';
 import { Op } from 'sequelize';
 import { authenticateRestaurant } from '../middleware/auth.js';
+import { enforceTenantIsolation } from '../middleware/rbac.js';
 
 const router = express.Router();
 
 // Apply authentication to all routes
 router.use(authenticateRestaurant);
+router.use(enforceTenantIsolation); // CRITICAL: Enforce tenant isolation on all promo code routes
 
-// Get all promo codes for the restaurant
+// Get all promo codes for the restaurant - CRITICAL: Tenant isolated
 router.get('/', async (req, res) => {
   try {
+    // SECURITY: Only fetch promo codes from authenticated restaurant
     const promoCodes = await PromoCode.findAll({
       where: { restaurantId: req.restaurantId },
       order: [['createdAt', 'DESC']],
     });
+    console.log(`[PROMO CODES] Retrieved ${promoCodes.length} promo codes for restaurant ${req.restaurantId}`);
     res.json(promoCodes);
   } catch (error) {
     console.error('Error fetching promo codes:', error);

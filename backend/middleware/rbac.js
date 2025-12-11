@@ -121,41 +121,80 @@ export function requireRole(allowedRoles) {
 }
 
 /**
- * Middleware: Verify user can only access their own restaurant's data
- * CRITICAL for multi-tenant isolation
+ * CRITICAL MULTI-TENANT SECURITY MIDDLEWARE
+ * Enforces strict tenant isolation - users can ONLY access their own restaurant's data
+ * 
+ * This middleware:
+ * 1. Validates restaurantId from authenticated JWT token
+ * 2. Compares with restaurantId in request (params/body/query)
+ * 3. Blocks cross-tenant access attempts with 403 Forbidden
+ * 4. Logs all violation attempts for security audit
+ * 
+ * MUST be applied to ALL routes handling restaurant-specific data
  */
 export function enforceTenantIsolation(req, res, next) {
-  const userRestaurantId = req.restaurantId; // Set by authenticateRestaurant middleware
-  
-  if (!userRestaurantId) {
-    return res.status(401).json({
-      message: 'Authentication required',
-      error: 'Restaurant ID not found in token',
-    });
-  }
-  
-  // Check various places where restaurantId might be specified
-  const requestedRestaurantId = 
-    req.params.restaurantId || 
-    req.query.restaurantId || 
-    req.body.restaurantId;
-  
-  // If a specific restaurant is requested, verify it matches user's restaurant
-  if (requestedRestaurantId) {
-    const requestedId = parseInt(requestedRestaurantId, 10);
-    const userId = parseInt(userRestaurantId, 10);
+  try {
+    const userRestaurantId = req.restaurantId; // Set by authenticateRestaurant middleware
     
-    if (requestedId !== userId) {
-      console.log(`[TENANT ISOLATION] ❌ Access denied: User from restaurant ${userId} tried to access restaurant ${requestedId}`);
-      return res.status(403).json({
-        message: 'Access denied',
-        error: 'You can only access data from your own restaurant',
+    if (!userRestaurantId) {
+      console.log('[TENANT ISOLATION] ❌ No restaurantId in request - authentication required');
+      return res.status(401).json({
+        message: 'Authentication required',
+        error: 'Restaurant ID not found in token. Please login again.',
       });
     }
+    
+    // Check all possible locations where restaurantId might be specified
+    const requestedRestaurantId = 
+      req.params.restaurantId || 
+      req.query.restaurantId || 
+      req.body.restaurantId ||
+      req.params.restaurant_id ||
+      req.query.restaurant_id ||
+      req.body.restaurant_id;
+    
+    // If a specific restaurant is requested, validate it matches user's restaurant
+    if (requestedRestaurantId) {
+      const requestedId = parseInt(requestedRestaurantId, 10);
+      const userId = parseInt(userRestaurantId, 10);
+      
+      if (isNaN(requestedId) || isNaN(userId)) {
+        console.log('[TENANT ISOLATION] ❌ Invalid restaurantId format');
+        return res.status(400).json({
+          message: 'Invalid restaurant ID format',
+          error: 'Restaurant ID must be a valid number',
+        });
+      }
+      
+      if (requestedId !== userId) {
+        console.log(`[TENANT ISOLATION] ❌ CRITICAL SECURITY VIOLATION BLOCKED`);
+        console.log(`[TENANT ISOLATION] User from restaurant ${userId} attempted to access restaurant ${requestedId}`);
+        console.log(`[TENANT ISOLATION] Request: ${req.method} ${req.path}`);
+        console.log(`[TENANT ISOLATION] User: ${req.username || 'unknown'} Role: ${req.userRole || 'unknown'}`);
+        
+        return res.status(403).json({
+          message: 'Access denied',
+          error: 'You can only access data from your own restaurant',
+        });
+      }
+      
+      console.log(`[TENANT ISOLATION] ✓ Validated: restaurant ${userId} accessing own data`);
+    } else {
+      // No explicit restaurantId in request - use authenticated user's restaurantId
+      console.log(`[TENANT ISOLATION] ✓ No explicit restaurantId, using authenticated restaurant: ${userRestaurantId}`);
+    }
+    
+    // Ensure restaurantId is available for route handlers
+    req.restaurantId = userRestaurantId;
+    
+    next();
+  } catch (error) {
+    console.error('[TENANT ISOLATION] Error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+      error: 'Failed to validate tenant isolation',
+    });
   }
-  
-  console.log(`[TENANT ISOLATION] ✓ Validated: restaurant ${userRestaurantId}`);
-  next();
 }
 
 export default {

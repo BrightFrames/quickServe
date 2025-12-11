@@ -26,8 +26,8 @@ const KitchenLogin = () => {
     setLoading(true)
 
     try {
-      // Pass restaurantCode for restaurant-specific kitchen access
-      await login(username, password, 'kitchen', restaurantCode || undefined)
+      // Pass restaurantSlug as identifier for restaurant-specific kitchen access
+      await login(username, password, 'kitchen', restaurantSlug || restaurantCode || undefined)
       toast.success('Login successful!')
       // Always navigate with restaurant slug
       navigate(`/${restaurantSlug}/kitchen/dashboard`)
