@@ -255,6 +255,18 @@ function App() {
             } 
           />
 
+          {/* PUBLIC MENU - QR Code entry point (no auth required) */}
+          <Route 
+            path="/menu/:restaurantSlug/table/:tableId" 
+            element={
+              <CustomerRestaurantProvider>
+                <CartProvider>
+                  <CustomerApp />
+                </CartProvider>
+              </CustomerRestaurantProvider>
+            } 
+          />
+
           {/* Customer Routes - All under /:slug/customer/* */}
           <Route 
             path="/:restaurantSlug/customer/*" 
@@ -267,7 +279,7 @@ function App() {
             } 
           />
 
-          {/* Restaurant Verification - New URL format: /:slug?code=QS1234/admin */}
+          {/* Restaurant Verification - Staff/Admin verification (slug+code) */}
           <Route 
             path="/:restaurantSlug" 
             element={

@@ -733,13 +733,22 @@ router.patch("/dashboard-password", async (req, res) => {
     }
 
     // Get restaurant from token
-    const restaurantId = decoded.id || decoded.restaurantId;
-    if (!restaurantId) {
-      console.log("[RESTAURANT] ✗ Restaurant ID not found in token");
+    let restaurant;
+    
+    // Handle admin token (has restaurantCode) vs staff token (has restaurantId)
+    if (decoded.role === 'admin' && decoded.restaurantCode) {
+      console.log(`[RESTAURANT] Looking up restaurant by code: ${decoded.restaurantCode}`);
+      restaurant = await Restaurant.findOne({ 
+        where: { restaurantCode: decoded.restaurantCode } 
+      });
+    } else if (decoded.restaurantId) {
+      console.log(`[RESTAURANT] Looking up restaurant by ID: ${decoded.restaurantId}`);
+      restaurant = await Restaurant.findByPk(decoded.restaurantId);
+    } else {
+      console.log("[RESTAURANT] ✗ Restaurant identifier not found in token");
       return res.status(401).json({ message: "Invalid token structure" });
     }
 
-    const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       console.log("[RESTAURANT] ✗ Restaurant not found");
       return res.status(404).json({ message: "Restaurant not found" });
@@ -806,12 +815,20 @@ router.get("/dashboard-password-status", async (req, res) => {
       return res.status(401).json({ message: "Invalid authentication token" });
     }
 
-    const restaurantId = decoded.id || decoded.restaurantId;
-    if (!restaurantId) {
+    // Get restaurant from token
+    let restaurant;
+    
+    // Handle admin token (has restaurantCode) vs staff token (has restaurantId)
+    if (decoded.role === 'admin' && decoded.restaurantCode) {
+      restaurant = await Restaurant.findOne({ 
+        where: { restaurantCode: decoded.restaurantCode } 
+      });
+    } else if (decoded.restaurantId) {
+      restaurant = await Restaurant.findByPk(decoded.restaurantId);
+    } else {
       return res.status(401).json({ message: "Invalid token structure" });
     }
 
-    const restaurant = await Restaurant.findByPk(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }

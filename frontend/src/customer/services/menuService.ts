@@ -46,32 +46,81 @@ class MenuService {
   }
 
   /**
-   * CORE FIX: Fetch menu using restaurantId (primary key) preferentially
-   * Falls back to slug if restaurantId not available
-   * @param restaurantSlug - Restaurant slug (optional, for backward compatibility)
-   * @param restaurantId - Restaurant ID (preferred, primary key)
+   * PUBLIC CUSTOMER ENDPOINT - No authentication required
+   * Fetch menu data directly for customers scanning QR codes
+   * @param restaurantSlug - Restaurant slug from QR code URL (REQUIRED for customers)
+   * @param restaurantId - Restaurant ID (optional, for backward compatibility)
    */
   async getMenu(restaurantSlug?: string, restaurantId?: number): Promise<MenuCategory[]> {
     try {
-      // CORE FIX: Prefer restaurantId over slug for consistent data retrieval
-      let url = this.apiUrl;
-      
-      if (restaurantId && restaurantId > 0) {
-        // Use restaurantId (primary key) - fastest and most reliable
-        url = `${this.apiUrl}?restaurantId=${restaurantId}`;
-        console.log('[MENU SERVICE] Fetching menu by restaurantId:', restaurantId, 'URL:', url);
-      } else if (restaurantSlug) {
-        // Fallback to slug - will be mapped to restaurantId on backend
-        url = `${this.apiUrl}?slug=${restaurantSlug}`;
-        console.log('[MENU SERVICE] Fetching menu by slug:', restaurantSlug, 'URL:', url);
+      // For customers scanning QR codes - use PUBLIC endpoint
+      // This bypasses ALL authentication and slug verification
+      if (restaurantSlug) {
+        const publicUrl = `${this.getBaseUrl()}/public/menu/${restaurantSlug}`;
+        console.log('[MENU SERVICE] PUBLIC customer request for slug:', restaurantSlug);
+        console.log('[MENU SERVICE] Using public endpoint:', publicUrl);
+        
+        const response = await axios.get(publicUrl);
+        const { restaurant, menu: menuItems } = response.data;
+        
+        console.log('[MENU SERVICE] PUBLIC - Restaurant:', restaurant.name);
+        console.log('[MENU SERVICE] PUBLIC - Retrieved', menuItems.length, 'items');
+        
+        // Group items by category
+        const categoriesMap = new Map<string, MenuItem[]>();
+
+        menuItems.forEach((item: any) => {
+          const category = item.category || "Other";
+          if (!categoriesMap.has(category)) {
+            categoriesMap.set(category, []);
+          }
+
+          // Map backend data to frontend format
+          const mappedItem: MenuItem = {
+            id: item.id?.toString() || item._id?.toString(),
+            _id: item._id,
+            name: item.name,
+            description: item.description,
+            price: item.price,
+            image: item.image,
+            category: item.category,
+            inStock: item.available !== false,
+            available: item.available,
+            inventoryCount: item.inventoryCount,
+            isVegetarian: item.isVegetarian,
+            averageRating: item.averageRating,
+            totalRatings: item.totalRatings,
+          };
+
+          categoriesMap.get(category)!.push(mappedItem);
+        });
+
+        // Convert map to array of categories
+        const categories: MenuCategory[] = Array.from(
+          categoriesMap.entries()
+        ).map(([categoryName, items]) => ({
+          id: categoryName.toLowerCase().replace(/\s+/g, "-"),
+          name: categoryName,
+          description: `Delicious ${categoryName.toLowerCase()}`,
+          items,
+        }));
+
+        return categories;
       }
       
-      console.log('[MENU SERVICE] Full request URL:', url);
+      // Fallback for old admin flow (restaurantId) - keep existing functionality
+      // This ensures admin/staff dashboards still work correctly
+      let url = this.apiUrl;
+      if (restaurantId && restaurantId > 0) {
+        url = `${this.apiUrl}?restaurantId=${restaurantId}`;
+        console.log('[MENU SERVICE] Admin request by restaurantId:', restaurantId);
+      }
+      
       const response = await axios.get(url);
       const menuItems: MenuItem[] = response.data;
       console.log(`[MENU SERVICE] Retrieved ${menuItems.length} items`);
 
-      // Group items by category
+      // Group items by category (same logic as above)
       const categoriesMap = new Map<string, MenuItem[]>();
 
       menuItems.forEach((item) => {
@@ -80,7 +129,6 @@ class MenuService {
           categoriesMap.set(category, []);
         }
 
-        // Map backend data to frontend format
         const mappedItem: MenuItem = {
           id: item._id || item.id,
           _id: item._id,
@@ -100,7 +148,6 @@ class MenuService {
         categoriesMap.get(category)!.push(mappedItem);
       });
 
-      // Convert map to array of categories
       const categories: MenuCategory[] = Array.from(
         categoriesMap.entries()
       ).map(([categoryName, items]) => ({

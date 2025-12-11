@@ -24,6 +24,7 @@ import promoCodeRoutes from "./routes/promoCodes.js";
 import debugRoutes from "./routes/debug.js";
 import captainRoutes from "./routes/captain.js";
 import receptionRoutes from "./routes/reception.js";
+import publicRoutes from "./routes/public.js";
 
 dotenv.config();
 
@@ -372,6 +373,11 @@ app.get("/health", async (req, res) => {
 
 // Log all route registrations
 console.log("Registering routes...");
+
+// PUBLIC ROUTES (no authentication required) - MUST BE FIRST
+app.use("/public", publicRoutes);
+console.log("✓ Public routes registered at /public");
+
 app.use("/api/auth", authRoutes);
 console.log("✓ Auth routes registered at /api/auth");
 
