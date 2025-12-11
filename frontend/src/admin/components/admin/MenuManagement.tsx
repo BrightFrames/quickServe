@@ -90,19 +90,22 @@ const MenuManagement = () => {
     }
     
     try {
+      console.log('[MENU] Submitting menu item:', formData);
       const menuData = { ...formData, slug: restaurantSlug };
       
       if (editingItem?.id) {
         await axios.put(`${apiUrl}/api/menu/${editingItem.id}`, formData, getAxiosConfig());
         toast.success("Menu item updated successfully");
       } else {
-        await axios.post(`${apiUrl}/api/menu`, formData, getAxiosConfig());
+        const response = await axios.post(`${apiUrl}/api/menu`, formData, getAxiosConfig());
+        console.log('[MENU] Item created:', response.data);
         toast.success("Menu item added successfully");
       }
       fetchMenuItems();
       resetForm();
     } catch (error: any) {
-      console.error('Error saving menu item:', error);
+      console.error('[MENU] Error saving menu item:', error);
+      console.error('[MENU] Error response:', error.response?.data);
       toast.error(error.response?.data?.message || "Failed to save menu item");
     }
   };
