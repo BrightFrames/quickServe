@@ -148,27 +148,6 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
 
     console.log("[RESTAURANT AUTH] ✓ Restaurant created successfully");
 
-    // Auto-create captain account for this restaurant
-    const captainUsername = `captain_${uniqueSlug.replace(/-/g, '_')}`;
-    const captainPassword = 'captain123'; // Default password
-    const hashedCaptainPassword = await bcrypt.hash(captainPassword, 10);
-
-    try {
-      const captain = await User.create({
-        username: captainUsername,
-        password: hashedCaptainPassword,
-        role: 'captain',
-        restaurantId: restaurant.id,
-        isOnline: false,
-        lastActive: new Date()
-      });
-      
-      console.log(`[RESTAURANT AUTH] ✓ Auto-created captain account: ${captainUsername}`);
-    } catch (captainError) {
-      console.error('[RESTAURANT AUTH] Failed to create captain account:', captainError.message);
-      // Continue even if captain creation fails - restaurant is already created
-    }
-
     // Generate JWT token
     const token = jwt.sign(
       { 
@@ -180,7 +159,7 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       { expiresIn: "30d" }
     );
 
-    // Return restaurant data (excluding password) with captain info
+    // Return restaurant data (excluding password)
     const restaurantData = {
       id: restaurant.id,
       name: restaurant.name,
@@ -189,12 +168,11 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       email: restaurant.email,
       phone: restaurant.phone,
       address: restaurant.address,
-      captainUsername: captainUsername,
-      captainPassword: captainPassword, // Show default password in signup response
+      requiresStaffSetup: true, // Flag to prompt for kitchen and captain passwords
     };
 
     res.status(201).json({
-      message: "Restaurant registered successfully",
+      message: "Restaurant registered successfully. Please set up kitchen and captain access.",
       restaurant: restaurantData,
       token,
     });
@@ -852,6 +830,322 @@ router.get("/info/:identifier", async (req, res) => {
   } catch (error) {
     console.error("[RESTAURANT INFO] Error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================
+// Setup Kitchen and Captain Credentials
+// ============================
+/**
+ * POST /api/restaurant/setup-staff-access
+ * 
+ * Sets up kitchen and captain user accounts for a newly registered restaurant.
+ * This endpoint should be called immediately after restaurant signup to create
+ * staff access credentials.
+ * 
+ * Security Features:
+ * - Each staff account is tied to a specific restaurantId
+ * - Usernames are automatically generated as kitchen_{slug} and captain_{slug}
+ * - Passwords are securely hashed before storage
+ * - Authentication validates both username AND restaurantId
+ * - Login with wrong restaurantId will fail even with correct credentials
+ * 
+ * Request Body:
+ * {
+ *   "restaurantId": number,
+ *   "kitchenPassword": string (min 6 chars),
+ *   "captainPassword": string (min 6 chars)
+ * }
+ * 
+ * Response:
+ * {
+ *   "message": "Kitchen and captain access set up successfully",
+ *   "staffAccounts": {
+ *     "kitchen": { "username": "kitchen_restaurant_name", "restaurantId": 1 },
+ *     "captain": { "username": "captain_restaurant_name", "restaurantId": 1 }
+ *   }
+ * }
+ */
+router.post("/setup-staff-access", async (req, res) => {
+  console.log("[RESTAURANT AUTH] Staff setup request received");
+  
+  try {
+    const { restaurantId, kitchenPassword, captainPassword } = req.body;
+    
+    // Validate required fields
+    if (!restaurantId || !kitchenPassword || !captainPassword) {
+      console.log("[RESTAURANT AUTH] Missing required fields for staff setup");
+      return res.status(400).json({ 
+        message: "Restaurant ID, kitchen password, and captain password are required" 
+      });
+    }
+
+    // Validate password length
+    if (kitchenPassword.length < 6 || captainPassword.length < 6) {
+      console.log("[RESTAURANT AUTH] Passwords too short");
+      return res.status(400).json({ 
+        message: "Kitchen and captain passwords must be at least 6 characters long" 
+      });
+    }
+
+    // Verify restaurant exists
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      console.log("[RESTAURANT AUTH] Restaurant not found");
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Generate unique usernames based on restaurant slug
+    const kitchenUsername = `kitchen_${restaurant.slug.replace(/-/g, '_')}`;
+    const captainUsername = `captain_${restaurant.slug.replace(/-/g, '_')}`;
+
+    console.log(`[RESTAURANT AUTH] Creating staff accounts for restaurant ${restaurant.name}`);
+
+    // Check if accounts already exist
+    const existingKitchen = await User.findOne({ 
+      where: { username: kitchenUsername, restaurantId } 
+    });
+    const existingCaptain = await User.findOne({ 
+      where: { username: captainUsername, restaurantId } 
+    });
+
+    if (existingKitchen || existingCaptain) {
+      console.log("[RESTAURANT AUTH] Staff accounts already exist");
+      return res.status(400).json({ 
+        message: "Kitchen or captain accounts already exist for this restaurant. Use update endpoint to change passwords." 
+      });
+    }
+
+    // Create kitchen user account
+    const kitchenUser = await User.create({
+      username: kitchenUsername,
+      password: kitchenPassword, // Will be hashed by Sequelize hook
+      role: 'kitchen',
+      restaurantId: restaurant.id,
+      isOnline: false,
+      lastActive: new Date()
+    });
+
+    console.log(`[RESTAURANT AUTH] ✓ Kitchen account created: ${kitchenUsername}`);
+
+    // Create captain user account
+    const captainUser = await User.create({
+      username: captainUsername,
+      password: captainPassword, // Will be hashed by Sequelize hook
+      role: 'captain',
+      restaurantId: restaurant.id,
+      isOnline: false,
+      lastActive: new Date()
+    });
+
+    console.log(`[RESTAURANT AUTH] ✓ Captain account created: ${captainUsername}`);
+
+    res.status(201).json({
+      message: "Kitchen and captain access set up successfully",
+      staffAccounts: {
+        kitchen: {
+          username: kitchenUsername,
+          restaurantId: restaurant.id
+        },
+        captain: {
+          username: captainUsername,
+          restaurantId: restaurant.id
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Staff setup error:", error);
+    
+    // Handle unique constraint errors
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ 
+        message: "Staff accounts already exist for this restaurant" 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: "Server error during staff setup", 
+      error: error.message 
+    });
+  }
+});
+
+// ============================
+// Check Staff Setup Status
+// ============================
+/**
+ * GET /api/restaurant/staff-setup-status/:restaurantId
+ * 
+ * Checks if kitchen and captain accounts have been set up for a restaurant.
+ * Returns which accounts exist and which need to be created.
+ */
+router.get("/staff-setup-status/:restaurantId", async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    // Verify restaurant exists
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Check for existing staff accounts
+    const kitchenUsername = `kitchen_${restaurant.slug.replace(/-/g, '_')}`;
+    const captainUsername = `captain_${restaurant.slug.replace(/-/g, '_')}`;
+
+    const kitchenUser = await User.findOne({ 
+      where: { username: kitchenUsername, restaurantId, role: 'kitchen' } 
+    });
+
+    const captainUser = await User.findOne({ 
+      where: { username: captainUsername, restaurantId, role: 'captain' } 
+    });
+
+    res.json({
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      setupComplete: !!(kitchenUser && captainUser),
+      accounts: {
+        kitchen: {
+          exists: !!kitchenUser,
+          username: kitchenUsername
+        },
+        captain: {
+          exists: !!captainUser,
+          username: captainUsername
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Staff setup status error:", error);
+    res.status(500).json({ 
+      message: "Server error checking staff setup status", 
+      error: error.message 
+    });
+  }
+});
+
+// ============================
+// Update Kitchen and Captain Passwords
+// ============================
+/**
+ * PUT /api/restaurant/update-staff-passwords
+ * 
+ * Updates passwords for existing kitchen and/or captain accounts.
+ * Creates accounts if they don't exist.
+ * 
+ * Request Body:
+ * {
+ *   "restaurantId": number,
+ *   "kitchenPassword": string (optional, min 6 chars),
+ *   "captainPassword": string (optional, min 6 chars)
+ * }
+ */
+router.put("/update-staff-passwords", async (req, res) => {
+  console.log("[RESTAURANT AUTH] Staff password update request received");
+  
+  try {
+    const { restaurantId, kitchenPassword, captainPassword } = req.body;
+    
+    // Validate required fields
+    if (!restaurantId) {
+      return res.status(400).json({ 
+        message: "Restaurant ID is required" 
+      });
+    }
+
+    if (!kitchenPassword && !captainPassword) {
+      return res.status(400).json({ 
+        message: "At least one password (kitchen or captain) must be provided" 
+      });
+    }
+
+    // Validate password length if provided
+    if (kitchenPassword && kitchenPassword.length < 6) {
+      return res.status(400).json({ 
+        message: "Kitchen password must be at least 6 characters long" 
+      });
+    }
+
+    if (captainPassword && captainPassword.length < 6) {
+      return res.status(400).json({ 
+        message: "Captain password must be at least 6 characters long" 
+      });
+    }
+
+    // Verify restaurant exists
+    const restaurant = await Restaurant.findByPk(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    const updates = [];
+
+    // Update kitchen password if provided
+    if (kitchenPassword) {
+      const kitchenUsername = `kitchen_${restaurant.slug.replace(/-/g, '_')}`;
+      const kitchenUser = await User.findOne({ 
+        where: { username: kitchenUsername, restaurantId, role: 'kitchen' } 
+      });
+
+      if (kitchenUser) {
+        kitchenUser.password = kitchenPassword; // Will be hashed by Sequelize hook
+        await kitchenUser.save();
+        updates.push('kitchen');
+        console.log(`[RESTAURANT AUTH] ✓ Kitchen password updated`);
+      } else {
+        console.log(`[RESTAURANT AUTH] Kitchen account not found, creating new one`);
+        await User.create({
+          username: kitchenUsername,
+          password: kitchenPassword,
+          role: 'kitchen',
+          restaurantId: restaurant.id,
+          isOnline: false,
+          lastActive: new Date()
+        });
+        updates.push('kitchen (created)');
+      }
+    }
+
+    // Update captain password if provided
+    if (captainPassword) {
+      const captainUsername = `captain_${restaurant.slug.replace(/-/g, '_')}`;
+      const captainUser = await User.findOne({ 
+        where: { username: captainUsername, restaurantId, role: 'captain' } 
+      });
+
+      if (captainUser) {
+        captainUser.password = captainPassword; // Will be hashed by Sequelize hook
+        await captainUser.save();
+        updates.push('captain');
+        console.log(`[RESTAURANT AUTH] ✓ Captain password updated`);
+      } else {
+        console.log(`[RESTAURANT AUTH] Captain account not found, creating new one`);
+        await User.create({
+          username: captainUsername,
+          password: captainPassword,
+          role: 'captain',
+          restaurantId: restaurant.id,
+          isOnline: false,
+          lastActive: new Date()
+        });
+        updates.push('captain (created)');
+      }
+    }
+
+    res.json({
+      message: "Staff passwords updated successfully",
+      updated: updates
+    });
+
+  } catch (error) {
+    console.error("[RESTAURANT AUTH] Staff password update error:", error);
+    res.status(500).json({ 
+      message: "Server error during password update", 
+      error: error.message 
+    });
   }
 });
 
