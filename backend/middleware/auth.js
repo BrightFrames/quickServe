@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import Restaurant from '../models/Restaurant.js';
 
 /**
  * Middleware to authenticate restaurant JWT token and extract restaurantId
@@ -6,7 +7,7 @@ import jwt from 'jsonwebtoken';
  * 
  * SECURITY: Validates token and ensures user can only access their restaurant's data
  */
-export const authenticateRestaurant = (req, res, next) => {
+export const authenticateRestaurant = async (req, res, next) => {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
@@ -49,7 +50,6 @@ export const authenticateRestaurant = (req, res, next) => {
     if (decoded.role === 'admin' && decoded.restaurantCode) {
       console.log('[AUTH] Admin token detected with restaurantCode:', decoded.restaurantCode);
       // Admin users need to be looked up via Restaurant model to get restaurantId
-      const Restaurant = (await import('../models/Restaurant.js')).default;
       const restaurant = await Restaurant.findOne({ where: { restaurantCode: decoded.restaurantCode } });
       
       if (!restaurant) {
