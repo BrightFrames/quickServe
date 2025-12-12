@@ -176,8 +176,8 @@ class OrderService {
       const backendOrder = response.data;
 
       return {
-        _id: backendOrder._id,
-        id: backendOrder._id,
+        _id: backendOrder._id || backendOrder.id,
+        id: backendOrder.id || backendOrder._id,
         orderNumber: backendOrder.orderNumber,
         items: backendOrder.items.map((item: any) => ({
           id: item.menuItemId,
@@ -215,8 +215,8 @@ class OrderService {
       const backendOrder = response.data;
 
       return {
-        _id: backendOrder._id,
-        id: backendOrder._id,
+        _id: backendOrder._id || backendOrder.id,
+        id: backendOrder.id || backendOrder._id,
         orderNumber: backendOrder.orderNumber,
         items: backendOrder.items.map((item: any) => ({
           id: item.menuItemId,

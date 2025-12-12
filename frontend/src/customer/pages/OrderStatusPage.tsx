@@ -9,6 +9,7 @@ import { OrderStatusBanner } from "../components/OrderStatusBanner";
 import { OrderTrackingProgress } from "../components/OrderTrackingProgress";
 import { FoodRating } from "../components/FoodRating";
 import { io, Socket } from "socket.io-client";
+import { toast } from "sonner";
 
 export const OrderStatusPage = () => {
   const navigate = useNavigate();
@@ -134,99 +135,95 @@ export const OrderStatusPage = () => {
 
   const isOrderComplete = currentOrder.status === "completed" || currentOrder.status === "served";
 
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     if (!currentOrder) return;
     
-    // Create a printable invoice HTML for download as PDF
-    const invoiceNumber = currentOrder.orderNumber || currentOrder.id;
-    const printContent = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Invoice - ${invoiceNumber}</title>
-  <meta charset="utf-8">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; color: #333; }
-    .invoice-container { max-width: 800px; margin: 0 auto; border: 3px solid #000; padding: 40px; background: white; }
-    .header { text-align: center; border-bottom: 3px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-    .header h1 { font-size: 32px; margin-bottom: 10px; font-weight: bold; }
-    .header h2 { font-size: 24px; margin-bottom: 5px; }
-    .invoice-details { display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; }
-    .invoice-details strong { display: block; margin-bottom: 5px; }
-    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-    .items-table th { background-color: #f5f5f5; border: 2px solid #000; padding: 12px; text-align: left; font-weight: bold; font-size: 14px; }
-    .items-table td { border: 2px solid #000; padding: 12px; font-size: 14px; }
-    .items-table tr:nth-child(even) { background-color: #fafafa; }
-    .totals { margin-left: auto; width: 350px; font-size: 14px; }
-    .totals div { display: flex; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    .totals .total-row { font-size: 20px; font-weight: bold; border-top: 3px solid #000; border-bottom: 3px double #000; padding: 15px 10px; margin-top: 10px; background-color: #f5f5f5; }
-    .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #000; font-size: 14px; }
-    @media print { body { padding: 20px; } .invoice-container { border: 2px solid #000; } }
-  </style>
-</head>
-<body>
-  <div class="invoice-container">
-    <div class="header">
-      <h1>TAX INVOICE</h1>
-      <h2>QuickServe Restaurant</h2>
-      <p style="margin-top: 10px; font-size: 12px;">GST Number: [Restaurant GST]</p>
-    </div>
-    <div class="invoice-details">
-      <div>
-        <strong>Invoice Number:</strong> ${invoiceNumber}<br>
-        <strong>Date:</strong> ${new Date(currentOrder.createdAt).toLocaleString('en-IN')}<br>
-        <strong>Table Number:</strong> ${currentOrder.tableNumber || 'N/A'}
-      </div>
-      <div style="text-align: right;">
-        <strong>Payment Method:</strong> Cash<br>
-        <strong>Payment Status:</strong> Pending
-      </div>
-    </div>
-    <table class="items-table">
-      <thead>
-        <tr>
-          <th style="width: 50%;">Item Description</th>
-          <th style="width: 10%; text-align: center;">Qty</th>
-          <th style="width: 20%; text-align: right;">Price</th>
-          <th style="width: 20%; text-align: right;">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${currentOrder.items.map(item => `<tr>
-          <td>${item.name}</td>
-          <td style="text-align: center;">${item.quantity}</td>
-          <td style="text-align: right;">₹${item.price.toFixed(2)}</td>
-          <td style="text-align: right;">₹${(item.price * item.quantity).toFixed(2)}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-    <div class="totals">
-      <div><span>Subtotal:</span><span><strong>₹${currentOrder.subtotal.toFixed(2)}</strong></span></div>
-      <div><span>CGST (4.5%):</span><span>₹${(currentOrder.tax / 2).toFixed(2)}</span></div>
-      <div><span>SGST (4.5%):</span><span>₹${(currentOrder.tax / 2).toFixed(2)}</span></div>
-      ${currentOrder.discount > 0 ? `<div style="color: green;"><span>Discount:</span><span>-₹${currentOrder.discount.toFixed(2)}</span></div>` : ''}
-      <div class="total-row"><span>TOTAL AMOUNT:</span><span>₹${currentOrder.total.toFixed(2)}</span></div>
-    </div>
-    <div class="footer">
-      <p><strong>Thank you for your order!</strong></p>
-      <p style="font-size: 12px; color: #666; margin-top: 10px;">This is a computer generated invoice.</p>
-    </div>
-  </div>
-  <script>window.onload = function() { window.print(); };</script>
-</body>
-</html>`;
-
-    // Open in new window for print to PDF
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const orderId = currentOrder.id || currentOrder._id;
+      const invoiceNumber = currentOrder.orderNumber || orderId;
+      
+      if (!orderId) {
+        toast.error('Order ID not found. Please try again.');
+        console.error('[INVOICE] No order ID found:', currentOrder);
+        return;
+      }
+      
+      const url = `${apiUrl}/api/orders/${orderId}/invoice/pdf`;
+      
+      console.log('[INVOICE] Downloading from:', url);
+      toast.loading('Generating invoice PDF...');
+      
+      // Call backend API to generate and download PDF
+      const response = await fetch(url, {
+        method: 'GET',
+      });
+      
+      console.log('[INVOICE] Response status:', response.status);
+      console.log('[INVOICE] Response headers:', response.headers.get('content-type'));
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[INVOICE] Error response:', errorText);
+        throw new Error(`Failed to download invoice: ${response.status}`);
+      }
+      
+      // Get PDF blob
+      const blob = await response.blob();
+      console.log('[INVOICE] Blob size:', blob.size, 'bytes');
+      console.log('[INVOICE] Blob type:', blob.type);
+      
+      if (blob.size === 0) {
+        throw new Error('Received empty PDF file');
+      }
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `invoice-${invoiceNumber}.pdf`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup after a short delay
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      }, 100);
+      
+      toast.dismiss();
+      toast.success('Invoice downloaded successfully!');
+      console.log('[INVOICE] PDF downloaded successfully');
+    } catch (error) {
+      toast.dismiss();
+      console.error('[INVOICE] Download error:', error);
+      toast.error(`Failed to download invoice: ${error.message}`);
     }
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = async () => {
     if (!currentOrder) return;
-    handleDownloadInvoice(); // Same as download - opens print dialog
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const orderId = currentOrder.id || currentOrder._id;
+      
+      if (!orderId) {
+        toast.error('Order ID not found. Please try again.');
+        console.error('[INVOICE] No order ID found:', currentOrder);
+        return;
+      }
+      
+      // Open PDF in new tab for printing
+      const url = `${apiUrl}/api/orders/${orderId}/invoice/pdf`;
+      window.open(url, '_blank');
+      
+      console.log('[INVOICE] PDF opened for printing');
+    } catch (error) {
+      console.error('[INVOICE] Print error:', error);
+      toast.error('Failed to open invoice. Please try again.');
+    }
   };
 
   if (!orderId || !currentOrder) {

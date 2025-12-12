@@ -585,22 +585,23 @@ router.get("/:id/invoice/download", authenticateRestaurant, enforceTenantIsolati
   }
 });
 
-// Download PDF invoice
-router.get("/:id/invoice/pdf", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
+// Download PDF invoice - PUBLIC endpoint for customers
+router.get("/:id/invoice/pdf", async (req, res) => {
   try {
-    const order = await Order.findOne({ 
-      where: { 
-        id: req.params.id,
-        restaurantId: req.restaurantId 
-      } 
-    });
+    console.log('[PDF INVOICE] Request for order ID:', req.params.id);
+    
+    const order = await Order.findByPk(req.params.id);
     
     if (!order) {
+      console.log('[PDF INVOICE] Order not found:', req.params.id);
       return res.status(404).json({ message: "Order not found" });
     }
 
+    console.log('[PDF INVOICE] Order found:', order.orderNumber);
+    
     // Get restaurant details
     const restaurant = await Restaurant.findByPk(order.restaurantId);
+    console.log('[PDF INVOICE] Restaurant:', restaurant?.name);
 
     // Prepare order data for PDF
     const orderData = {
@@ -625,12 +626,19 @@ router.get("/:id/invoice/pdf", authenticateRestaurant, enforceTenantIsolation, r
     // Import PDF service dynamically
     const { generateInvoicePDFBuffer } = await import('../services/pdfInvoiceService.js');
     
+    console.log('[PDF INVOICE] Generating PDF for order:', order.orderNumber);
+    
     // Generate PDF buffer
     const pdfBuffer = await generateInvoicePDFBuffer(orderData);
+    
+    console.log('[PDF INVOICE] PDF generated, buffer size:', pdfBuffer.length, 'bytes');
 
     // Set headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${order.orderNumber}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    console.log('[PDF INVOICE] Sending PDF to client');
     res.send(pdfBuffer);
 
   } catch (error) {

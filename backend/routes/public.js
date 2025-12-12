@@ -37,7 +37,7 @@ router.get('/menu/:slug', async (req, res) => {
     // Find restaurant by slug
     const restaurant = await Restaurant.findOne({
       where: { slug: slug.toLowerCase().trim() },
-      attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode', 'description']
+      attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode']
     });
 
     if (!restaurant) {

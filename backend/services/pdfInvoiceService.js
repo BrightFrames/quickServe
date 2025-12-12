@@ -20,16 +20,17 @@ export async function generateInvoicePDF(orderData, outputPath) {
 
       doc.pipe(stream);
 
-      // Header
-      doc.fontSize(20).text(orderData.restaurantName || 'Restaurant', { align: 'center' });
-      doc.fontSize(10).text(orderData.restaurantAddress || '', { align: 'center' });
-      doc.moveDown();
-
-      // GST Number
+      // Header with Logo placeholder (you can add actual logo URL later)
+      // Restaurant Name
+      doc.fontSize(24).font('Helvetica-Bold').text(orderData.restaurantName || 'Restaurant', { align: 'center' });
+      doc.fontSize(10).font('Helvetica').text(orderData.restaurantAddress || '', { align: 'center' });
+      
+      // GST Number - prominently displayed
       if (orderData.gstNumber) {
-        doc.fontSize(10).text(`GST No: ${orderData.gstNumber}`, { align: 'center' });
-        doc.moveDown();
+        doc.moveDown(0.5);
+        doc.fontSize(11).font('Helvetica-Bold').text(`GST No: ${orderData.gstNumber}`, { align: 'center' });
       }
+      doc.moveDown();
 
       // Invoice Title
       doc.fontSize(16).text('TAX INVOICE', { align: 'center', underline: true });
@@ -152,15 +153,17 @@ export async function generateInvoicePDFBuffer(orderData) {
         resolve(pdfBuffer);
       });
 
-      // Same PDF generation logic as above
-      doc.fontSize(20).text(orderData.restaurantName || 'Restaurant', { align: 'center' });
-      doc.fontSize(10).text(orderData.restaurantAddress || '', { align: 'center' });
-      doc.moveDown();
-
+      // Header with Logo placeholder (you can add actual logo URL later)
+      // Restaurant Name
+      doc.fontSize(24).font('Helvetica-Bold').text(orderData.restaurantName || 'Restaurant', { align: 'center' });
+      doc.fontSize(10).font('Helvetica').text(orderData.restaurantAddress || '', { align: 'center' });
+      
+      // GST Number - prominently displayed
       if (orderData.gstNumber) {
-        doc.fontSize(10).text(`GST No: ${orderData.gstNumber}`, { align: 'center' });
-        doc.moveDown();
+        doc.moveDown(0.5);
+        doc.fontSize(11).font('Helvetica-Bold').text(`GST No: ${orderData.gstNumber}`, { align: 'center' });
       }
+      doc.moveDown();
 
       doc.fontSize(16).text('TAX INVOICE', { align: 'center', underline: true });
       doc.moveDown();
