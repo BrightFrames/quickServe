@@ -38,14 +38,35 @@ export const authenticateRestaurant = (req, res, next) => {
       role: decoded.role,
       email: decoded.email, 
       type: decoded.type,
-      restaurantId: decoded.restaurantId
+      restaurantId: decoded.restaurantId,
+      restaurantCode: decoded.restaurantCode
     });
     
     // Store full user info in request
     req.user = decoded;
     
+    // Handle admin tokens (role: 'admin' with restaurantCode)
+    if (decoded.role === 'admin' && decoded.restaurantCode) {
+      console.log('[AUTH] Admin token detected with restaurantCode:', decoded.restaurantCode);
+      // Admin users need to be looked up via Restaurant model to get restaurantId
+      const Restaurant = (await import('../models/Restaurant.js')).default;
+      const restaurant = await Restaurant.findOne({ where: { restaurantCode: decoded.restaurantCode } });
+      
+      if (!restaurant) {
+        console.log('[AUTH] Restaurant not found for code:', decoded.restaurantCode);
+        return res.status(403).json({ 
+          message: 'Access denied',
+          error: 'Restaurant not found for this admin account'
+        });
+      }
+      
+      req.restaurantId = restaurant.id;
+      req.restaurantCode = decoded.restaurantCode;
+      req.userRole = 'admin';
+      console.log('[AUTH] ✓ Admin authenticated for restaurant:', restaurant.id);
+    }
     // Allow restaurant, kitchen, captain, and reception users
-    if (decoded.type === 'restaurant') {
+    else if (decoded.type === 'restaurant') {
       // Restaurant owner - use their ID as restaurantId
       req.restaurantId = decoded.id;
       req.restaurantEmail = decoded.email;
