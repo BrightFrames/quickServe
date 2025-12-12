@@ -243,19 +243,8 @@ function App() {
             }
           />
 
-          {/* Restaurant Dashboard - Password Protected */}
-          <Route 
-            path="/:restaurantSlug/dashboard" 
-            element={
-              <LandingAuthProvider>
-                <DashboardProtection>
-                  <Dashboard />
-                </DashboardProtection>
-              </LandingAuthProvider>
-            } 
-          />
-
           {/* PUBLIC MENU - QR Code entry point with table (no auth required) */}
+          {/* IMPORTANT: These routes MUST come before /:restaurantSlug/dashboard to avoid conflicts */}
           <Route 
             path="/menu/:restaurantSlug/table/:tableId" 
             element={
@@ -276,6 +265,18 @@ function App() {
                   <CustomerApp />
                 </CartProvider>
               </CustomerRestaurantProvider>
+            } 
+          />
+
+          {/* Restaurant Dashboard - Password Protected */}
+          <Route 
+            path="/:restaurantSlug/dashboard" 
+            element={
+              <LandingAuthProvider>
+                <DashboardProtection>
+                  <Dashboard />
+                </DashboardProtection>
+              </LandingAuthProvider>
             } 
           />
 

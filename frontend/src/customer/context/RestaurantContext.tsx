@@ -67,7 +67,9 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } else if (urlSlug) {
       // QR CODE FLOW: Customer scanned QR code with URL like /menu/udita-bestro/table/T1
       // The slug is in the URL but no query params - this is the normal customer flow
-      console.log('[RESTAURANT CONTEXT] QR code scan detected - slug from URL:', urlSlug);
+      console.log('[RESTAURANT CONTEXT] ✓ QR code scan detected!');
+      console.log('[RESTAURANT CONTEXT]   URL slug:', urlSlug);
+      console.log('[RESTAURANT CONTEXT]   Full path:', window.location.pathname);
       setRestaurantSlug(urlSlug);
       // Note: restaurantId will be null, but menuService.getMenu will fetch by slug from public API
     } else {

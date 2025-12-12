@@ -99,6 +99,9 @@ router.post("/", enforceTenantIsolation, requirePermission('write:tables'), asyn
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
     // CUSTOMER QR CODE: Direct public menu access - no authentication
     const orderUrl = `${baseUrl}/menu/${restaurant.slug}/table/${tableId}`;
+    
+    console.log('[TABLES] ✓ QR Code URL generated:', orderUrl);
+    console.log('[TABLES]   This URL should take customers DIRECTLY to menu (no password required)');
 
     // Generate QR code as base64 image
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
