@@ -440,6 +440,11 @@ app.get("/", (req, res) => {
   res.send("Server is running fine");
 });
 
+// Favicon route - silently handle browser favicon requests
+app.get("/favicon.ico", (req, res) => {
+  res.status(204).end();
+});
+
 // 404 handler - catch any unmatched routes
 app.use((req, res, next) => {
   console.log(`[404] Route not found: ${req.method} ${req.url}`);
