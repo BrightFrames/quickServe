@@ -70,14 +70,20 @@ const UserManagement = () => {
     try {
       setLoading(true);
       const config = getAxiosConfig();
+      console.log('[UserManagement] Fetching staff users with config:', { 
+        headers: { ...config.headers, Authorization: config.headers.Authorization ? 'Bearer ***' : 'missing' }
+      });
       const [kitchenResponse, captainResponse] = await Promise.all([
         axios.get(`${apiUrl}/api/users/kitchen`, config),
         axios.get(`${apiUrl}/api/users/captains`, config)
       ]);
+      console.log('[UserManagement] ✓ Successfully fetched staff users');
       setKitchenUsers(kitchenResponse.data || []);
       setCaptainUsers(captainResponse.data || []);
-    } catch (error) {
-      toast.error("Failed to fetch staff users");
+    } catch (error: any) {
+      console.error('[UserManagement] ❌ Failed to fetch staff users:', error.response?.data || error.message);
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || "Failed to fetch staff users";
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

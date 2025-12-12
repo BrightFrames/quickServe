@@ -255,9 +255,21 @@ function App() {
             } 
           />
 
-          {/* PUBLIC MENU - QR Code entry point (no auth required) */}
+          {/* PUBLIC MENU - QR Code entry point with table (no auth required) */}
           <Route 
             path="/menu/:restaurantSlug/table/:tableId" 
+            element={
+              <CustomerRestaurantProvider>
+                <CartProvider>
+                  <CustomerApp />
+                </CartProvider>
+              </CustomerRestaurantProvider>
+            } 
+          />
+
+          {/* PUBLIC MENU - Direct menu access without table (no auth required) */}
+          <Route 
+            path="/menu/:restaurantSlug" 
             element={
               <CustomerRestaurantProvider>
                 <CartProvider>
@@ -279,9 +291,9 @@ function App() {
             } 
           />
 
-          {/* Restaurant Verification - Staff/Admin verification (slug+code) */}
+          {/* Staff Verification - Staff/Admin slug+code verification */}
           <Route 
-            path="/:restaurantSlug" 
+            path="/verify/:restaurantSlug" 
             element={
               <AdminAuthProvider>
                 <AdminRestaurantProvider>

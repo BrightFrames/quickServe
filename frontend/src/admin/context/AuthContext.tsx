@@ -30,21 +30,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          console.log('[AUTH] 401 Unauthorized - Token expired or invalid')
+          // Check if this is a token authentication error (not just a bad request)
+          const isAuthError = error.response?.data?.error?.includes('token') || 
+                             error.response?.data?.message?.includes('Authentication') ||
+                             error.response?.data?.message?.includes('Token');
           
-          // Clear session and redirect to login
-          setUser(null)
-          localStorage.removeItem('user')
-          localStorage.removeItem('token')
-          localStorage.removeItem('restaurantToken')
-          localStorage.removeItem('captainToken')
-          localStorage.removeItem('receptionToken')
-          delete axios.defaults.headers.common['Authorization']
-          
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
-            console.log('[AUTH] Redirecting to login due to expired token')
-            window.location.href = '/login'
+          if (isAuthError) {
+            console.log('[AUTH] 401 Unauthorized - Token expired or invalid:', error.response?.data?.message)
+            
+            // Clear session and redirect to login
+            setUser(null)
+            localStorage.removeItem('user')
+            localStorage.removeItem('token')
+            localStorage.removeItem('restaurantToken')
+            localStorage.removeItem('captainToken')
+            localStorage.removeItem('receptionToken')
+            delete axios.defaults.headers.common['Authorization']
+            
+            // Only redirect if not already on login page
+            if (!window.location.pathname.includes('/login')) {
+              console.log('[AUTH] Redirecting to login due to expired token')
+              window.location.href = '/login'
+            }
+          } else {
+            console.log('[AUTH] 401 error but not token-related:', error.response?.data?.message)
           }
         }
         return Promise.reject(error)

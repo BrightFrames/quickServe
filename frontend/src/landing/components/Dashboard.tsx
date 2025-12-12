@@ -57,8 +57,8 @@ const Dashboard: React.FC = () => {
     if (restaurant) {
       if (restaurant.restaurantCode) {
         // Navigate to restaurant verification page with code
-        // URL format: /slug?code=QS1234&type=admin
-        navigate(`/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
+        // URL format: /verify/slug?code=QS1234&type=admin
+        navigate(`/verify/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
       } else {
         // If restaurantCode is missing (old session), go directly to admin login
         toast.info('Redirecting to admin login...');

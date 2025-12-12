@@ -15,7 +15,7 @@ const RestaurantVerification = () => {
   useEffect(() => {
     const verifyRestaurant = async () => {
       try {
-        // Parse URL: /:slug?code=QS1234&type=admin or /:slug?code=QS1234&type=kitchen
+        // Parse URL: /verify/:slug?code=QS1234&type=admin or /verify/:slug?code=QS1234&type=kitchen
         const searchParams = new URLSearchParams(location.search);
         const restaurantCode = searchParams.get('code');
         const panelType = searchParams.get('type');
@@ -54,7 +54,7 @@ const RestaurantVerification = () => {
         // For kitchen/captain/reception, require slug
         if (!restaurantSlug || !restaurantCode || !panelType) {
           setStatus('error');
-          setMessage('Invalid URL format. Please use: /:slug?code=QS1234&type=kitchen');
+          setMessage('Invalid URL format. Please use: /verify/:slug?code=QS1234&type=kitchen');
           return;
         }
 

@@ -50,20 +50,30 @@ export const authenticateRestaurant = async (req, res, next) => {
     if (decoded.role === 'admin' && decoded.restaurantCode) {
       console.log('[AUTH] Admin token detected with restaurantCode:', decoded.restaurantCode);
       // Admin users need to be looked up via Restaurant model to get restaurantId
-      const restaurant = await Restaurant.findOne({ where: { restaurantCode: decoded.restaurantCode } });
-      
-      if (!restaurant) {
-        console.log('[AUTH] Restaurant not found for code:', decoded.restaurantCode);
-        return res.status(403).json({ 
-          message: 'Access denied',
-          error: 'Restaurant not found for this admin account'
+      try {
+        const restaurant = await Restaurant.findOne({ where: { restaurantCode: decoded.restaurantCode } });
+        
+        if (!restaurant) {
+          console.log('[AUTH] ❌ Restaurant not found for code:', decoded.restaurantCode);
+          console.log('[AUTH] This usually means the restaurantCode in token does not match any restaurant in database');
+          return res.status(403).json({ 
+            message: 'Access denied',
+            error: 'Restaurant not found for this admin account. Please login again.'
+          });
+        }
+        
+        req.restaurantId = restaurant.id;
+        req.restaurantCode = decoded.restaurantCode;
+        req.userRole = 'admin';
+        req.username = decoded.username;
+        console.log('[AUTH] ✓ Admin authenticated for restaurant:', restaurant.id, '(', restaurant.name, ')');
+      } catch (dbError) {
+        console.error('[AUTH] ❌ Database error while looking up restaurant:', dbError.message);
+        return res.status(500).json({ 
+          message: 'Server error',
+          error: 'Failed to validate restaurant. Please try again.'
         });
       }
-      
-      req.restaurantId = restaurant.id;
-      req.restaurantCode = decoded.restaurantCode;
-      req.userRole = 'admin';
-      console.log('[AUTH] ✓ Admin authenticated for restaurant:', restaurant.id);
     }
     // Allow restaurant, kitchen, captain, and reception users
     else if (decoded.type === 'restaurant') {
