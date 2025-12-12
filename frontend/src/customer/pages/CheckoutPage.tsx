@@ -88,20 +88,15 @@ export const CheckoutPage = () => {
   }, []);
 
   const handlePlaceOrder = async () => {
-    // Validate email
-    if (!email) {
-      toast.error("Please enter your email address for invoice");
-      return;
-    }
-
-    if (!email.includes('@')) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
     // Validate payment method selection
     if (!paymentMethod) {
       toast.error("Please select a payment method");
+      return;
+    }
+
+    // Validate email format if provided
+    if (email && !email.includes('@')) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
@@ -227,10 +222,10 @@ export const CheckoutPage = () => {
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Mail className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">Email for Invoice</h2>
+            <h2 className="text-lg font-bold">Email (Optional)</h2>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="email">Enter your email for loyalty benefits</Label>
             <Input
               id="email"
               type="email"
@@ -238,10 +233,9 @@ export const CheckoutPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-12"
-              required
             />
             <p className="text-sm text-muted-foreground">
-              📧 Invoice will be sent to this email address
+              🎁 Get exclusive offers, rewards, and your invoice via email
             </p>
           </div>
         </Card>
@@ -284,7 +278,7 @@ export const CheckoutPage = () => {
           onClick={handlePlaceOrder}
           size="lg"
           className="w-full h-14 text-base"
-          disabled={loading || processingPayment || !paymentMethod || !email || !email.includes('@')}
+          disabled={loading || processingPayment || !paymentMethod}
         >
           {processingPayment
             ? "Processing..."
