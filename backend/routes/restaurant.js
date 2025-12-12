@@ -701,8 +701,18 @@ router.patch("/dashboard-password", async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("[RESTAURANT] Token decoded successfully");
+      console.log("[RESTAURANT] Token contents:", { 
+        role: decoded.role,
+        type: decoded.type,
+        id: decoded.id,
+        restaurantCode: decoded.restaurantCode, 
+        restaurantId: decoded.restaurantId,
+        username: decoded.username,
+        email: decoded.email
+      });
     } catch (err) {
-      console.log("[RESTAURANT] ✗ Invalid token");
+      console.log("[RESTAURANT] ✗ Invalid token:", err.message);
       return res.status(401).json({ message: "Invalid authentication token" });
     }
 
@@ -735,29 +745,43 @@ router.patch("/dashboard-password", async (req, res) => {
     // Get restaurant from token
     let restaurant;
     
-    // Handle admin token (has restaurantCode) vs staff token (has restaurantId)
+    // Handle multiple token formats:
+    // 1. New admin token: role='admin' + restaurantCode
+    // 2. Old restaurant token: type='restaurant' + id (restaurant ID)
+    // 3. Staff token: restaurantId
     if (decoded.role === 'admin' && decoded.restaurantCode) {
-      console.log(`[RESTAURANT] Looking up restaurant by code: ${decoded.restaurantCode}`);
+      console.log(`[RESTAURANT] Admin token - looking up by code: ${decoded.restaurantCode}`);
       restaurant = await Restaurant.findOne({ 
         where: { restaurantCode: decoded.restaurantCode } 
       });
+    } else if (decoded.type === 'restaurant' && decoded.id) {
+      console.log(`[RESTAURANT] Old restaurant token - looking up by ID: ${decoded.id}`);
+      restaurant = await Restaurant.findByPk(decoded.id);
     } else if (decoded.restaurantId) {
-      console.log(`[RESTAURANT] Looking up restaurant by ID: ${decoded.restaurantId}`);
+      console.log(`[RESTAURANT] Staff token - looking up by restaurantId: ${decoded.restaurantId}`);
       restaurant = await Restaurant.findByPk(decoded.restaurantId);
     } else {
       console.log("[RESTAURANT] ✗ Restaurant identifier not found in token");
-      return res.status(401).json({ message: "Invalid token structure" });
+      console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
+      return res.status(401).json({ message: "Invalid token structure - missing restaurant identifier" });
     }
 
     if (!restaurant) {
-      console.log("[RESTAURANT] ✗ Restaurant not found");
+      console.log("[RESTAURANT] ✗ Restaurant not found in database");
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
+    console.log(`[RESTAURANT] ✓ Restaurant found: ${restaurant.name} (ID: ${restaurant.id})`);
+    console.log(`[RESTAURANT] Dashboard password is set: ${!!restaurant.dashboardPassword}`);
+    console.log(`[RESTAURANT] Validating old password...`);
+
     // Validate old password
     const isOldPasswordValid = await restaurant.compareDashboardPassword(oldPassword);
+    console.log(`[RESTAURANT] Old password validation result: ${isOldPasswordValid}`);
+    
     if (!isOldPasswordValid) {
-      console.log("[RESTAURANT] ✗ Old password incorrect");
+      console.log("[RESTAURANT] ✗ Old password incorrect - user entered:", oldPassword);
+      console.log("[RESTAURANT] Using default password?", !restaurant.dashboardPassword);
       return res.status(401).json({ 
         message: "Current dashboard password is incorrect" 
       });
@@ -804,6 +828,7 @@ router.get("/dashboard-password-status", async (req, res) => {
     // Extract restaurant info from JWT token
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
+      console.log("[RESTAURANT] ✗ No token in authorization header");
       return res.status(401).json({ message: "Authentication required" });
     }
 
@@ -811,28 +836,46 @@ router.get("/dashboard-password-status", async (req, res) => {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("[RESTAURANT] Token decoded:", { 
+        role: decoded.role, 
+        restaurantCode: decoded.restaurantCode, 
+        restaurantId: decoded.restaurantId 
+      });
     } catch (err) {
+      console.log("[RESTAURANT] ✗ Token verification failed:", err.message);
       return res.status(401).json({ message: "Invalid authentication token" });
     }
 
     // Get restaurant from token
     let restaurant;
     
-    // Handle admin token (has restaurantCode) vs staff token (has restaurantId)
+    // Handle multiple token formats:
+    // 1. New admin token: role='admin' + restaurantCode
+    // 2. Old restaurant token: type='restaurant' + id (restaurant ID)
+    // 3. Staff token: restaurantId
     if (decoded.role === 'admin' && decoded.restaurantCode) {
+      console.log("[RESTAURANT] Admin token - looking up by restaurantCode:", decoded.restaurantCode);
       restaurant = await Restaurant.findOne({ 
         where: { restaurantCode: decoded.restaurantCode } 
       });
+    } else if (decoded.type === 'restaurant' && decoded.id) {
+      console.log("[RESTAURANT] Old restaurant token - looking up by ID:", decoded.id);
+      restaurant = await Restaurant.findByPk(decoded.id);
     } else if (decoded.restaurantId) {
+      console.log("[RESTAURANT] Staff token - looking up by restaurantId:", decoded.restaurantId);
       restaurant = await Restaurant.findByPk(decoded.restaurantId);
     } else {
-      return res.status(401).json({ message: "Invalid token structure" });
+      console.log("[RESTAURANT] ✗ Token has no valid restaurant identifier");
+      console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
+      return res.status(401).json({ message: "Invalid token structure - missing restaurant identifier" });
     }
 
     if (!restaurant) {
+      console.log("[RESTAURANT] ✗ Restaurant not found in database");
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
+    console.log("[RESTAURANT] ✓ Restaurant found:", restaurant.name);
     const isUsingDefault = await restaurant.isUsingDefaultDashboardPassword();
 
     res.json({

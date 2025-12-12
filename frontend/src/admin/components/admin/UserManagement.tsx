@@ -91,10 +91,17 @@ const UserManagement = () => {
 
   const fetchDashboardPasswordStatus = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/restaurant/dashboard-password-status`, getAxiosConfig());
+      const config = getAxiosConfig();
+      console.log('[UserManagement] Fetching dashboard password status');
+      console.log('[UserManagement] Token present:', !!localStorage.getItem('token'));
+      const response = await axios.get(`${apiUrl}/api/restaurant/dashboard-password-status`, config);
       setIsUsingDefaultDashboard(response.data.isUsingDefault || false);
-    } catch (error) {
-      console.error("Error fetching dashboard password status:", error);
+    } catch (error: any) {
+      console.error('[UserManagement] Error fetching dashboard password status:', {
+        status: error.response?.status,
+        message: error.response?.data?.message,
+        error: error.response?.data?.error
+      });
     }
   };
 
