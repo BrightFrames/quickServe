@@ -20,7 +20,6 @@ import {
   UserPlus,
   Key
 } from 'lucide-react';
-import { GlowCard } from './ui/spotlight-card';
 
 const Dashboard: React.FC = () => {
   const { restaurant, token, logout } = useAuth();
@@ -160,9 +159,9 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-orange-100 sticky top-0 z-50">
+      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center space-x-4">
@@ -196,38 +195,38 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Restaurant Info Card */}
-        <Card className="mb-8 border-orange-200">
+        <Card className="mb-8 border-gray-200 shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-orange-600" />
+              <Building className="h-5 w-5 text-red-600" />
               <span>Restaurant Information</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center space-x-3">
-                <Building className="h-5 w-5 text-orange-600" />
+                <Building className="h-5 w-5 text-red-600" />
                 <div>
                   <span className="text-xs text-gray-500 block">Restaurant Code</span>
                   <span className="text-sm font-medium">{restaurant?.restaurantCode}</span>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-orange-600" />
+                <Mail className="h-5 w-5 text-red-600" />
                 <div>
                   <span className="text-xs text-gray-500 block">Email</span>
                   <span className="text-sm font-medium">{restaurant?.email}</span>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-orange-600" />
+                <Phone className="h-5 w-5 text-red-600" />
                 <div>
                   <span className="text-xs text-gray-500 block">Phone</span>
                   <span className="text-sm font-medium">{restaurant?.phone}</span>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-orange-600" />
+                <MapPin className="h-5 w-5 text-red-600" />
                 <div>
                   <span className="text-xs text-gray-500 block">Address</span>
                   <span className="text-sm font-medium">{restaurant?.address}</span>
@@ -242,11 +241,10 @@ const Dashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Update Admin Password */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none">
+            <Card className="border-gray-200 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <UserPlus className="h-5 w-5 text-orange-600" />
+                <UserPlus className="h-5 w-5 text-red-600" />
                 <span>Update Admin Credentials</span>
               </CardTitle>
               <CardDescription>
@@ -256,7 +254,7 @@ const Dashboard: React.FC = () => {
             <CardContent>
               {!showAdminForm ? (
                 <div className="space-y-3">
-                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-orange-600 hover:bg-orange-700">
+                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-red-600 hover:bg-red-700">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Change Admin Credentials
                   </Button>
@@ -294,14 +292,12 @@ const Dashboard: React.FC = () => {
                 )}
             </CardContent>
           </Card>
-          </GlowCard>
 
           {/* Update Kitchen Password */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none">
+            <Card className="border-gray-200 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-orange-600" />
+                <ChefHat className="h-5 w-5 text-red-600" />
                 <span>Update Kitchen Credentials</span>
               </CardTitle>
               <CardDescription>
@@ -311,7 +307,7 @@ const Dashboard: React.FC = () => {
             <CardContent>
               {!showKitchenForm ? (
                 <div className="space-y-3">
-                  <Button onClick={() => setShowKitchenForm(true)} className="w-full bg-orange-600 hover:bg-orange-700">
+                  <Button onClick={() => setShowKitchenForm(true)} className="w-full bg-red-600 hover:bg-red-700">
                     <ChefHat className="h-4 w-4 mr-2" />
                     Change Kitchen Credentials
                   </Button>
@@ -349,16 +345,14 @@ const Dashboard: React.FC = () => {
                 )}
             </CardContent>
           </Card>
-          </GlowCard>
         </div>
 
         {/* Captain Credentials - Full Width */}
         <div className="mb-8">
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none">
+            <Card className="border-gray-200 shadow-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-orange-600" />
+                <Users className="h-5 w-5 text-red-600" />
                 <span>Update Captain Credentials</span>
               </CardTitle>
               <CardDescription>
@@ -368,7 +362,7 @@ const Dashboard: React.FC = () => {
             <CardContent>
               {!showCaptainForm ? (
                 <div className="space-y-3">
-                  <Button onClick={() => setShowCaptainForm(true)} className="w-full bg-orange-600 hover:bg-orange-700">
+                  <Button onClick={() => setShowCaptainForm(true)} className="w-full bg-red-600 hover:bg-red-700">
                     <Users className="h-4 w-4 mr-2" />
                     Change Captain Credentials
                   </Button>
@@ -408,17 +402,15 @@ const Dashboard: React.FC = () => {
                 )}
             </CardContent>
           </Card>
-          </GlowCard>
         </div>
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Admin Panel */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToAdmin}>
+            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToAdmin}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5 text-orange-600" />
+                <Settings className="h-5 w-5 text-red-600" />
                 <span>Admin Panel</span>
                 <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
               </CardTitle>
@@ -426,8 +418,8 @@ const Dashboard: React.FC = () => {
                 Manage restaurant operations, menu, and staff
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-3 flex-grow">
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <BarChart3 className="h-4 w-4" />
                   <span>View analytics and reports</span>
@@ -441,29 +433,27 @@ const Dashboard: React.FC = () => {
                   <span>Manage tables and users</span>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
+              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
                 Open Admin Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
-          </GlowCard>
 
           {/* Kitchen Panel */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToKitchen}>
+            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToKitchen}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-orange-600" />
+                <ChefHat className="h-5 w-5 text-red-600" />
                 <span>Kitchen Panel</span>
-                <ArrowRight className="h-4 w-4 text-orange-400 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
               </CardTitle>
               <CardDescription>
                 Real-time order management for kitchen staff
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-3 flex-grow">
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <ChefHat className="h-4 w-4" />
                   <span>View incoming orders</span>
@@ -477,29 +467,27 @@ const Dashboard: React.FC = () => {
                   <span>Manage preparation queue</span>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
+              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
                 Open Kitchen Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
-          </GlowCard>
 
           {/* Captain Panel */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToCaptain}>
+            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToCaptain}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-orange-600" />
+                <Users className="h-5 w-5 text-red-600" />
                 <span>Captain Panel</span>
-                <ArrowRight className="h-4 w-4 text-orange-400 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
               </CardTitle>
               <CardDescription>
                 Take orders on behalf of customers
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-3 flex-grow">
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <Users className="h-4 w-4" />
                   <span>Select table and take orders</span>
@@ -513,29 +501,27 @@ const Dashboard: React.FC = () => {
                   <span>Send orders directly to kitchen</span>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
+              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
                 Open Captain Panel
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
-          </GlowCard>
 
           {/* Customer App */}
-          <GlowCard glowColor="orange" customSize className="w-full h-auto">
-            <Card className="border-0 bg-transparent shadow-none cursor-pointer transition-all" onClick={handleNavigateToCustomer}>
+            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToCustomer}>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-orange-600" />
+                <Users className="h-5 w-5 text-red-600" />
                 <span>Customer App</span>
-                <ArrowRight className="h-4 w-4 text-orange-400 ml-auto" />
+                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
               </CardTitle>
               <CardDescription>
                 View your restaurant from customer perspective
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="flex-grow flex flex-col">
+              <div className="space-y-3 flex-grow">
                 <div className="flex items-center space-x-3 text-sm text-gray-600">
                   <ChefHat className="h-4 w-4" />
                   <span>Browse menu and place orders</span>
@@ -549,41 +535,40 @@ const Dashboard: React.FC = () => {
                   <span>QR code table ordering</span>
                 </div>
               </div>
-              <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700 text-white">
+              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
                 Open Customer App
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </CardContent>
           </Card>
-          </GlowCard>
         </div>
 
         {/* Quick Stats */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-orange-200">
+          <Card className="border-gray-200 shadow-md">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="h-6 w-6 text-orange-600" />
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
               <p className="text-sm text-gray-600 mt-1">Track performance metrics</p>
             </CardContent>
           </Card>
 
-          <Card className="border-orange-200">
+          <Card className="border-gray-200 shadow-md">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <ChefHat className="h-6 w-6 text-amber-600" />
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <ChefHat className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Kitchen Management</h3>
               <p className="text-sm text-gray-600 mt-1">Real-time order processing</p>
             </CardContent>
           </Card>
 
-          <Card className="border-orange-200">
+          <Card className="border-gray-200 shadow-md">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Users className="h-6 w-6 text-orange-600" />
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Users className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Customer Experience</h3>
               <p className="text-sm text-gray-600 mt-1">QR ordering and feedback</p>

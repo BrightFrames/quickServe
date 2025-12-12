@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
+import AboutPage from './pages/AboutPage';
 import Dashboard from './components/Dashboard';
 
 const AppContent: React.FC = () => {
@@ -26,6 +27,10 @@ const AppContent: React.FC = () => {
       <Route 
         path="/" 
         element={restaurant ? <Navigate to={`/${restaurant.slug}/dashboard`} replace /> : <LandingPage />} 
+      />
+      <Route 
+        path="/about" 
+        element={<AboutPage />} 
       />
       <Route 
         path="/:restaurantSlug/dashboard" 

@@ -8,6 +8,9 @@ import LoadingScreen from './shared/components/LoadingScreen';
 
 // Landing Pages
 import LandingPage from './landing/pages/LandingPage';
+import AboutPage from './landing/pages/AboutPage';
+import PricingPage from './landing/pages/PricingPage';
+import BlogPage from './landing/pages/BlogPage';
 import Dashboard from './landing/components/Dashboard';
 import { DashboardProtection } from './landing/components/DashboardProtection';
 
@@ -73,6 +76,24 @@ function App() {
                 <LandingPage />
               </LandingAuthProvider>
             } 
+          />
+
+          {/* About Page - Public */}
+          <Route 
+            path="/about" 
+            element={<AboutPage />} 
+          />
+
+          {/* Pricing Page - Public */}
+          <Route 
+            path="/pricing" 
+            element={<PricingPage />} 
+          />
+
+          {/* Blog Page - Public */}
+          <Route 
+            path="/blog" 
+            element={<BlogPage />} 
           />
           
           {/* Admin/Kitchen Login Selection */}
