@@ -19,10 +19,11 @@ router.get('/menu/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
     
-    console.log(`[PUBLIC] Customer menu request for slug: ${slug}`);
-    
-    if (!slug) {
-      return res.status(400).json({ message: 'Restaurant slug is required' });
+    if (!slug || slug.trim() === '') {
+      return res.status(400).json({ 
+        message: 'Restaurant slug is required',
+        error: 'SLUG_REQUIRED' 
+      });
     }
 
     // Check cache first
@@ -30,34 +31,34 @@ router.get('/menu/:slug', async (req, res) => {
     const cachedData = cache.get(cacheKey);
     
     if (cachedData) {
-      console.log(`[PUBLIC] Cache HIT for slug: ${slug}`);
       return res.json(cachedData);
     }
 
-    // Find restaurant by slug
+    // CRITICAL: Find restaurant by slug - MUST match exactly
+    const normalizedSlug = slug.toLowerCase().trim();
     const restaurant = await Restaurant.findOne({
-      where: { slug: slug.toLowerCase().trim() },
+      where: { slug: normalizedSlug },
       attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode']
     });
 
+    // FAIL FAST: If restaurant not found, this is a BAD request
     if (!restaurant) {
-      console.log(`[PUBLIC] Restaurant not found for slug: ${slug}`);
-      return res.status(404).json({ message: 'Restaurant not found' });
+      return res.status(404).json({ 
+        message: `Restaurant not found for slug: ${slug}`,
+        error: 'RESTAURANT_NOT_FOUND',
+        slug: slug
+      });
     }
 
-    console.log(`[PUBLIC] Restaurant found: ${restaurant.name} (ID: ${restaurant.id})`);
-
-    // Fetch menu items for this restaurant
+    // Fetch menu items for this restaurant (available items only)
     const menu = await MenuItem.findAll({
       where: { 
         restaurantId: restaurant.id,
-        available: true // Only show available items to customers
+        available: true
       },
       order: [['category', 'ASC'], ['name', 'ASC']],
-      attributes: ['id', 'name', 'description', 'price', 'category', 'image', 'isVegetarian', 'available', 'averageRating', 'totalRatings']
+      attributes: ['id', 'name', 'description', 'price', 'category', 'image', 'isVegetarian', 'available', 'averageRating', 'totalRatings', 'restaurantId']
     });
-
-    console.log(`[PUBLIC] Retrieved ${menu.length} menu items for ${restaurant.name}`);
 
     const responseData = {
       restaurant: {
@@ -67,13 +68,12 @@ router.get('/menu/:slug', async (req, res) => {
         email: restaurant.email,
         phone: restaurant.phone,
         address: restaurant.address,
-        restaurantCode: restaurant.restaurantCode,
-        description: restaurant.description
+        restaurantCode: restaurant.restaurantCode
       },
       menu
     };
 
-    // Cache for 5 minutes (menu doesn't change frequently for customers)
+    // Cache the response
     cache.set(cacheKey, responseData, 5 * 60 * 1000);
 
     res.json(responseData);

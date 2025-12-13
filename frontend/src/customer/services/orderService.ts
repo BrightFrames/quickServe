@@ -50,17 +50,17 @@ class OrderService {
 
   async createOrder(orderData: Partial<Order>): Promise<Order> {
     try {
-      // CORE FIX: Get restaurantId from localStorage as primary identifier
-      const savedData = localStorage.getItem("customer_restaurant_data");
-      let restaurantId: number | null = null;
-      let restaurantSlug: string | undefined = undefined;
+      // Get restaurant slug from URL (source of truth)
+      const pathParts = window.location.pathname.split('/').filter(p => p);
+      const restaurantSlug = pathParts[0];
       
+      // Try to get restaurantId from localStorage (optional)
+      let restaurantId: number | null = null;
+      const savedData = localStorage.getItem("customer_restaurant_data");
       if (savedData) {
         try {
           const data = JSON.parse(savedData);
           restaurantId = data.restaurantId || null;
-          restaurantSlug = data.restaurantSlug;
-          console.log('[ORDER SERVICE] Using restaurantId:', restaurantId, 'slug:', restaurantSlug);
         } catch (e) {
           console.error('[ORDER SERVICE] Failed to parse restaurant data:', e);
         }
@@ -104,29 +104,22 @@ class OrderService {
         paymentMethod: orderData.paymentMethod || "cash",
       };
       
-      // CORE FIX: Prefer restaurantId, fallback to slug
+      // Use slug from URL
+      if (!restaurantSlug || restaurantSlug.trim() === '') {
+        throw new Error('No restaurant identifier available - invalid URL');
+      }
+      
+      orderPayload.slug = restaurantSlug;
+      
+      // Add restaurantId if available (optional)
       if (restaurantId && restaurantId > 0) {
         orderPayload.restaurantId = restaurantId;
-        console.log('[ORDER SERVICE] Creating order with restaurantId:', restaurantId);
-      } else if (restaurantSlug) {
-        orderPayload.slug = restaurantSlug;
-        console.log('[ORDER SERVICE] Creating order with slug:', restaurantSlug);
-      } else {
-        throw new Error('No restaurant identifier available');
       }
 
       // Only add tableId if it's a valid QR code table
       if (tableId) {
         orderPayload.tableId = tableId;
       }
-
-      console.log("[ORDER SERVICE] Creating order with payload:", {
-        restaurantId: orderPayload.restaurantId,
-        slug: orderPayload.slug,
-        tableNumber: orderPayload.tableNumber,
-        itemCount: orderPayload.items.length,
-        fullPayload: orderPayload // Log complete payload for debugging
-      });
       const response = await axios.post(`${this.apiUrl}/orders`, orderPayload);
 
       // Map backend response to frontend format

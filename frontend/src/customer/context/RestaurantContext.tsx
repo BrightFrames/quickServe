@@ -26,22 +26,12 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Load restaurant data from URL params or localStorage on mount
   useEffect(() => {
-    // Check if in captain mode first
-    const captainData = localStorage.getItem('customer_restaurant_data');
-    if (captainData) {
-      const data = JSON.parse(captainData);
-      setRestaurantId(data.restaurantId || null); // CORE FIX: Load restaurantId
-      setRestaurantName(data.restaurantName);
-      setRestaurantSlug(data.restaurantSlug);
-      setToken(data.token);
-      console.log('[RESTAURANT CONTEXT] Loaded from storage - restaurantId:', data.restaurantId);
-      return; // Skip URL validation in captain mode
-    }
+    // CRITICAL: URL slug is ALWAYS the source of truth
+    // localStorage is ONLY for storing auth tokens, not for determining which restaurant
     
-    // Check URL parameters first
     const urlParams = new URLSearchParams(window.location.search);
     const paramRestaurantName = urlParams.get('restaurantName');
-    const paramRestaurantId = urlParams.get('restaurantId'); // CORE FIX: Get restaurantId from URL
+    const paramRestaurantId = urlParams.get('restaurantId');
     const paramToken = urlParams.get('token');
 
     if (paramRestaurantName && paramToken && urlSlug) {
@@ -65,26 +55,36 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
     } else if (urlSlug) {
-      // QR CODE FLOW: Customer scanned QR code with URL like /menu/udita-bestro/table/T1
-      // The slug is in the URL but no query params - this is the normal customer flow
-      console.log('[RESTAURANT CONTEXT] ✓ QR code scan detected!');
-      console.log('[RESTAURANT CONTEXT]   URL slug:', urlSlug);
-      console.log('[RESTAURANT CONTEXT]   Full path:', window.location.pathname);
+      // QR CODE FLOW: URL slug is the source of truth
       setRestaurantSlug(urlSlug);
-      // Note: restaurantId will be null, but menuService.getMenu will fetch by slug from public API
+      
+      // Check if we have cached auth token
+      const savedData = localStorage.getItem('customer_restaurant_data');
+      if (savedData) {
+        try {
+          const data = JSON.parse(savedData);
+          if (data.token) {
+            setToken(data.token);
+          }
+          // Update localStorage with current URL slug
+          if (data.restaurantSlug !== urlSlug) {
+            localStorage.setItem('customer_restaurant_data', JSON.stringify({
+              ...data,
+              restaurantSlug: urlSlug
+            }));
+          }
+        } catch (e) {
+          console.error('[RESTAURANT CONTEXT] Error reading localStorage:', e);
+        }
+      }
+      // Note: restaurantId will be null, menuService.getMenu will fetch by slug from public API
     } else {
-      // Try to load from localStorage
+      // No URL slug - try to restore from localStorage and redirect
       const savedData = localStorage.getItem('customer_restaurant_data');
       if (savedData) {
         const data = JSON.parse(savedData);
-        setRestaurantId(data.restaurantId || null); // CORE FIX: Load restaurantId
-        setRestaurantName(data.restaurantName);
-        setRestaurantSlug(data.restaurantSlug);
-        setToken(data.token);
-        console.log('[RESTAURANT CONTEXT] Restored from storage - restaurantId:', data.restaurantId);
-        
-        // Redirect to correct slug if different
-        if (urlSlug && urlSlug !== data.restaurantSlug) {
+        console.log('[RESTAURANT CONTEXT] No URL slug - redirecting to saved restaurant:', data.restaurantSlug);
+        if (data.restaurantSlug) {
           navigate(`/${data.restaurantSlug}/customer/menu/table/t1`, { replace: true });
         }
       }

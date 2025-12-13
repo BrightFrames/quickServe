@@ -114,12 +114,20 @@ router.get('/', async (req, res) => {
     
     // Call authenticateRestaurant middleware manually
     return authenticateRestaurant(req, res, async () => {
+      console.log('[MENU] ============ ADMIN MENU FETCH ============');
+      console.log('[MENU] Admin authenticated as restaurantId:', req.restaurantId);
+      
       const items = await MenuItem.findAll({
         where: { restaurantId: req.restaurantId },
         order: [['category', 'ASC'], ['name', 'ASC']],
       });
       
       console.log(`[MENU] Retrieved ${items.length} items for restaurant ${req.restaurantId}`);
+      items.forEach((item, idx) => {
+        console.log(`[MENU]   ${idx + 1}. ${item.name} (ID: ${item.id}, RestaurantID: ${item.restaurantId}, Available: ${item.available}, Inventory: ${item.inventoryCount})`);
+      });
+      console.log('[MENU] ==========================================');
+      
       res.json(items);
     });
   } catch (error) {
@@ -174,11 +182,18 @@ router.post('/', authenticateRestaurant, enforceTenantIsolation, requirePermissi
       return res.status(401).json({ message: 'Invalid restaurant authentication' });
     }
     
-    console.log('[MENU] Create menu item request for restaurantId:', req.restaurantId);
+    console.log('[MENU] ========== CREATE MENU ITEM ==========');
+    console.log('[MENU] Authenticated restaurantId:', req.restaurantId);
+    console.log('[MENU] Request body:', JSON.stringify(req.body, null, 2));
     
     // CORE FIX: Always use restaurantId from authenticated token, never from request body
     const itemData = { ...req.body };
+    const bodyRestaurantId = itemData.restaurantId; // Log if client tried to set it
     delete itemData.restaurantId; // Remove any restaurantId from request body
+    
+    if (bodyRestaurantId) {
+      console.log('[MENU] ⚠️  WARNING: Client tried to set restaurantId:', bodyRestaurantId, '- IGNORED');
+    }
     
     const item = await MenuItem.create({
       ...itemData,
@@ -189,7 +204,8 @@ router.post('/', authenticateRestaurant, enforceTenantIsolation, requirePermissi
     cache.delete(cacheKeys.menu(req.restaurantId));
     console.log(`[CACHE] Invalidated menu cache for restaurant ${req.restaurantId}`);
     
-    console.log(`[MENU] ✓ Menu item created: ${item.name} (id: ${item.id}) for restaurantId ${req.restaurantId}`);
+    console.log(`[MENU] ✓ Menu item created: ${item.name} (ID: ${item.id}, RestaurantID: ${item.restaurantId})`);
+    console.log('[MENU] ========================================');
     res.status(201).json(item);
   } catch (error) {
     console.error('[MENU] Error creating menu item:', error);

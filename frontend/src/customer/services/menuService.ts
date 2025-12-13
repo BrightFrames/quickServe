@@ -54,17 +54,11 @@ class MenuService {
   async getMenu(restaurantSlug?: string, restaurantId?: number): Promise<MenuCategory[]> {
     try {
       // For customers scanning QR codes - use PUBLIC endpoint
-      // This bypasses ALL authentication and slug verification
       if (restaurantSlug) {
         const publicUrl = `${this.getBaseUrl()}/public/menu/${restaurantSlug}`;
-        console.log('[MENU SERVICE] PUBLIC customer request for slug:', restaurantSlug);
-        console.log('[MENU SERVICE] Using public endpoint:', publicUrl);
         
         const response = await axios.get(publicUrl);
         const { restaurant, menu: menuItems } = response.data;
-        
-        console.log('[MENU SERVICE] PUBLIC - Restaurant:', restaurant.name);
-        console.log('[MENU SERVICE] PUBLIC - Retrieved', menuItems.length, 'items');
         
         // Group items by category
         const categoriesMap = new Map<string, MenuItem[]>();
