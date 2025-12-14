@@ -241,20 +241,22 @@ const Dashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Update Admin Password */}
-            <Card className="border-gray-200 shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <UserPlus className="h-5 w-5 text-red-600" />
+            <Card className="border-0 shadow-sm rounded-2xl bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center space-x-2 text-base font-semibold">
+                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                  <UserPlus className="h-4 w-4 text-red-600" />
+                </div>
                 <span>Update Admin Credentials</span>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs text-gray-500 mt-2">
                 Set a unique admin username and password for your restaurant
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {!showAdminForm ? (
                 <div className="space-y-3">
-                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-red-600 hover:bg-red-700">
+                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-red-600 hover:bg-red-700 rounded-lg shadow-sm">
                     <UserPlus className="h-4 w-4 mr-2" />
                     Change Admin Credentials
                   </Button>

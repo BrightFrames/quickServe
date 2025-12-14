@@ -138,31 +138,38 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6 relative" ref={dashboardRef}>
-      {/* Sparkles Background Effect */}
-      <TimelineContent
-        animationNum={0}
-        timelineRef={dashboardRef}
-        customVariants={revealVariants}
-        className="absolute top-0 right-0 h-96 w-full overflow-hidden pointer-events-none [mask-image:radial-gradient(50%_50%,white,transparent)]"
-      >
-        <Sparkles
-          density={800}
-          direction="bottom"
-          speed={0.5}
-          color="#3B82F6"
-          className="absolute inset-x-0 top-0 h-full w-full"
-        />
-      </TimelineContent>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 pb-6 sm:pb-8" ref={dashboardRef}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+        {/* Sparkles Background Effect */}
+        <TimelineContent
+          animationNum={0}
+          timelineRef={dashboardRef}
+          customVariants={revealVariants}
+          className="absolute top-0 right-0 h-96 w-full overflow-hidden pointer-events-none [mask-image:radial-gradient(50%_50%,white,transparent)]"
+        >
+          <Sparkles
+            density={800}
+            direction="bottom"
+            speed={0.5}
+            color="#3B82F6"
+            className="absolute inset-x-0 top-0 h-full w-full"
+          />
+        </TimelineContent>
 
-      {/* Period Selector */}
-      <TimelineContent
-        as="div"
-        animationNum={1}
-        timelineRef={dashboardRef}
-        customVariants={revealVariants}
-        className="flex space-x-2 relative z-10"
-      >
+        {/* Dashboard Header */}
+        <div className="pt-4 sm:pt-6 md:pt-8 pb-4 sm:pb-6 relative z-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Analytics Dashboard</h1>
+          <p className="text-xs sm:text-sm text-gray-600">Monitor your restaurant performance and key metrics</p>
+        </div>
+
+        {/* Period Selector */}
+        <TimelineContent
+          as="div"
+          animationNum={1}
+          timelineRef={dashboardRef}
+          customVariants={revealVariants}
+          className="flex flex-wrap gap-2 mb-4 sm:mb-6 relative z-10"
+        >
         {[
           { value: 'today' as const, label: 'Today' },
           { value: '7days' as const, label: 'Last 7 Days' },
@@ -171,10 +178,10 @@ const Dashboard = () => {
           <button
             key={option.value}
             onClick={() => setPeriod(option.value)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 flex-1 sm:flex-initial min-w-[90px] ${
               period === option.value
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
+                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
+                : 'bg-white text-gray-700 hover:bg-gray-50 shadow-sm border border-gray-200 hover:border-blue-300 active:scale-95'
             }`}
           >
             {option.label}
@@ -182,8 +189,8 @@ const Dashboard = () => {
         ))}
       </TimelineContent>
 
-      {/* Stats Cards with Animated Reveal */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+        {/* Stats Cards with Animated Reveal */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5 mb-4 sm:mb-6 relative z-10">
         {statsCards.map((card, index) => (
           <TimelineContent
             key={index}
@@ -191,25 +198,25 @@ const Dashboard = () => {
             timelineRef={dashboardRef}
             customVariants={revealVariants}
           >
-            <div className="relative bg-gradient-to-br from-white via-gray-50 to-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 border border-gray-100 overflow-hidden group">
+            <div className="relative bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-4 sm:p-5 md:p-6 border border-gray-100 overflow-hidden group">
               {/* Gradient Glow Effect on Hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`${card.color} p-3 rounded-xl shadow-lg`}>
-                    <card.icon className="w-6 h-6 text-white" />
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className={`${card.color} p-2.5 sm:p-3 rounded-lg sm:rounded-xl shadow-md group-hover:scale-110 transition-transform duration-300`}>
+                    <card.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   {card.trend && (
-                    <span className="text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                    <span className="text-[10px] sm:text-xs font-bold text-green-600 bg-green-50 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-green-200">
                       {card.trend}
                     </span>
                   )}
                 </div>
-                <h3 className="text-gray-600 text-sm font-semibold tracking-wide uppercase mb-2">
+                <h3 className="text-gray-500 text-[10px] sm:text-xs font-semibold tracking-wide uppercase mb-1.5 sm:mb-2">
                   {card.title}
                 </h3>
-                <p className="text-3xl font-bold text-gray-900">
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
                   {typeof card.value === 'number' ? (
                     <NumberFlow value={card.value} />
                   ) : (
@@ -222,17 +229,22 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Charts with Animated Reveal */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10">
+        {/* Charts with Animated Reveal */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-6 relative z-10">
         {/* Revenue Chart */}
         <TimelineContent
           animationNum={6}
           timelineRef={dashboardRef}
           customVariants={revealVariants}
         >
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue Trend</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 p-4 sm:p-5 md:p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1">Revenue Trend</h3>
+              <p className="text-[10px] sm:text-xs text-gray-500">Track revenue over time</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
             <LineChart data={analytics.revenueChart}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
@@ -251,9 +263,14 @@ const Dashboard = () => {
           timelineRef={dashboardRef}
           customVariants={revealVariants}
         >
-          <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Order Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 p-4 sm:p-5 md:p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <div>
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1">Order Status</h3>
+              <p className="text-[10px] sm:text-xs text-gray-500">Distribution of order states</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
                 data={analytics.orderStatusChart}
@@ -282,23 +299,30 @@ const Dashboard = () => {
         timelineRef={dashboardRef}
         customVariants={revealVariants}
       >
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 relative z-10">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Popular Items</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm hover:shadow-lg transition-shadow duration-300 p-4 sm:p-5 md:p-6 border border-gray-100 relative z-10">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-0.5 sm:mb-1">Popular Items</h3>
+          <p className="text-[10px] sm:text-xs text-gray-500">Best-selling menu items by revenue</p>
+        </div>
+        <div className="overflow-x-auto -mx-4 sm:-mx-5 md:-mx-6 px-4 sm:px-5 md:px-6">
+          <table className="w-full min-w-[500px]">
             <thead>
-              <tr className="border-b">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Item Name</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Orders</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Revenue</th>
+              <tr className="border-b-2 border-gray-200 bg-gray-50">
+                <th className="text-left py-2.5 sm:py-3 px-3 sm:px-4 font-semibold text-[10px] sm:text-xs uppercase tracking-wider text-gray-600">Item Name</th>
+                <th className="text-left py-2.5 sm:py-3 px-3 sm:px-4 font-semibold text-[10px] sm:text-xs uppercase tracking-wider text-gray-600">Orders</th>
+                <th className="text-left py-2.5 sm:py-3 px-3 sm:px-4 font-semibold text-[10px] sm:text-xs uppercase tracking-wider text-gray-600">Revenue</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {analytics.popularItems.map((item, index) => (
-                <tr key={index} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-4">{item.name}</td>
-                  <td className="py-3 px-4">{item.orders}</td>
-                  <td className="py-3 px-4 font-semibold">{formatCurrency(item.revenue)}</td>
+                <tr key={index} className="hover:bg-blue-50/50 transition-colors duration-150">
+                  <td className="py-3 sm:py-4 px-3 sm:px-4 font-medium text-gray-900 text-sm sm:text-base">{item.name}</td>
+                  <td className="py-3 sm:py-4 px-3 sm:px-4 text-gray-600">
+                    <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-100 text-blue-800">
+                      {item.orders}
+                    </span>
+                  </td>
+                  <td className="py-3 sm:py-4 px-3 sm:px-4 font-bold text-gray-900 text-sm sm:text-base">{formatCurrency(item.revenue)}</td>
                 </tr>
               ))}
             </tbody>
@@ -306,6 +330,7 @@ const Dashboard = () => {
         </div>
       </div>
       </TimelineContent>
+      </div>
     </div>
   )
 }
