@@ -127,40 +127,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       delete axios.defaults.headers.common['Authorization'];
       console.log('[AUTH] Cleared old session data before new login');
       
-      // For admin role, use restaurant login endpoint
+      // For admin role, use dedicated admin login endpoint
       if (role === 'admin') {
-        // Use username as email (admin login now asks for email)
-        const email = username;
+        console.log('[AUTH] Attempting admin login with username:', username, 'and restaurantCode:', restaurantIdentifier);
         
-        console.log('[AUTH] Attempting restaurant login with email:', email);
-        
-        // Login as restaurant to get restaurant token
-        const response = await axios.post(`${apiUrl}/api/restaurant/login`, {
-          email: email,
-          password: password
+        // Use dedicated admin login endpoint with restaurantCode
+        const response = await axios.post(`${apiUrl}/api/auth/login`, {
+          username: username,
+          password: password,
+          role: 'admin',
+          restaurantCode: restaurantIdentifier
         });
         
-        const { restaurant, token } = response.data;
+        const { user, token } = response.data;
         
-        console.log('[AUTH] Login successful, got restaurant token');
+        console.log('[AUTH] Admin login successful, got admin token');
+        console.log('[AUTH] Admin user data:', user);
         
-        // Store as admin user with restaurant info
+        // Store admin user with restaurantCode
         const adminUser = {
-          id: restaurant.id,
-          username: restaurant.name,
+          id: user.id,
+          username: user.username,
           role: 'admin' as const,
-          email: restaurant.email,
-          restaurantId: restaurant.id
+          restaurantCode: user.restaurantCode
         };
         
         setUser(adminUser);
         localStorage.setItem('user', JSON.stringify(adminUser));
         localStorage.setItem('token', token);
-        localStorage.setItem('restaurantToken', token);
-        localStorage.setItem('restaurantEmail', restaurant.email);
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
-        console.log('[AUTH] Token set in axios headers');
+        console.log('[AUTH] Admin token set in axios headers');
       } else if (role === 'captain') {
         // Captain login using dedicated endpoint
         console.log('[AUTH] Attempting captain login with identifier:', restaurantIdentifier);

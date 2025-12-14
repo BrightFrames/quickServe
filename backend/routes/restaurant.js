@@ -688,6 +688,7 @@ router.get("/verify/:slug/:code", async (req, res) => {
  */
 router.patch("/dashboard-password", async (req, res) => {
   console.log("[RESTAURANT] Dashboard password update request");
+  console.log("[RESTAURANT] Request body:", { oldPassword: '***', newPassword: '***' });
   
   try {
     // Extract restaurant info from JWT token
@@ -713,7 +714,7 @@ router.patch("/dashboard-password", async (req, res) => {
       });
     } catch (err) {
       console.log("[RESTAURANT] ✗ Invalid token:", err.message);
-      return res.status(401).json({ message: "Invalid authentication token" });
+      return res.status(401).json({ message: "Invalid authentication token", error: err.message });
     }
 
     const { oldPassword, newPassword } = req.body;
@@ -744,35 +745,43 @@ router.patch("/dashboard-password", async (req, res) => {
 
     // Get restaurant from token
     let restaurant;
+    let restaurantId;
     
     // Handle multiple token formats:
-    // 1. New admin token: role='admin' + restaurantCode
-    // 2. Old restaurant token: type='restaurant' + id (restaurant ID)
+    // 1. Admin token: role='admin' + restaurantCode
+    // 2. Restaurant owner token: type='restaurant' + id
     // 3. Staff token: restaurantId
     if (decoded.role === 'admin' && decoded.restaurantCode) {
       console.log(`[RESTAURANT] Admin token - looking up by code: ${decoded.restaurantCode}`);
       restaurant = await Restaurant.findOne({ 
         where: { restaurantCode: decoded.restaurantCode } 
       });
+      restaurantId = restaurant?.id;
     } else if (decoded.type === 'restaurant' && decoded.id) {
-      console.log(`[RESTAURANT] Old restaurant token - looking up by ID: ${decoded.id}`);
-      restaurant = await Restaurant.findByPk(decoded.id);
+      console.log(`[RESTAURANT] Restaurant owner token - looking up by ID: ${decoded.id}`);
+      restaurantId = decoded.id;
+      restaurant = await Restaurant.findByPk(restaurantId);
     } else if (decoded.restaurantId) {
       console.log(`[RESTAURANT] Staff token - looking up by restaurantId: ${decoded.restaurantId}`);
-      restaurant = await Restaurant.findByPk(decoded.restaurantId);
+      restaurantId = decoded.restaurantId;
+      restaurant = await Restaurant.findByPk(restaurantId);
     } else {
       console.log("[RESTAURANT] ✗ Restaurant identifier not found in token");
       console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
-      return res.status(401).json({ message: "Invalid token structure - missing restaurant identifier" });
+      return res.status(401).json({ 
+        message: "Invalid token - missing restaurant identifier",
+        hint: "Please logout and login again"
+      });
     }
 
     if (!restaurant) {
-      console.log("[RESTAURANT] ✗ Restaurant not found in database");
+      console.log("[RESTAURANT] ✗ Restaurant not found in database for ID:", restaurantId);
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
     console.log(`[RESTAURANT] ✓ Restaurant found: ${restaurant.name} (ID: ${restaurant.id})`);
     console.log(`[RESTAURANT] Dashboard password is set: ${!!restaurant.dashboardPassword}`);
+    console.log(`[RESTAURANT] Is using default password: ${!restaurant.dashboardPassword}`);
     console.log(`[RESTAURANT] Validating old password...`);
 
     // Validate old password
@@ -780,22 +789,30 @@ router.patch("/dashboard-password", async (req, res) => {
     console.log(`[RESTAURANT] Old password validation result: ${isOldPasswordValid}`);
     
     if (!isOldPasswordValid) {
-      console.log("[RESTAURANT] ✗ Old password incorrect - user entered:", oldPassword);
-      console.log("[RESTAURANT] Using default password?", !restaurant.dashboardPassword);
+      console.log("[RESTAURANT] ✗ Old password incorrect");
+      console.log("[RESTAURANT] Hint: If this is first time, use default password 'admin123'");
       return res.status(401).json({ 
-        message: "Current dashboard password is incorrect" 
+        message: "Current dashboard password is incorrect",
+        hint: !restaurant.dashboardPassword ? "Try using default password 'admin123'" : "Check your current password"
       });
     }
 
     // Update dashboard password (Sequelize hook will hash it)
+    console.log(`[RESTAURANT] Updating password for restaurant ${restaurant.name}...`);
     restaurant.dashboardPassword = newPassword;
     await restaurant.save();
+    console.log(`[RESTAURANT] ✓ Password saved to database`);
 
+    // Verify the password was actually saved
+    const updatedRestaurant = await Restaurant.findByPk(restaurant.id);
+    const isDefaultAfterUpdate = await updatedRestaurant.isUsingDefaultDashboardPassword();
     console.log(`[RESTAURANT] ✓ Dashboard password updated for restaurant ${restaurant.name}`);
+    console.log(`[RESTAURANT] ✓ Is still using default after update: ${isDefaultAfterUpdate}`);
 
     res.json({
       message: "Dashboard password updated successfully",
-      isUsingDefault: false
+      isUsingDefault: false,
+      success: true
     });
 
   } catch (error) {
@@ -848,40 +865,50 @@ router.get("/dashboard-password-status", async (req, res) => {
 
     // Get restaurant from token
     let restaurant;
+    let restaurantId;
     
     // Handle multiple token formats:
-    // 1. New admin token: role='admin' + restaurantCode
-    // 2. Old restaurant token: type='restaurant' + id (restaurant ID)
+    // 1. Admin token: role='admin' + restaurantCode
+    // 2. Restaurant owner token: type='restaurant' + id
     // 3. Staff token: restaurantId
     if (decoded.role === 'admin' && decoded.restaurantCode) {
       console.log("[RESTAURANT] Admin token - looking up by restaurantCode:", decoded.restaurantCode);
       restaurant = await Restaurant.findOne({ 
         where: { restaurantCode: decoded.restaurantCode } 
       });
+      restaurantId = restaurant?.id;
     } else if (decoded.type === 'restaurant' && decoded.id) {
-      console.log("[RESTAURANT] Old restaurant token - looking up by ID:", decoded.id);
-      restaurant = await Restaurant.findByPk(decoded.id);
+      console.log("[RESTAURANT] Restaurant owner token - looking up by ID:", decoded.id);
+      restaurantId = decoded.id;
+      restaurant = await Restaurant.findByPk(restaurantId);
     } else if (decoded.restaurantId) {
       console.log("[RESTAURANT] Staff token - looking up by restaurantId:", decoded.restaurantId);
-      restaurant = await Restaurant.findByPk(decoded.restaurantId);
+      restaurantId = decoded.restaurantId;
+      restaurant = await Restaurant.findByPk(restaurantId);
     } else {
       console.log("[RESTAURANT] ✗ Token has no valid restaurant identifier");
       console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
-      return res.status(401).json({ message: "Invalid token structure - missing restaurant identifier" });
+      return res.status(401).json({ 
+        message: "Invalid token - missing restaurant identifier",
+        hint: "Please logout and login again" 
+      });
     }
 
     if (!restaurant) {
-      console.log("[RESTAURANT] ✗ Restaurant not found in database");
+      console.log("[RESTAURANT] ✗ Restaurant not found in database for ID:", restaurantId);
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
     console.log("[RESTAURANT] ✓ Restaurant found:", restaurant.name);
+    console.log("[RESTAURANT] Dashboard password set:", !!restaurant.dashboardPassword);
     const isUsingDefault = await restaurant.isUsingDefaultDashboardPassword();
+    console.log("[RESTAURANT] Is using default:", isUsingDefault);
 
     res.json({
       isUsingDefault,
+      restaurantName: restaurant.name,
       message: isUsingDefault 
-        ? "Using default dashboard password. Please update for security." 
+        ? "Using default dashboard password 'admin123'. Please update for security." 
         : "Using custom dashboard password."
     });
 

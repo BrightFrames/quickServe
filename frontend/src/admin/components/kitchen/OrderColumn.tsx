@@ -49,8 +49,8 @@ const OrderColumn = ({
   const colors = colorClasses[color];
 
   const getNextStatus = (): Order["status"] | null => {
-    if (status === "preparing") return "prepared";
-    if (status === "prepared") return "delivered";
+    if (status === "preparing") return "ready";
+    if (status === "ready") return "served";
     return null;
   };
 
@@ -188,8 +188,8 @@ const OrderCard = ({ order, nextStatus, onStatusChange }: OrderCardProps) => {
           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-2 px-4 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center space-x-2"
         >
           <span className="font-medium">
-            {nextStatus === "prepared" && "Mark Prepared"}
-            {nextStatus === "delivered" && "Mark Delivered"}
+            {nextStatus === "ready" && "Mark Ready"}
+            {nextStatus === "served" && "Mark Served"}
           </span>
           <ChevronRight className="w-4 h-4" />
         </button>
