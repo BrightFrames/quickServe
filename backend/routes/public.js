@@ -18,41 +18,52 @@ const router = express.Router();
 router.get('/menu/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
-    
+
     if (!slug || slug.trim() === '') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Restaurant slug is required',
-        error: 'SLUG_REQUIRED' 
+        error: 'SLUG_REQUIRED'
       });
     }
 
     // Check cache first
     const cacheKey = `public:menu:${slug}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json(cachedData);
     }
 
-    // CRITICAL: Find restaurant by slug - MUST match exactly
-    const normalizedSlug = slug.toLowerCase().trim();
-    const restaurant = await Restaurant.findOne({
-      where: { slug: normalizedSlug },
-      attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode']
-    });
+    // CRITICAL: Determine if identifier is slug or ID
+    const isNumericId = /^\d+$/.test(slug);
+    let restaurant;
+
+    if (isNumericId) {
+      // Find by ID
+      restaurant = await Restaurant.findByPk(slug, {
+        attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode']
+      });
+    } else {
+      // Find by slug
+      const normalizedSlug = slug.toLowerCase().trim();
+      restaurant = await Restaurant.findOne({
+        where: { slug: normalizedSlug },
+        attributes: ['id', 'name', 'slug', 'email', 'phone', 'address', 'restaurantCode']
+      });
+    }
 
     // FAIL FAST: If restaurant not found, this is a BAD request
     if (!restaurant) {
-      return res.status(404).json({ 
-        message: `Restaurant not found for slug: ${slug}`,
+      return res.status(404).json({
+        message: `Restaurant not found for identifier: ${slug}`,
         error: 'RESTAURANT_NOT_FOUND',
-        slug: slug
+        identifier: slug
       });
     }
 
     // Fetch menu items for this restaurant (available items only)
     const menu = await MenuItem.findAll({
-      where: { 
+      where: {
         restaurantId: restaurant.id,
         available: true
       },
@@ -80,9 +91,9 @@ router.get('/menu/:slug', async (req, res) => {
 
   } catch (error) {
     console.error('[PUBLIC] Error fetching public menu:', error);
-    res.status(500).json({ 
-      message: 'Error loading restaurant menu', 
-      error: error.message 
+    res.status(500).json({
+      message: 'Error loading restaurant menu',
+      error: error.message
     });
   }
 });

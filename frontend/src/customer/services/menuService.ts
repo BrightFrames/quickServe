@@ -40,7 +40,7 @@ class MenuService {
     // Local development
     return 'http://localhost:3000';
   }
-  
+
   private get apiUrl() {
     return `${this.getBaseUrl()}/api/menu`;
   }
@@ -54,12 +54,16 @@ class MenuService {
   async getMenu(restaurantSlug?: string, restaurantId?: number): Promise<MenuCategory[]> {
     try {
       // For customers scanning QR codes - use PUBLIC endpoint
-      if (restaurantSlug) {
-        const publicUrl = `${this.getBaseUrl()}/public/menu/${restaurantSlug}`;
-        
+      // Support both slug and numeric restaurantId via the public route
+      if (restaurantSlug || (restaurantId && restaurantId > 0)) {
+        // Use slug if available, otherwise use restaurantId
+        const identifier = restaurantSlug || restaurantId;
+        const publicUrl = `${this.getBaseUrl()}/public/menu/${identifier}`;
+
+        console.log(`[MENU SERVICE] Fetching public menu for: ${identifier}`);
         const response = await axios.get(publicUrl);
         const { restaurant, menu: menuItems } = response.data;
-        
+
         // Group items by category
         const categoriesMap = new Map<string, MenuItem[]>();
 
@@ -101,15 +105,14 @@ class MenuService {
 
         return categories;
       }
-      
-      // Fallback for old admin flow (restaurantId) - keep existing functionality
-      // This ensures admin/staff dashboards still work correctly
+
+      // Legacy fallback (should rarely be reached now for public flow)
       let url = this.apiUrl;
       if (restaurantId && restaurantId > 0) {
         url = `${this.apiUrl}?restaurantId=${restaurantId}`;
-        console.log('[MENU SERVICE] Admin request by restaurantId:', restaurantId);
+        console.log('[MENU SERVICE] Admin/Legacy request by restaurantId:', restaurantId);
       }
-      
+
       const response = await axios.get(url);
       const menuItems: MenuItem[] = response.data;
       console.log(`[MENU SERVICE] Retrieved ${menuItems.length} items`);
