@@ -12,7 +12,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantIdentifier?: string) => Promise<void>
+  login: (identifier: string, password: string, role: 'admin' | 'kitchen' | 'captain' | 'reception', restaurantIdentifier?: string) => Promise<void>
   logout: () => void
   isAuthenticated: boolean
   isLoading: boolean
@@ -31,13 +31,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       (error) => {
         if (error.response?.status === 401) {
           // Check if this is a token authentication error (not just a bad request)
-          const isAuthError = error.response?.data?.error?.includes('token') || 
-                             error.response?.data?.message?.includes('Authentication') ||
-                             error.response?.data?.message?.includes('Token');
-          
+          const isAuthError = error.response?.data?.error?.includes('token') ||
+            error.response?.data?.message?.includes('Authentication') ||
+            error.response?.data?.message?.includes('Token');
+
           if (isAuthError) {
             console.log('[AUTH] 401 Unauthorized - Token expired or invalid:', error.response?.data?.message)
-            
+
             // Clear session and redirect to login
             setUser(null)
             localStorage.removeItem('user')
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             localStorage.removeItem('captainToken')
             localStorage.removeItem('receptionToken')
             delete axios.defaults.headers.common['Authorization']
-            
+
             // Only redirect if not already on login page
             if (!window.location.pathname.includes('/login')) {
               console.log('[AUTH] Redirecting to login due to expired token')
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const storedUser = localStorage.getItem('user')
         const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken')
-        
+
         if (!storedUser || !token) {
           console.log('[AUTH] No stored session found')
           setIsLoading(false)
@@ -81,11 +81,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         // Verify token is still valid by making a test request
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-        
+
         // Make a lightweight validation request
         try {
           await axios.get(`${apiUrl}/api/restaurant/profile`)
-          
+
           // Token is valid, restore session
           const parsedUser = JSON.parse(storedUser)
           console.log('[AUTH] ✓ Session validated, restoring user:', parsedUser)
@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         } catch (validationError: any) {
           // Token is invalid or expired
           console.log('[AUTH] ✗ Token validation failed:', validationError.response?.status)
-          
+
           if (validationError.response?.status === 401 || validationError.response?.status === 403) {
             // Clear invalid session
             console.log('[AUTH] Clearing invalid session')
@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     validateSession()
   }, [])
 
-  const login = async (username: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantIdentifier?: string) => {
+  const login = async (identifier: string, password: string, role: 'admin' | 'kitchen' | 'captain', restaurantIdentifier?: string) => {
     try {
       // CRITICAL FIX: Clear any existing session before new login
       // This prevents old restaurantId from being used
@@ -126,24 +126,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.removeItem('receptionToken');
       delete axios.defaults.headers.common['Authorization'];
       console.log('[AUTH] Cleared old session data before new login');
-      
+
       // For admin role, use dedicated admin login endpoint
       if (role === 'admin') {
-        console.log('[AUTH] Attempting admin login with username:', username, 'and restaurantCode:', restaurantIdentifier);
-        
-        // Use dedicated admin login endpoint with restaurantCode
+        console.log('[AUTH] Attempting admin login with email:', identifier, 'and restaurantCode:', restaurantIdentifier);
+
+        // Use dedicated admin login endpoint with email
         const response = await axios.post(`${apiUrl}/api/auth/login`, {
-          username: username,
+          email: identifier, // passed identifier is the email for admin
           password: password,
-          role: 'admin',
-          restaurantCode: restaurantIdentifier
+          role: 'admin'
         });
-        
+
         const { user, token } = response.data;
-        
+
         console.log('[AUTH] Admin login successful, got admin token');
         console.log('[AUTH] Admin user data:', user);
-        
+
         // Store admin user with restaurantCode
         const adminUser = {
           id: user.id,
@@ -151,23 +150,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           role: 'admin' as const,
           restaurantCode: user.restaurantCode
         };
-        
+
         setUser(adminUser);
         localStorage.setItem('user', JSON.stringify(adminUser));
         localStorage.setItem('token', token);
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         console.log('[AUTH] Admin token set in axios headers');
       } else if (role === 'captain') {
         // Captain login using dedicated endpoint
         console.log('[AUTH] Attempting captain login with identifier:', restaurantIdentifier);
-        
+
         const response = await axios.post(`${apiUrl}/api/auth/captain/login`, {
-          username,
+          username: identifier,
           password,
           restaurantIdentifier: restaurantIdentifier,
         });
-        
+
         const { user, token } = response.data;
         console.log('[AUTH] Captain response data:', response.data);
         console.log('[AUTH] Captain user:', user);
@@ -177,16 +176,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('captainToken', token);
         localStorage.setItem('captainUser', JSON.stringify(user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         console.log('[AUTH] Captain login successful');
         return response.data; // Return for redirect with slug
       } else if (role === 'reception') {
         // Reception login
         const response = await axios.post(`${apiUrl}/api/auth/reception/login`, {
-          username,
+          username: identifier,
           password,
         });
-        
+
         const { user, token } = response.data;
         setUser(user);
         localStorage.setItem('user', JSON.stringify(user));
@@ -194,24 +193,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         localStorage.setItem('receptionToken', token);
         localStorage.setItem('receptionUser', JSON.stringify(user));
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
+
         console.log('[AUTH] Reception login successful');
       } else {
         // Kitchen staff login
         console.log('[AUTH] Attempting kitchen login with identifier:', restaurantIdentifier);
-        
+
         const payload: any = {
-          username,
+          username: identifier,
           password,
           role,
         };
-        
+
         if (restaurantIdentifier) {
           payload.restaurantIdentifier = restaurantIdentifier;
         }
-        
+
         const response = await axios.post(`${apiUrl}/api/auth/login`, payload);
-        
+
         const { user, token } = response.data;
         console.log('[AUTH] Kitchen login response:', { user, token: token.substring(0, 20) + '...' })
         console.log('[AUTH] Kitchen user restaurantId:', user.restaurantId)
@@ -236,7 +235,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('restaurantCode')
     localStorage.removeItem('restaurantName')
     delete axios.defaults.headers.common['Authorization']
-    
+
     // Redirect to login selection page
     window.location.href = '/login'
   }

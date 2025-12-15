@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import { signupRateLimiter } from "../utils/rateLimiter.js";
 import { validateRestaurantSignup } from "../utils/validators.js";
 import { cache, cacheKeys } from "../utils/cache.js";
+import { authenticateRestaurant } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -686,35 +687,17 @@ router.get("/verify/:slug/:code", async (req, res) => {
  *   "newPassword": "newSecurePassword123"
  * }
  */
-router.patch("/dashboard-password", async (req, res) => {
+router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => {
   console.log("[RESTAURANT] Dashboard password update request");
-  console.log("[RESTAURANT] Request body:", { oldPassword: '***', newPassword: '***' });
   
   try {
-    // Extract restaurant info from JWT token
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      console.log("[RESTAURANT] ✗ No authentication token provided");
-      return res.status(401).json({ message: "Authentication required" });
-    }
-
-    // Verify and decode token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("[RESTAURANT] Token decoded successfully");
-      console.log("[RESTAURANT] Token contents:", { 
-        role: decoded.role,
-        type: decoded.type,
-        id: decoded.id,
-        restaurantCode: decoded.restaurantCode, 
-        restaurantId: decoded.restaurantId,
-        username: decoded.username,
-        email: decoded.email
+    // Check permissions - only admin (owner or system admin) can change password
+    // authenticateRestaurant sets req.userRole = 'admin' for restaurant owners too
+    if (req.userRole !== 'admin') {
+      console.log(`[RESTAURANT] ✗ Access denied for role: ${req.userRole}`);
+      return res.status(403).json({ 
+        message: "Access denied. Only restaurant administrators can perform this action." 
       });
-    } catch (err) {
-      console.log("[RESTAURANT] ✗ Invalid token:", err.message);
-      return res.status(401).json({ message: "Invalid authentication token", error: err.message });
     }
 
     const { oldPassword, newPassword } = req.body;
@@ -743,36 +726,9 @@ router.patch("/dashboard-password", async (req, res) => {
       });
     }
 
-    // Get restaurant from token
-    let restaurant;
-    let restaurantId;
-    
-    // Handle multiple token formats:
-    // 1. Admin token: role='admin' + restaurantCode
-    // 2. Restaurant owner token: type='restaurant' + id
-    // 3. Staff token: restaurantId
-    if (decoded.role === 'admin' && decoded.restaurantCode) {
-      console.log(`[RESTAURANT] Admin token - looking up by code: ${decoded.restaurantCode}`);
-      restaurant = await Restaurant.findOne({ 
-        where: { restaurantCode: decoded.restaurantCode } 
-      });
-      restaurantId = restaurant?.id;
-    } else if (decoded.type === 'restaurant' && decoded.id) {
-      console.log(`[RESTAURANT] Restaurant owner token - looking up by ID: ${decoded.id}`);
-      restaurantId = decoded.id;
-      restaurant = await Restaurant.findByPk(restaurantId);
-    } else if (decoded.restaurantId) {
-      console.log(`[RESTAURANT] Staff token - looking up by restaurantId: ${decoded.restaurantId}`);
-      restaurantId = decoded.restaurantId;
-      restaurant = await Restaurant.findByPk(restaurantId);
-    } else {
-      console.log("[RESTAURANT] ✗ Restaurant identifier not found in token");
-      console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
-      return res.status(401).json({ 
-        message: "Invalid token - missing restaurant identifier",
-        hint: "Please logout and login again"
-      });
-    }
+    // Get restaurant using ID from middleware
+    const restaurantId = req.restaurantId;
+    const restaurant = await Restaurant.findByPk(restaurantId);
 
     if (!restaurant) {
       console.log("[RESTAURANT] ✗ Restaurant not found in database for ID:", restaurantId);
@@ -780,17 +736,13 @@ router.patch("/dashboard-password", async (req, res) => {
     }
 
     console.log(`[RESTAURANT] ✓ Restaurant found: ${restaurant.name} (ID: ${restaurant.id})`);
-    console.log(`[RESTAURANT] Dashboard password is set: ${!!restaurant.dashboardPassword}`);
-    console.log(`[RESTAURANT] Is using default password: ${!restaurant.dashboardPassword}`);
-    console.log(`[RESTAURANT] Validating old password...`);
-
+    
     // Validate old password
+    // Note: compareDashboardPassword handles checking against default if not set
     const isOldPasswordValid = await restaurant.compareDashboardPassword(oldPassword);
-    console.log(`[RESTAURANT] Old password validation result: ${isOldPasswordValid}`);
     
     if (!isOldPasswordValid) {
       console.log("[RESTAURANT] ✗ Old password incorrect");
-      console.log("[RESTAURANT] Hint: If this is first time, use default password 'admin123'");
       return res.status(401).json({ 
         message: "Current dashboard password is incorrect",
         hint: !restaurant.dashboardPassword ? "Try using default password 'admin123'" : "Check your current password"
@@ -803,11 +755,7 @@ router.patch("/dashboard-password", async (req, res) => {
     await restaurant.save();
     console.log(`[RESTAURANT] ✓ Password saved to database`);
 
-    // Verify the password was actually saved
-    const updatedRestaurant = await Restaurant.findByPk(restaurant.id);
-    const isDefaultAfterUpdate = await updatedRestaurant.isUsingDefaultDashboardPassword();
-    console.log(`[RESTAURANT] ✓ Dashboard password updated for restaurant ${restaurant.name}`);
-    console.log(`[RESTAURANT] ✓ Is still using default after update: ${isDefaultAfterUpdate}`);
+    const isDefaultAfterUpdate = await restaurant.isUsingDefaultDashboardPassword();
 
     res.json({
       message: "Dashboard password updated successfully",
@@ -838,61 +786,21 @@ router.patch("/dashboard-password", async (req, res) => {
  *   "isUsingDefault": true/false
  * }
  */
-router.get("/dashboard-password-status", async (req, res) => {
+router.get("/dashboard-password-status", authenticateRestaurant, async (req, res) => {
   console.log("[RESTAURANT] Dashboard password status check");
   
   try {
-    // Extract restaurant info from JWT token
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      console.log("[RESTAURANT] ✗ No token in authorization header");
-      return res.status(401).json({ message: "Authentication required" });
+     // Check permissions - only admin (owner or system admin) can view status
+    if (req.userRole !== 'admin') {
+      console.log(`[RESTAURANT] ✗ Access denied for role: ${req.userRole}`);
+      return res.status(403).json({ 
+        message: "Access denied. Only restaurant administrators can view this information." 
+      });
     }
 
-    // Verify and decode token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("[RESTAURANT] Token decoded:", { 
-        role: decoded.role, 
-        restaurantCode: decoded.restaurantCode, 
-        restaurantId: decoded.restaurantId 
-      });
-    } catch (err) {
-      console.log("[RESTAURANT] ✗ Token verification failed:", err.message);
-      return res.status(401).json({ message: "Invalid authentication token" });
-    }
-
-    // Get restaurant from token
-    let restaurant;
-    let restaurantId;
-    
-    // Handle multiple token formats:
-    // 1. Admin token: role='admin' + restaurantCode
-    // 2. Restaurant owner token: type='restaurant' + id
-    // 3. Staff token: restaurantId
-    if (decoded.role === 'admin' && decoded.restaurantCode) {
-      console.log("[RESTAURANT] Admin token - looking up by restaurantCode:", decoded.restaurantCode);
-      restaurant = await Restaurant.findOne({ 
-        where: { restaurantCode: decoded.restaurantCode } 
-      });
-      restaurantId = restaurant?.id;
-    } else if (decoded.type === 'restaurant' && decoded.id) {
-      console.log("[RESTAURANT] Restaurant owner token - looking up by ID:", decoded.id);
-      restaurantId = decoded.id;
-      restaurant = await Restaurant.findByPk(restaurantId);
-    } else if (decoded.restaurantId) {
-      console.log("[RESTAURANT] Staff token - looking up by restaurantId:", decoded.restaurantId);
-      restaurantId = decoded.restaurantId;
-      restaurant = await Restaurant.findByPk(restaurantId);
-    } else {
-      console.log("[RESTAURANT] ✗ Token has no valid restaurant identifier");
-      console.log("[RESTAURANT] Token structure:", { role: decoded.role, type: decoded.type, id: decoded.id, restaurantCode: decoded.restaurantCode, restaurantId: decoded.restaurantId });
-      return res.status(401).json({ 
-        message: "Invalid token - missing restaurant identifier",
-        hint: "Please logout and login again" 
-      });
-    }
+    // Get restaurant using ID from middleware
+    const restaurantId = req.restaurantId;
+    const restaurant = await Restaurant.findByPk(restaurantId);
 
     if (!restaurant) {
       console.log("[RESTAURANT] ✗ Restaurant not found in database for ID:", restaurantId);
@@ -900,7 +808,6 @@ router.get("/dashboard-password-status", async (req, res) => {
     }
 
     console.log("[RESTAURANT] ✓ Restaurant found:", restaurant.name);
-    console.log("[RESTAURANT] Dashboard password set:", !!restaurant.dashboardPassword);
     const isUsingDefault = await restaurant.isUsingDefaultDashboardPassword();
     console.log("[RESTAURANT] Is using default:", isUsingDefault);
 
