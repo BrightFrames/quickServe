@@ -23,7 +23,7 @@ const logger = createLogger("Validation");
  */
 export const validateRequest = (req, res, next) => {
   const errors = validationResult(req);
-  
+
   if (!errors.isEmpty()) {
     const errorMessages = errors.array().map(err => ({
       field: err.path,
@@ -70,7 +70,7 @@ export const validateRestaurantSignup = [
     .trim()
     .isEmail()
     .withMessage("Please provide a valid email address"),
-    // Note: Email normalization is handled in the route itself
+  // Note: Email normalization is handled in the route itself
 
   body("password")
     .isLength({ min: 6 })
@@ -100,10 +100,11 @@ export const validateRestaurantSignup = [
  */
 export const validateLogin = [
   body("username")
+    .optional()
     .trim()
     .isLength({ min: 3, max: 50 })
     .withMessage("Username must be between 3 and 50 characters")
-    .matches(/^[a-zA-Z0-9_]+$/)
+    .matches(/^[a-zA-Z0-9_\.@]+$/) // Allow @ and . for email-like usernames if needed, but mainly optional
     .withMessage("Username can only contain letters, numbers, and underscores"),
 
   body("password")
