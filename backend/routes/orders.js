@@ -5,8 +5,8 @@ import { sanitizeCustomerInput, rateLimitCustomer } from "../middleware/customer
 import { sendInvoiceViaWhatsApp, sendInvoiceViaEmail } from "../services/invoiceService.js";
 import { orderRateLimiter } from "../utils/rateLimiter.js";
 import { validateOrderCreation } from "../utils/validators.js";
-import { 
-  validateStatusTransition, 
+import {
+  validateStatusTransition,
   getRestaurantRoom,
   getKitchenRoom,
   getCaptainRoom,
@@ -35,12 +35,12 @@ const SAVE_ORDERS = process.env.SAVE_ORDERS === "true";
  */
 async function getRestaurantIdBySlug(slug) {
   if (!slug || typeof slug !== 'string') return null;
-  
-  const restaurant = await Restaurant.findOne({ 
+
+  const restaurant = await Restaurant.findOne({
     where: { slug: slug.toLowerCase().trim() },
     attributes: ['id']
   });
-  
+
   return restaurant ? restaurant.id : null;
 }
 
@@ -60,19 +60,19 @@ router.get("/active", authenticateRestaurant, enforceTenantIsolation, requirePer
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
-    
+
     const whereClause = {
       restaurantId: req.restaurantId,
       status: {
         [Op.in]: ["pending", "preparing", "ready", "served"],
       },
     };
-    
+
     const orders = await Order.findAll({
       where: whereClause,
       order: [['createdAt', 'DESC']],
     });
-    
+
     logger.info(`Retrieved ${orders.length} active orders`, {
       restaurantId: req.restaurantId,
     });
@@ -92,9 +92,9 @@ router.get("/", authenticateRestaurant, enforceTenantIsolation, requirePermissio
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
-    
+
     const { status, startDate, endDate, tableId } = req.query;
-    
+
     const filter = {
       restaurantId: req.restaurantId
     };
@@ -117,7 +117,7 @@ router.get("/", authenticateRestaurant, enforceTenantIsolation, requirePermissio
       where: filter,
       order: [['createdAt', 'DESC']],
     });
-    
+
     console.log(`[ORDERS] Retrieved ${orders.length} orders for restaurant ${req.restaurantId}`);
     res.json(orders);
   } catch (error) {
@@ -132,7 +132,7 @@ router.get("/by-table/:tableId", authenticateRestaurant, enforceTenantIsolation,
     if (!SAVE_ORDERS) {
       return res.json([]);
     }
-    
+
     const orders = await Order.findAll({
       where: {
         restaurantId: req.restaurantId,
@@ -150,23 +150,23 @@ router.get("/by-table/:tableId", authenticateRestaurant, enforceTenantIsolation,
 // Apply rate limiting and input sanitization for customer protection
 router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, validateOrderCreation, async (req, res) => {
   try {
-    
+
     const { tableNumber, tableId, items, customerPhone, customerEmail, paymentMethod, promoCode, restaurantId, slug } = req.body;
 
     // CORE FIX: Get restaurantId from slug if not provided directly
     // Always use restaurantId (primary key) for all subsequent queries
     let finalRestaurantId = null;
-    
+
     // Prefer direct restaurantId if provided and valid
     if (restaurantId && isValidRestaurantId(restaurantId)) {
       finalRestaurantId = parseInt(restaurantId, 10);
       logger.info('Order creation with direct restaurantId', { restaurantId: finalRestaurantId });
-    } 
+    }
     // Fallback to slug lookup
     else if (slug) {
       logger.info('Order creation with slug, mapping to restaurantId', { slug });
       finalRestaurantId = await getRestaurantIdBySlug(slug);
-      
+
       if (!finalRestaurantId) {
         logger.warn('Restaurant not found for slug', { slug });
         return res.status(404).json({ message: "Restaurant not found" });
@@ -179,7 +179,7 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     // Validate table number format (security check)
     if (tableNumber && !/^[a-zA-Z0-9\-_]+$/.test(tableNumber)) {
       console.warn('[SECURITY] Invalid table number format:', tableNumber);
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Invalid table number format",
         error: "Table number must be alphanumeric"
       });
@@ -211,11 +211,11 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     let finalTableNumber = tableNumber;
 
     if (tableId) {
-      const table = await Table.findOne({ 
-        where: { 
+      const table = await Table.findOne({
+        where: {
           tableId,
-          restaurantId: finalRestaurantId 
-        } 
+          restaurantId: finalRestaurantId
+        }
       });
       if (table) {
         if (!table.isActive) {
@@ -418,6 +418,40 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
   }
 });
 
+// Fetch active orders for kitchen/admin
+router.get("/active", authenticateRestaurant, enforceTenantIsolation, requirePermission('read:orders'), async (req, res) => {
+  try {
+    const whereClause = {
+      restaurantId: req.restaurantId,
+      status: {
+        [Op.in]: ["pending", "preparing", "ready", "prepared", "served", "completed"],
+      },
+      createdAt: {
+        [Op.gte]: new Date(new Date() - 10 * 24 * 60 * 60 * 1000), // Last 10 days
+      },
+    };
+
+    console.log(`[ORDERS] Fetching active orders for restaurantId: ${req.restaurantId}`);
+
+    // Check if saving is enabled
+    if (!SAVE_ORDERS) {
+      console.log('[ORDERS] SAVE_ORDERS is false, returning empty array');
+      return res.json([]);
+    }
+
+    const orders = await Order.findAll({
+      where: whereClause,
+      order: [["createdAt", "DESC"]], // Newest first
+    });
+
+    console.log(`[ORDERS] Found ${orders.length} active orders`);
+    res.json(orders);
+  } catch (error) {
+    console.error("[ORDERS] Error fetching active orders:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // Update order status with lifecycle validation
 router.put("/:id/status", authenticateRestaurant, enforceTenantIsolation, requirePermission('update:order_status'), async (req, res) => {
   try {
@@ -426,17 +460,17 @@ router.put("/:id/status", authenticateRestaurant, enforceTenantIsolation, requir
     if (!status) {
       return res.status(400).json({ message: "Status is required" });
     }
-    
+
     let order;
-    
+
     if (SAVE_ORDERS) {
-      order = await Order.findOne({ 
-        where: { 
+      order = await Order.findOne({
+        where: {
           id: req.params.id,
-          restaurantId: req.restaurantId 
-        } 
+          restaurantId: req.restaurantId
+        }
       });
-      
+
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
@@ -450,7 +484,7 @@ router.put("/:id/status", authenticateRestaurant, enforceTenantIsolation, requir
           orderNumber: order.orderNumber,
           error: validationError.message,
         });
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: validationError.message,
           currentStatus: order.status,
         });
@@ -524,12 +558,14 @@ router.get("/:id", async (req, res) => {
     // Find order by ID without restaurant authentication
     // This allows customers to check their order status
     const order = await Order.findByPk(req.params.id);
-    
+
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
     res.json(order);
   } catch (error) {
+    console.error(`[ORDER] Error fetching order ${req.params.id}:`, error);
+    console.error(error.stack);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -541,14 +577,14 @@ router.get("/:id/invoice/download", authenticateRestaurant, enforceTenantIsolati
       return res.status(404).json({ message: "Invoice not available (persistence disabled)" });
     }
 
-    
-    const order = await Order.findOne({ 
-      where: { 
+
+    const order = await Order.findOne({
+      where: {
         id: req.params.id,
-        restaurantId: req.restaurantId 
-      } 
+        restaurantId: req.restaurantId
+      }
     });
-    
+
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
@@ -589,16 +625,16 @@ router.get("/:id/invoice/download", authenticateRestaurant, enforceTenantIsolati
 router.get("/:id/invoice/pdf", async (req, res) => {
   try {
     console.log('[PDF INVOICE] Request for order ID:', req.params.id);
-    
+
     const order = await Order.findByPk(req.params.id);
-    
+
     if (!order) {
       console.log('[PDF INVOICE] Order not found:', req.params.id);
       return res.status(404).json({ message: "Order not found" });
     }
 
     console.log('[PDF INVOICE] Order found:', order.orderNumber);
-    
+
     // Get restaurant details
     const restaurant = await Restaurant.findByPk(order.restaurantId);
     console.log('[PDF INVOICE] Restaurant:', restaurant?.name);
@@ -625,19 +661,19 @@ router.get("/:id/invoice/pdf", async (req, res) => {
 
     // Import PDF service dynamically
     const { generateInvoicePDFBuffer } = await import('../services/pdfInvoiceService.js');
-    
+
     console.log('[PDF INVOICE] Generating PDF for order:', order.orderNumber);
-    
+
     // Generate PDF buffer
     const pdfBuffer = await generateInvoicePDFBuffer(orderData);
-    
+
     console.log('[PDF INVOICE] PDF generated, buffer size:', pdfBuffer.length, 'bytes');
 
     // Set headers for PDF download
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${order.orderNumber}.pdf"`);
     res.setHeader('Content-Length', pdfBuffer.length);
-    
+
     console.log('[PDF INVOICE] Sending PDF to client');
     res.send(pdfBuffer);
 

@@ -7,10 +7,11 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { toast } from 'sonner';
 import axios from 'axios';
-import { 
-  Users, 
-  ChefHat, 
-  BarChart3, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Users,
+  ChefHat,
+  BarChart3,
   Settings,
   ArrowRight,
   Building,
@@ -18,7 +19,11 @@ import {
   Phone,
   MapPin,
   UserPlus,
-  Key
+  Key,
+  ShieldCheck,
+  LayoutDashboard,
+  UtensilsCrossed,
+  QrCode
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
@@ -37,7 +42,6 @@ const Dashboard: React.FC = () => {
 
   // Validate that the URL slug matches the logged-in restaurant
   useEffect(() => {
-    // If restaurant doesn't have slug, force logout and re-login
     if (restaurant && !restaurant.slug) {
       alert('Your session is outdated. Please log in again.');
       logout();
@@ -46,33 +50,25 @@ const Dashboard: React.FC = () => {
     }
 
     if (restaurant && restaurantSlug !== restaurant.slug) {
-      // Redirect to correct slug
       navigate(`/${restaurant.slug}/dashboard`, { replace: true });
     }
   }, [restaurant, restaurantSlug, navigate, logout]);
 
   const handleNavigateToAdmin = () => {
-    console.log('Admin button clicked', { restaurant, restaurantCode: restaurant?.restaurantCode });
     if (restaurant) {
       if (restaurant.restaurantCode) {
-        // Navigate to restaurant verification page with code
-        // URL format: /verify/slug?code=QS1234&type=admin
         navigate(`/verify/${restaurant.slug}?code=${restaurant.restaurantCode}&type=admin`);
       } else {
-        // If restaurantCode is missing (old session), go directly to admin login
         toast.info('Redirecting to admin login...');
         navigate(`/${restaurant.slug}/admin/login`);
       }
     } else {
       toast.error('Restaurant information not found. Please login again.');
-      console.error('Cannot navigate: Missing restaurant data', restaurant);
     }
   };
 
   const handleNavigateToKitchen = () => {
-    console.log('Kitchen button clicked', { restaurant });
     if (restaurant) {
-      // Navigate to kitchen login with restaurant slug
       navigate(`/${restaurant.slug}/kitchen/login`);
     } else {
       toast.error('Restaurant information not found. Please login again.');
@@ -80,9 +76,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleNavigateToCaptain = () => {
-    console.log('Captain button clicked', { restaurant });
     if (restaurant) {
-      // Navigate to captain login with restaurant slug
       navigate(`/${restaurant.slug}/captain/login`);
     } else {
       toast.error('Restaurant information not found. Please login again.');
@@ -91,8 +85,6 @@ const Dashboard: React.FC = () => {
 
   const handleNavigateToCustomer = () => {
     if (restaurant) {
-      // Navigate to customer app with restaurant slug and data
-      // Pass restaurant data via URL params which CustomerRestaurantProvider expects
       const token = localStorage.getItem('token') || '';
       navigate(`/${restaurant.slug}/customer/menu/table/t1?restaurantName=${encodeURIComponent(restaurant.name)}&restaurantId=${restaurant.id}&token=${encodeURIComponent(token)}`);
     }
@@ -158,425 +150,404 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50/50">
+      {/* Professional Header with Glassmorphism */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-4">
-              <img 
-                src="/icon of the quick serve.png" 
-                alt="QuickServe Logo" 
-                className="w-12 h-12 object-contain"
-              />
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-3">
+              <div className="bg-gradient-to-br from-red-600 to-red-700 p-2 rounded-xl shadow-lg shadow-red-200">
+                <ChefHat className="h-6 w-6 text-white" />
+              </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">QuickServe</h1>
-                <p className="text-sm text-gray-500">Restaurant Management</p>
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">QuickServe</h1>
+                <p className="text-xs text-gray-500 font-medium">Restaurant Manager</p>
               </div>
             </div>
-            <Button onClick={logout} variant="outline">
+            <Button onClick={logout} variant="ghost" className="text-gray-600 hover:text-red-600 hover:bg-red-50 transition-colors">
               Sign Out
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {restaurant?.name}!
-          </h2>
-          <p className="text-gray-600">
-            Manage your restaurant operations from your centralized dashboard.
-          </p>
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <motion.div
+          className="space-y-10"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Welcome Section */}
+          <motion.div variants={itemVariants} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50 z-0"></div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold tracking-wide uppercase">Dashboard</span>
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
+                Welcome back, {restaurant?.name}!
+              </h2>
+              <p className="text-lg text-gray-600 max-w-2xl leading-relaxed">
+                Monitor your restaurant's performance, manage staff credentials, and oversee live operations from your command center.
+              </p>
+            </div>
+          </motion.div>
 
-        {/* Restaurant Info Card */}
-        <Card className="mb-8 border-gray-200 shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Building className="h-5 w-5 text-red-600" />
-              <span>Restaurant Information</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3">
-                <Building className="h-5 w-5 text-red-600" />
-                <div>
-                  <span className="text-xs text-gray-500 block">Restaurant Code</span>
-                  <span className="text-sm font-medium">{restaurant?.restaurantCode}</span>
+          {/* Action Grid - Centerpiece */}
+          <motion.div variants={itemVariants}>
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <LayoutDashboard className="w-5 h-5 text-red-600" />
+              Apps & Consoles
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+              {/* Admin Panel Card */}
+              <div
+                onClick={handleNavigateToAdmin}
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-red-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Settings className="w-24 h-24 text-red-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                </div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-red-600 transition-colors duration-300">
+                    <Settings className="w-6 h-6 text-red-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">Admin Panel</h4>
+                  <p className="text-sm text-gray-500 mb-6 flex-grow">Configure menu, tables, and settings.</p>
+                  <div className="flex items-center text-red-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                    Launch Console <ArrowRight className="w-4 h-4 ml-1" />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-red-600" />
-                <div>
-                  <span className="text-xs text-gray-500 block">Email</span>
-                  <span className="text-sm font-medium">{restaurant?.email}</span>
+
+              {/* Kitchen Panel Card */}
+              <div
+                onClick={handleNavigateToKitchen}
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-orange-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <UtensilsCrossed className="w-24 h-24 text-orange-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                </div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-600 transition-colors duration-300">
+                    <ChefHat className="w-6 h-6 text-orange-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">Kitchen View</h4>
+                  <p className="text-sm text-gray-500 mb-6 flex-grow">Real-time order display for chefs.</p>
+                  <div className="flex items-center text-orange-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                    Launch Display <ArrowRight className="w-4 h-4 ml-1" />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-red-600" />
-                <div>
-                  <span className="text-xs text-gray-500 block">Phone</span>
-                  <span className="text-sm font-medium">{restaurant?.phone}</span>
+
+              {/* Captain Panel Card */}
+              <div
+                onClick={handleNavigateToCaptain}
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Users className="w-24 h-24 text-blue-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                </div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors duration-300">
+                    <Users className="w-6 h-6 text-blue-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">Captain App</h4>
+                  <p className="text-sm text-gray-500 mb-6 flex-grow">Order taking interface for waiters.</p>
+                  <div className="flex items-center text-blue-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                    Launch App <ArrowRight className="w-4 h-4 ml-1" />
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-red-600" />
-                <div>
-                  <span className="text-xs text-gray-500 block">Address</span>
-                  <span className="text-sm font-medium">{restaurant?.address}</span>
+
+              {/* Customer App Card */}
+              <div
+                onClick={handleNavigateToCustomer}
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-green-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <QrCode className="w-24 h-24 text-green-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                </div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-600 transition-colors duration-300">
+                    <QrCode className="w-6 h-6 text-green-600 group-hover:text-white transition-colors" />
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">Customer Menu</h4>
+                  <p className="text-sm text-gray-500 mb-6 flex-grow">Digital menu and self-ordering view.</p>
+                  <div className="flex items-center text-green-600 font-semibold text-sm group-hover:gap-2 transition-all">
+                    Launch Menu <ArrowRight className="w-4 h-4 ml-1" />
+                  </div>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </motion.div>
 
-        {/* Account Management Section */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Management</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Update Admin Password */}
-            <Card className="border-0 shadow-sm rounded-2xl bg-white">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base font-semibold">
-                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
-                  <UserPlus className="h-4 w-4 text-red-600" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column: Stats & Info */}
+            <motion.div variants={itemVariants} className="lg:col-span-1 space-y-8">
+              {/* Restaurant Info Card */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+                  <Building className="w-5 h-5 text-gray-500" />
+                  <h3 className="font-bold text-gray-900">Restaurant Info</h3>
                 </div>
-                <span>Update Admin Credentials</span>
-              </CardTitle>
-              <CardDescription className="text-xs text-gray-500 mt-2">
-                Set a unique admin username and password for your restaurant
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              {!showAdminForm ? (
-                <div className="space-y-3">
-                  <Button onClick={() => setShowAdminForm(true)} className="w-full bg-red-600 hover:bg-red-700 rounded-lg shadow-sm">
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Change Admin Credentials
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <Key className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">CODE</p>
+                      <p className="text-lg font-mono font-bold text-red-600">{restaurant?.restaurantCode}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">EMAIL</p>
+                      <p className="text-sm text-gray-900 font-medium break-all">{restaurant?.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">PHONE</p>
+                      <p className="text-sm text-gray-900 font-medium">{restaurant?.phone}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">ADDRESS</p>
+                      <p className="text-sm text-gray-900 font-medium">{restaurant?.address}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right Column: Credential Management */}
+            <motion.div variants={itemVariants} className="lg:col-span-2 space-y-6">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-red-600" />
+                Access Management
+              </h3>
+
+              {/* Admin Credentials */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-base font-bold text-gray-900">Admin Account</h4>
+                    <p className="text-sm text-gray-500">Full access to settings and logs.</p>
+                  </div>
+                  <Button
+                    variant={showAdminForm ? "secondary" : "default"}
+                    onClick={() => setShowAdminForm(!showAdminForm)}
+                    className={showAdminForm ? "bg-gray-100 text-gray-900" : "bg-gray-900 hover:bg-black text-white"}
+                  >
+                    {showAdminForm ? "Cancel" : "Update"}
                   </Button>
                 </div>
-              ) : (
-                  <form onSubmit={handleCreateAdmin} className="space-y-4">
-                    <div>
-                      <Label htmlFor="admin-username">New Admin Username (Optional)</Label>
-                      <Input
-                        id="admin-username"
-                        type="text"
-                        placeholder="Enter new admin username"
-                        value={adminFormData.username}
-                        onChange={(e) => setAdminFormData({ ...adminFormData, username: e.target.value })}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Leave blank to keep current username</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="admin-password">New Admin Password (Optional)</Label>
-                      <Input
-                        id="admin-password"
-                        type="password"
-                        placeholder="Enter new admin password"
-                        value={adminFormData.password}
-                        onChange={(e) => setAdminFormData({ ...adminFormData, password: e.target.value })}
-                        minLength={6}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit" className="flex-1">Update Credentials</Button>
-                      <Button type="button" variant="outline" onClick={() => setShowAdminForm(false)}>Cancel</Button>
-                    </div>
-                  </form>
-                )}
-            </CardContent>
-          </Card>
 
-          {/* Update Kitchen Password */}
-            <Card className="border-gray-200 shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-red-600" />
-                <span>Update Kitchen Credentials</span>
-              </CardTitle>
-              <CardDescription>
-                Set a unique kitchen staff username and password for your restaurant
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!showKitchenForm ? (
-                <div className="space-y-3">
-                  <Button onClick={() => setShowKitchenForm(true)} className="w-full bg-red-600 hover:bg-red-700">
-                    <ChefHat className="h-4 w-4 mr-2" />
-                    Change Kitchen Credentials
+                <AnimatePresence>
+                  {showAdminForm && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <form onSubmit={handleCreateAdmin} className="bg-gray-50 p-6 rounded-xl border border-gray-100 mt-2 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="admin-username">New Username</Label>
+                            <Input
+                              id="admin-username"
+                              placeholder="Enter new username"
+                              value={adminFormData.username}
+                              onChange={(e) => setAdminFormData({ ...adminFormData, username: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="admin-password">New Password</Label>
+                            <Input
+                              id="admin-password"
+                              type="password"
+                              placeholder="Min 6 characters"
+                              min={6}
+                              value={adminFormData.password}
+                              onChange={(e) => setAdminFormData({ ...adminFormData, password: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button type="submit" className="bg-red-600 hover:bg-red-700">
+                            Save Changes
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Kitchen Credentials */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-base font-bold text-gray-900">Kitchen Display</h4>
+                    <p className="text-sm text-gray-500">Restricted access for kitchen staff.</p>
+                  </div>
+                  <Button
+                    variant={showKitchenForm ? "secondary" : "default"}
+                    onClick={() => setShowKitchenForm(!showKitchenForm)}
+                    className={showKitchenForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"}
+                  >
+                    {showKitchenForm ? "Cancel" : "Update"}
                   </Button>
                 </div>
-              ) : (
-                  <form onSubmit={handleCreateKitchen} className="space-y-4">
-                    <div>
-                      <Label htmlFor="kitchen-username">New Kitchen Username (Optional)</Label>
-                      <Input
-                        id="kitchen-username"
-                        type="text"
-                        placeholder="Enter new kitchen username"
-                        value={kitchenFormData.username}
-                        onChange={(e) => setKitchenFormData({ ...kitchenFormData, username: e.target.value })}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Leave blank to keep current username</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="kitchen-password">New Kitchen Password (Optional)</Label>
-                      <Input
-                        id="kitchen-password"
-                        type="password"
-                        placeholder="Enter new kitchen password"
-                        value={kitchenFormData.password}
-                        onChange={(e) => setKitchenFormData({ ...kitchenFormData, password: e.target.value })}
-                        minLength={6}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit" className="flex-1">Update Credentials</Button>
-                      <Button type="button" variant="outline" onClick={() => setShowKitchenForm(false)}>Cancel</Button>
-                    </div>
-                  </form>
-                )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Captain Credentials - Full Width */}
-        <div className="mb-8">
-            <Card className="border-gray-200 shadow-md">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-red-600" />
-                <span>Update Captain Credentials</span>
-              </CardTitle>
-              <CardDescription>
-                Set a unique captain/waiter username and password for your restaurant
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {!showCaptainForm ? (
-                <div className="space-y-3">
-                  <Button onClick={() => setShowCaptainForm(true)} className="w-full bg-red-600 hover:bg-red-700">
-                    <Users className="h-4 w-4 mr-2" />
-                    Change Captain Credentials
+                <AnimatePresence>
+                  {showKitchenForm && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <form onSubmit={handleCreateKitchen} className="bg-gray-50 p-6 rounded-xl border border-gray-100 mt-2 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="kitchen-username">New Username</Label>
+                            <Input
+                              id="kitchen-username"
+                              placeholder="Enter new username"
+                              value={kitchenFormData.username}
+                              onChange={(e) => setKitchenFormData({ ...kitchenFormData, username: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="kitchen-password">New Password</Label>
+                            <Input
+                              id="kitchen-password"
+                              type="password"
+                              placeholder="Min 6 characters"
+                              min={6}
+                              value={kitchenFormData.password}
+                              onChange={(e) => setKitchenFormData({ ...kitchenFormData, password: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button type="submit" className="bg-red-600 hover:bg-red-700">
+                            Save Changes
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Captain Credentials */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-base font-bold text-gray-900">Captain / Waiter</h4>
+                    <p className="text-sm text-gray-500">Table ordering access for staff.</p>
+                  </div>
+                  <Button
+                    variant={showCaptainForm ? "secondary" : "default"}
+                    onClick={() => setShowCaptainForm(!showCaptainForm)}
+                    className={showCaptainForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"}
+                  >
+                    {showCaptainForm ? "Cancel" : "Update"}
                   </Button>
                 </div>
-              ) : (
-                  <form onSubmit={handleCreateCaptain} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="captain-username">New Captain Username (Optional)</Label>
-                        <Input
-                          id="captain-username"
-                          type="text"
-                          placeholder="Enter new captain username"
-                          value={captainFormData.username}
-                          onChange={(e) => setCaptainFormData({ ...captainFormData, username: e.target.value })}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Leave blank to keep current username</p>
-                      </div>
-                      <div>
-                        <Label htmlFor="captain-password">New Captain Password (Optional)</Label>
-                        <Input
-                          id="captain-password"
-                          type="password"
-                          placeholder="Enter new captain password"
-                          value={captainFormData.password}
-                          onChange={(e) => setCaptainFormData({ ...captainFormData, password: e.target.value })}
-                          minLength={6}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Minimum 6 characters, leave blank to keep current</p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button type="submit" className="flex-1">Update Credentials</Button>
-                      <Button type="button" variant="outline" onClick={() => setShowCaptainForm(false)}>Cancel</Button>
-                    </div>
-                  </form>
-                )}
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Admin Panel */}
-            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToAdmin}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Settings className="h-5 w-5 text-red-600" />
-                <span>Admin Panel</span>
-                <ArrowRight className="h-4 w-4 text-gray-400 ml-auto" />
-              </CardTitle>
-              <CardDescription>
-                Manage restaurant operations, menu, and staff
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="space-y-3 flex-grow">
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>View analytics and reports</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <ChefHat className="h-4 w-4" />
-                  <span>Manage menu and inventory</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>Manage tables and users</span>
-                </div>
+                <AnimatePresence>
+                  {showCaptainForm && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <form onSubmit={handleCreateCaptain} className="bg-gray-50 p-6 rounded-xl border border-gray-100 mt-2 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="captain-username">New Username</Label>
+                            <Input
+                              id="captain-username"
+                              placeholder="Enter new username"
+                              value={captainFormData.username}
+                              onChange={(e) => setCaptainFormData({ ...captainFormData, username: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="captain-password">New Password</Label>
+                            <Input
+                              id="captain-password"
+                              type="password"
+                              placeholder="Min 6 characters"
+                              min={6}
+                              value={captainFormData.password}
+                              onChange={(e) => setCaptainFormData({ ...captainFormData, password: e.target.value })}
+                              className="bg-white"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end">
+                          <Button type="submit" className="bg-red-600 hover:bg-red-700">
+                            Save Changes
+                          </Button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
-                Open Admin Panel
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
 
-          {/* Kitchen Panel */}
-            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToKitchen}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-red-600" />
-                <span>Kitchen Panel</span>
-                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
-              </CardTitle>
-              <CardDescription>
-                Real-time order management for kitchen staff
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="space-y-3 flex-grow">
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <ChefHat className="h-4 w-4" />
-                  <span>View incoming orders</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Update order status</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>Manage preparation queue</span>
-                </div>
-              </div>
-              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
-                Open Kitchen Panel
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Captain Panel */}
-            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToCaptain}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-red-600" />
-                <span>Captain Panel</span>
-                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
-              </CardTitle>
-              <CardDescription>
-                Take orders on behalf of customers
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="space-y-3 flex-grow">
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>Select table and take orders</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <ChefHat className="h-4 w-4" />
-                  <span>Browse menu and add items</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Send orders directly to kitchen</span>
-                </div>
-              </div>
-              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
-                Open Captain Panel
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Customer App */}
-            <Card className="border-gray-200 shadow-lg cursor-pointer transition-all hover:shadow-xl h-full flex flex-col" onClick={handleNavigateToCustomer}>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5 text-red-600" />
-                <span>Customer App</span>
-                <ArrowRight className="h-4 w-4 text-red-400 ml-auto" />
-              </CardTitle>
-              <CardDescription>
-                View your restaurant from customer perspective
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow flex flex-col">
-              <div className="space-y-3 flex-grow">
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <ChefHat className="h-4 w-4" />
-                  <span>Browse menu and place orders</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Track order status</span>
-                </div>
-                <div className="flex items-center space-x-3 text-sm text-gray-600">
-                  <Users className="h-4 w-4" />
-                  <span>QR code table ordering</span>
-                </div>
-              </div>
-              <Button className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/40 transition-all duration-300">
-                Open Customer App
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-gray-200 shadow-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
-              <p className="text-sm text-gray-600 mt-1">Track performance metrics</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 shadow-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <ChefHat className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Kitchen Management</h3>
-              <p className="text-sm text-gray-600 mt-1">Real-time order processing</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 shadow-md">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                <Users className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Customer Experience</h3>
-              <p className="text-sm text-gray-600 mt-1">QR ordering and feedback</p>
-            </CardContent>
-          </Card>
-        </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </main>
     </div>
   );

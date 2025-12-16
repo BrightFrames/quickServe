@@ -23,24 +23,17 @@ const CaptainHome: React.FC = () => {
   }, [socket, user]);
 
   const handleLogout = () => {
-    const restaurantSlug = user?.restaurantSlug;
     logout();
-    // Redirect to restaurant's customer dashboard after logout
-    if (restaurantSlug) {
-      navigate(`/${restaurantSlug}/dashboard`);
-    } else {
-      navigate("/login");
-    }
   };
 
   const handleTableSelect = (tableNumber: number) => {
     console.log('[CAPTAIN] Table selected:', tableNumber);
-    
+
     // Get captain's restaurant data
     if (user?.restaurantSlug) {
       // Navigate to customer app with restaurant slug and table number
       const customerUrl = `/${user.restaurantSlug}/customer/menu/table/${tableNumber}`;
-      
+
       // Set restaurant data for customer context
       const restaurantData = {
         restaurantName: user.restaurantName || 'Restaurant',
@@ -49,7 +42,7 @@ const CaptainHome: React.FC = () => {
       };
       localStorage.setItem('customer_restaurant_data', JSON.stringify(restaurantData));
       sessionStorage.setItem('captainTableNumber', tableNumber.toString());
-      
+
       // Open in same tab
       window.location.href = customerUrl;
     } else {

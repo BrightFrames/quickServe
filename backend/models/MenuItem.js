@@ -37,7 +37,7 @@ const MenuItem = sequelize.define('MenuItem', {
     defaultValue: true,
   },
   image: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     defaultValue: '',
   },
   available: {

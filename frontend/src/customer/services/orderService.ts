@@ -43,7 +43,7 @@ class OrderService {
     }
     return 'http://localhost:3000';
   }
-  
+
   private get apiUrl() {
     return `${this.getBaseUrl()}/api`;
   }
@@ -53,7 +53,7 @@ class OrderService {
       // Get restaurant slug from URL (source of truth)
       const pathParts = window.location.pathname.split('/').filter(p => p);
       const restaurantSlug = pathParts[0];
-      
+
       // Try to get restaurantId from localStorage (optional)
       let restaurantId: number | null = null;
       const savedData = localStorage.getItem("customer_restaurant_data");
@@ -65,7 +65,7 @@ class OrderService {
           console.error('[ORDER SERVICE] Failed to parse restaurant data:', e);
         }
       }
-      
+
       // Get tableId from localStorage (set by QR code scan or manual entry)
       const storedTableId = localStorage.getItem("tableId");
       // Only use tableId if it looks like a valid table ID (starts with T or contains letters)
@@ -97,20 +97,26 @@ class OrderService {
             ? parseInt(orderData.tableNumber.replace(/\D/g, "")) || 1
             : orderData.tableNumber
           : 1,
-        customerPhone:
-          orderData.whatsappNumber || orderData.customerPhone || "",
-        customerEmail: orderData.customerEmail || "",
         items: backendItems,
         paymentMethod: orderData.paymentMethod || "cash",
       };
-      
+
+      // Only add optional contact info if present
+      if (orderData.whatsappNumber || orderData.customerPhone) {
+        orderPayload.customerPhone = orderData.whatsappNumber || orderData.customerPhone;
+      }
+
+      if (orderData.customerEmail) {
+        orderPayload.customerEmail = orderData.customerEmail;
+      }
+
       // Use slug from URL
       if (!restaurantSlug || restaurantSlug.trim() === '') {
         throw new Error('No restaurant identifier available - invalid URL');
       }
-      
+
       orderPayload.slug = restaurantSlug;
-      
+
       // Add restaurantId if available (optional)
       if (restaurantId && restaurantId > 0) {
         orderPayload.restaurantId = restaurantId;
@@ -120,6 +126,12 @@ class OrderService {
       if (tableId) {
         orderPayload.tableId = tableId;
       }
+      console.log("Order Payload:", JSON.stringify(orderPayload, null, 2));
+      console.log("Restaurant Slug:", restaurantSlug);
+      console.log("Restaurant ID:", restaurantId);
+      console.log("Items before mapping:", orderData.items);
+      console.log("Mapped Backend Items:", backendItems);
+
       const response = await axios.post(`${this.apiUrl}/orders`, orderPayload);
 
       // Map backend response to frontend format

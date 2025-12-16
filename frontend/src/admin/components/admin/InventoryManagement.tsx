@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
-import { AlertTriangle, Package, TrendingDown } from 'lucide-react'
+import { AlertTriangle, Package, TrendingDown, Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { notificationSounds } from '../../utils/notificationSounds'
 import { useRestaurant } from '../../context/RestaurantContext'
-import { GlowCard } from '../ui/spotlight-card'
 
 interface InventoryItem {
   id: string
@@ -20,6 +19,7 @@ const InventoryManagement = () => {
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'low'>('all')
+  const [searchQuery, setSearchQuery] = useState("")
   const previousLowStockCount = useRef<number>(0)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -35,12 +35,7 @@ const InventoryManagement = () => {
 
   useEffect(() => {
     fetchInventory()
-    
-    // Check for low stock every 30 seconds
-    const interval = setInterval(() => {
-      fetchInventory()
-    }, 30000)
-    
+    const interval = setInterval(fetchInventory, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -49,34 +44,24 @@ const InventoryManagement = () => {
       const response = await axios.get(`${apiUrl}/api/menu`, getAxiosConfig())
       const fetchedItems = response.data
       setItems(fetchedItems)
-      
-      // Check for low stock items
+
       const lowStockItems = fetchedItems.filter(
         (item: InventoryItem) => item.inventoryCount <= item.lowStockThreshold
       )
-      
-      // Check for critically low stock (less than half of threshold)
+
       const criticalStockItems = fetchedItems.filter(
         (item: InventoryItem) => item.inventoryCount <= item.lowStockThreshold / 2
       )
-      
-      // Only notify if low stock count increased (new items went low)
+
       if (lowStockItems.length > previousLowStockCount.current && previousLowStockCount.current > 0) {
         if (criticalStockItems.length > 0) {
           notificationSounds.playCriticalAlert()
-          toast.error(`Critical: ${criticalStockItems.length} items critically low!`, {
-            description: criticalStockItems.map((i: InventoryItem) => i.name).join(', '),
-            duration: 8000,
-          })
+          toast.error(`Critical: ${criticalStockItems.length} items critically low!`)
         } else {
           notificationSounds.playLowStockAlert()
-          toast.warning(`${lowStockItems.length} items are running low`, {
-            description: 'Please restock soon',
-            duration: 5000,
-          })
+          toast.warning(`${lowStockItems.length} items are running low`)
         }
       }
-      
       previousLowStockCount.current = lowStockItems.length
     } catch (error) {
       toast.error('Failed to fetch inventory')
@@ -96,11 +81,11 @@ const InventoryManagement = () => {
   }
 
   const filteredItems = items.filter((item) => {
-    if (filter === 'low') {
-      return item.inventoryCount <= item.lowStockThreshold
-    }
-    return true
-  })
+    const matchesFilter = filter === 'low' ? item.inventoryCount <= item.lowStockThreshold : true;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const lowStockCount = items.filter(
     (item) => item.inventoryCount <= item.lowStockThreshold
@@ -109,158 +94,182 @@ const InventoryManagement = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <GlowCard glowColor="orange" customSize className="w-full h-auto">
-          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Total Items</p>
-              <p className="text-3xl font-bold text-gray-800 mt-1">{items.length}</p>
-            </div>
-            <div className="bg-orange-100 p-3 rounded-lg">
-              <Package className="w-8 h-8 text-orange-600" />
-            </div>
-          </div>
-          </div>
-        </GlowCard>
-
-        <GlowCard glowColor="orange" customSize className="w-full h-auto">
-          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Low Stock Items</p>
-              <p className="text-3xl font-bold text-red-600 mt-1">{lowStockCount}</p>
-            </div>
-            <div className="bg-red-100 p-3 rounded-lg">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
-            </div>
-          </div>
-          </div>
-        </GlowCard>
-
-        <GlowCard glowColor="orange" customSize className="w-full h-auto">
-          <div className="bg-white/80 rounded-lg shadow p-6 border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm">Unavailable Items</p>
-              <p className="text-3xl font-bold text-gray-600 mt-1">
-                {items.filter((i) => !i.available).length}
-              </p>
-            </div>
-            <div className="bg-gray-100 p-3 rounded-lg">
-              <TrendingDown className="w-8 h-8 text-gray-600" />
-            </div>
-          </div>
-          </div>
-        </GlowCard>
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Inventory Management</h2>
+        <p className="text-sm text-gray-500 mt-1">Track stock levels and manage inventory alerts.</p>
       </div>
 
-      {/* Filter */}
-      <div className="flex space-x-2">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium ${
-            filter === 'all'
-              ? 'bg-orange-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          All Items
-        </button>
-        <button
-          onClick={() => setFilter('low')}
-          className={`px-4 py-2 rounded-lg font-medium ${
-            filter === 'low'
-              ? 'bg-red-600 text-white'
-              : 'bg-white text-gray-700 hover:bg-gray-100'
-          }`}
-        >
-          Low Stock ({lowStockCount})
-        </button>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Items</p>
+              <p className="text-3xl font-bold text-slate-900 mt-2">{items.length}</p>
+            </div>
+            <div className="p-2 bg-slate-50 rounded-lg">
+              <Package className="w-5 h-5 text-slate-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Low Stock Alerts</p>
+              <p className={`text-3xl font-bold mt-2 ${lowStockCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>{lowStockCount}</p>
+            </div>
+            <div className="p-2 bg-red-50 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-gray-500">Unavailable</p>
+              <p className="text-3xl font-bold text-gray-400 mt-2">{items.filter(i => !i.available).length}</p>
+            </div>
+            <div className="p-2 bg-gray-100 rounded-lg">
+              <TrendingDown className="w-5 h-5 text-gray-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex space-x-2 w-full md:w-auto">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              All Items
+            </button>
+            <button
+              onClick={() => setFilter('low')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${filter === 'low' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              Low Stock <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">{lowStockCount}</span>
+            </button>
+          </div>
+
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search inventory..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent outline-none transition-all"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Inventory Table */}
-      <GlowCard glowColor="orange" customSize className="w-full h-auto">
-        <div className="bg-white/80 rounded-lg shadow overflow-hidden border-0">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Item Name</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Category</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Current Stock</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Threshold</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-              <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredItems.map((item) => {
-              const isLowStock = item.inventoryCount <= item.lowStockThreshold
-              return (
-                <tr key={item.id} className={`border-b hover:bg-gray-50 ${isLowStock ? 'bg-red-50' : ''}`}>
-                  <td className="py-3 px-4 font-medium">{item.name}</td>
-                  <td className="py-3 px-4">{item.category}</td>
-                  <td className="py-3 px-4">
-                    <input
-                      type="number"
-                      value={item.inventoryCount}
-                      onChange={(e) => {
-                        const newValue = parseInt(e.target.value) || 0
-                        setItems((prev) =>
-                          prev.map((i) =>
-                            i.id === item.id ? { ...i, inventoryCount: newValue } : i
-                          )
-                        )
-                      }}
-                      onBlur={(e) => updateStock(item.id, parseInt(e.target.value) || 0)}
-                      className={`w-24 px-3 py-1 border rounded ${
-                        isLowStock ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      min="0"
-                    />
-                  </td>
-                  <td className="py-3 px-4">{item.lowStockThreshold}</td>
-                  <td className="py-3 px-4">
-                    {isLowStock ? (
-                      <span className="flex items-center text-red-600 font-semibold">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
-                        Low Stock
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Item Name</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Stock</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Threshold</th>
+                <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="text-right py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredItems.map((item) => {
+                const isLowStock = item.inventoryCount <= item.lowStockThreshold;
+                const progressPercentage = Math.min((item.inventoryCount / (item.lowStockThreshold * 3)) * 100, 100);
+
+                return (
+                  <tr key={item.id} className={`group hover:bg-gray-50 transition-colors ${isLowStock ? 'bg-red-50/50 hover:bg-red-50' : ''}`}>
+                    <td className="py-4 px-6 font-medium text-gray-900">{item.name}</td>
+                    <td className="py-4 px-6">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {item.category}
                       </span>
-                    ) : (
-                      <span className="text-green-600 font-semibold">In Stock</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => updateStock(item.id, item.inventoryCount + 10)}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-                      >
-                        +10
-                      </button>
-                      <button
-                        onClick={() => updateStock(item.id, item.inventoryCount + 50)}
-                        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                      >
-                        +50
-                      </button>
-                    </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={item.inventoryCount}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value) || 0;
+                            setItems(prev => prev.map(i => i.id === item.id ? { ...i, inventoryCount: newValue } : i));
+                          }}
+                          onBlur={(e) => updateStock(item.id, parseInt(e.target.value) || 0)}
+                          className={`w-20 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-slate-900 font-medium ${isLowStock ? 'border-red-300 text-red-900 bg-white' : 'border-gray-300'}`}
+                          min="0"
+                        />
+                        <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${isLowStock ? 'bg-red-500' : 'bg-green-500'}`}
+                            style={{ width: `${progressPercentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-gray-500">{item.lowStockThreshold}</td>
+                    <td className="py-4 px-6">
+                      {isLowStock ? (
+                        <div className="flex items-center text-red-600 text-xs font-bold bg-white/50 px-2 py-1 rounded-md border border-red-100 w-fit">
+                          <AlertTriangle className="w-3.5 h-3.5 mr-1" />
+                          LOW STOCK
+                        </div>
+                      ) : (
+                        <div className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-md border border-green-100 w-fit">
+                          IN STOCK
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end space-x-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => updateStock(item.id, item.inventoryCount + 10)}
+                          className="px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded hover:bg-gray-50 hover:border-gray-300 text-xs font-medium flex items-center gap-1 transition-colors shadow-sm"
+                          title="Add 10"
+                        >
+                          <ArrowUp className="w-3 h-3" /> +10
+                        </button>
+                        <button
+                          onClick={() => updateStock(item.id, item.inventoryCount + 50)}
+                          className="px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded hover:bg-gray-50 hover:border-gray-300 text-xs font-medium flex items-center gap-1 transition-colors shadow-sm"
+                          title="Add 50"
+                        >
+                          <ArrowUp className="w-3 h-3" /> +50
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+              {filteredItems.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-gray-500 text-sm">
+                    No inventory items found matching your filters.
                   </td>
                 </tr>
-              )
-            })}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
         </div>
-      </GlowCard>
+      </div>
     </div>
   )
 }

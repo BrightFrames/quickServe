@@ -226,6 +226,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }
 
   const logout = () => {
+    // Extract restaurant slug from URL before clearing session
+    const pathParts = window.location.pathname.split('/');
+    // Check if the first path part is a potential slug (not a system route)
+    const potentialSlug = pathParts[1];
+    const isSystemRoute = ['login', 'admin', 'kitchen', 'captain', 'reception', 'menu', 'verify'].includes(potentialSlug);
+
     setUser(null)
     localStorage.removeItem('user')
     localStorage.removeItem('token')
@@ -236,8 +242,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('restaurantName')
     delete axios.defaults.headers.common['Authorization']
 
-    // Redirect to login selection page
-    window.location.href = '/login'
+    // Redirect to Restaurant Dashboard if valid slug exists, otherwise generic login
+    if (potentialSlug && !isSystemRoute) {
+      window.location.href = `/${potentialSlug}/dashboard`
+    } else {
+      window.location.href = '/login'
+    }
   }
 
   return (

@@ -18,10 +18,10 @@ async function resolveRestaurantId(identifier) {
     console.log('[MENU] Invalid identifier provided');
     return null;
   }
-  
+
   const { Op } = (await import('sequelize')).default;
-  
-  const restaurant = await Restaurant.findOne({ 
+
+  const restaurant = await Restaurant.findOne({
     where: {
       [Op.or]: [
         { slug: identifier.toLowerCase().trim() },
@@ -33,11 +33,11 @@ async function resolveRestaurantId(identifier) {
     },
     attributes: ['id', 'name'] // Fetch ID and name for logging
   });
-  
+
   if (restaurant) {
     console.log(`[MENU] Restaurant resolved: ${restaurant.name} (ID: ${restaurant.id})`);
   }
-  
+
   return restaurant ? restaurant.id : null;
 }
 
@@ -55,16 +55,16 @@ function isValidRestaurantId(id) {
 router.get('/', async (req, res) => {
   try {
     const { slug, restaurantId, restaurantIdentifier } = req.query;
-    
+
     // If any identifier provided, this is a public customer request
     if (slug || restaurantId || restaurantIdentifier) {
       let finalRestaurantId = null;
-      
+
       // Priority 1: Direct restaurantId if provided and valid
       if (restaurantId && isValidRestaurantId(restaurantId)) {
         finalRestaurantId = parseInt(restaurantId, 10);
         console.log(`[MENU] Public menu request for restaurantId: ${finalRestaurantId}`);
-      } 
+      }
       // Priority 2: Use restaurantIdentifier (can be name, email, phone, slug, code)
       else if (restaurantIdentifier) {
         console.log(`[MENU] Resolving restaurant from identifier: ${restaurantIdentifier}`);
@@ -75,35 +75,35 @@ router.get('/', async (req, res) => {
         console.log(`[MENU] Resolving restaurant from slug: ${slug}`);
         finalRestaurantId = await resolveRestaurantId(slug);
       }
-      
+
       // Validate we have a valid restaurantId
       if (!finalRestaurantId) {
         console.log(`[MENU] Restaurant not found for identifier`);
         return res.status(404).json({ message: 'Restaurant not found' });
       }
-      
+
       // Check cache first
       const cacheKey = cacheKeys.menu(finalRestaurantId);
       const cachedMenu = cache.get(cacheKey);
-      
+
       if (cachedMenu) {
         console.log(`[CACHE] Menu cache HIT for restaurant ${finalRestaurantId}`);
         return res.json(cachedMenu);
       }
-      
+
       // CORE FIX: All queries now use restaurantId (primary key) consistently
       const items = await MenuItem.findAll({
         where: { restaurantId: finalRestaurantId },
         order: [['category', 'ASC'], ['name', 'ASC']],
       });
-      
+
       // Cache for 10 minutes (menu doesn't change frequently)
       cache.set(cacheKey, items, 10 * 60 * 1000);
       console.log(`[MENU] Retrieved ${items.length} menu items for restaurantId: ${finalRestaurantId}`);
-      
+
       return res.json(items);
     }
-    
+
     // No slug - this is an admin request, require authentication
     // Check for Authorization header
     const authHeader = req.headers.authorization;
@@ -111,23 +111,23 @@ router.get('/', async (req, res) => {
       console.log('[MENU] Admin request without authentication');
       return res.status(401).json({ message: 'Authentication required for admin access' });
     }
-    
+
     // Call authenticateRestaurant middleware manually
     return authenticateRestaurant(req, res, async () => {
       console.log('[MENU] ============ ADMIN MENU FETCH ============');
       console.log('[MENU] Admin authenticated as restaurantId:', req.restaurantId);
-      
+
       const items = await MenuItem.findAll({
         where: { restaurantId: req.restaurantId },
         order: [['category', 'ASC'], ['name', 'ASC']],
       });
-      
+
       console.log(`[MENU] Retrieved ${items.length} items for restaurant ${req.restaurantId}`);
       items.forEach((item, idx) => {
         console.log(`[MENU]   ${idx + 1}. ${item.name} (ID: ${item.id}, RestaurantID: ${item.restaurantId}, Available: ${item.available}, Inventory: ${item.inventoryCount})`);
       });
       console.log('[MENU] ==========================================');
-      
+
       res.json(items);
     });
   } catch (error) {
@@ -147,25 +147,25 @@ router.get('/:id', async (req, res) => {
     if (isNaN(menuItemId) || menuItemId <= 0) {
       return res.status(400).json({ message: 'Invalid menu item ID' });
     }
-    
+
     // Validate restaurantId from auth middleware
     if (!req.restaurantId || !isValidRestaurantId(req.restaurantId)) {
       return res.status(401).json({ message: 'Invalid restaurant authentication' });
     }
-    
+
     // CORE FIX: Query using both primary keys for data integrity
     const item = await MenuItem.findOne({
-      where: { 
+      where: {
         id: menuItemId,
         restaurantId: req.restaurantId // Always filter by restaurantId
       }
     });
-    
+
     if (!item) {
       console.log(`[MENU] Item ${menuItemId} not found for restaurantId ${req.restaurantId}`);
       return res.status(404).json({ message: 'Item not found' });
     }
-    
+
     console.log(`[MENU] Retrieved item ${item.name} (id: ${item.id}) for restaurantId ${req.restaurantId}`);
     res.json(item);
   } catch (error) {
@@ -181,29 +181,32 @@ router.post('/', authenticateRestaurant, enforceTenantIsolation, requirePermissi
     if (!req.restaurantId || !isValidRestaurantId(req.restaurantId)) {
       return res.status(401).json({ message: 'Invalid restaurant authentication' });
     }
-    
+
     console.log('[MENU] ========== CREATE MENU ITEM ==========');
     console.log('[MENU] Authenticated restaurantId:', req.restaurantId);
     console.log('[MENU] Request body:', JSON.stringify(req.body, null, 2));
-    
+    if (req.body.image) {
+      console.log(`[MENU] Image data length: ${req.body.image.length} chars`);
+    }
+
     // CORE FIX: Always use restaurantId from authenticated token, never from request body
     const itemData = { ...req.body };
     const bodyRestaurantId = itemData.restaurantId; // Log if client tried to set it
     delete itemData.restaurantId; // Remove any restaurantId from request body
-    
+
     if (bodyRestaurantId) {
       console.log('[MENU] ⚠️  WARNING: Client tried to set restaurantId:', bodyRestaurantId, '- IGNORED');
     }
-    
+
     const item = await MenuItem.create({
       ...itemData,
       restaurantId: req.restaurantId // Force restaurantId from authentication
     });
-    
+
     // Invalidate cache for this restaurant's menu
     cache.delete(cacheKeys.menu(req.restaurantId));
     console.log(`[CACHE] Invalidated menu cache for restaurant ${req.restaurantId}`);
-    
+
     console.log(`[MENU] ✓ Menu item created: ${item.name} (ID: ${item.id}, RestaurantID: ${item.restaurantId})`);
     console.log('[MENU] ========================================');
     res.status(201).json(item);
@@ -217,21 +220,21 @@ router.post('/', authenticateRestaurant, enforceTenantIsolation, requirePermissi
 router.put('/:id', authenticateRestaurant, enforceTenantIsolation, requirePermission('manage:menu'), async (req, res) => {
   try {
     const item = await MenuItem.findOne({
-      where: { 
+      where: {
         id: req.params.id,
-        restaurantId: req.restaurantId 
+        restaurantId: req.restaurantId
       }
     });
-    
+
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     await item.update(req.body);
-    
+
     // Invalidate cache for this restaurant's menu
     cache.delete(cacheKeys.menu(req.restaurantId));
     console.log(`[CACHE] Invalidated menu cache for restaurant ${req.restaurantId}`);
-    
+
     res.json(item);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -243,21 +246,21 @@ router.put('/:id/inventory', async (req, res) => {
   try {
     const { inventoryCount } = req.body;
     const item = await MenuItem.findOne({
-      where: { 
+      where: {
         id: req.params.id,
-        restaurantId: req.restaurantId 
+        restaurantId: req.restaurantId
       }
     });
-    
+
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     await item.update({ inventoryCount });
-    
+
     // Invalidate cache for this restaurant's menu
     cache.delete(cacheKeys.menu(req.restaurantId));
     console.log(`[CACHE] Invalidated menu cache for restaurant ${req.restaurantId}`);
-    
+
     res.json(item);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -268,21 +271,21 @@ router.put('/:id/inventory', async (req, res) => {
 router.delete('/:id', authenticateRestaurant, enforceTenantIsolation, requirePermission('manage:menu'), async (req, res) => {
   try {
     const item = await MenuItem.findOne({
-      where: { 
+      where: {
         id: req.params.id,
-        restaurantId: req.restaurantId 
+        restaurantId: req.restaurantId
       }
     });
-    
+
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     await item.destroy();
-    
+
     // Invalidate cache for this restaurant's menu
     cache.delete(cacheKeys.menu(req.restaurantId));
     console.log(`[CACHE] Invalidated menu cache for restaurant ${req.restaurantId}`);
-    
+
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

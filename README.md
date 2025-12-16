@@ -1,6 +1,6 @@
 # QuickServe - Restaurant Management Platform
 
-## 🚀 Quick Start Guide
+##  Quick Start Guide
 
 This project includes a complete restaurant management platform with:
 1. **Landing Page** - Restaurant registration and login
@@ -11,7 +11,7 @@ This project includes a complete restaurant management platform with:
 ## 📋 Prerequisites
 
 - Node.js 18+
-- MongoDB (or MongoDB Atlas connection)
+- Supabase
 - Git
 
 ## 🛠️ Setup Instructions

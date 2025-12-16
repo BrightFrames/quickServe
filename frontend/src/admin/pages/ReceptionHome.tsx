@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { 
-  LogOut, 
-  DollarSign, 
-  Users, 
+import {
+  LogOut,
+  DollarSign,
+  Users,
   Clock,
   Check,
   X,
@@ -101,7 +101,7 @@ const ReceptionHome: React.FC = () => {
         }
       );
       setTableOrders(response.data);
-      
+
       // Auto-select pending/ready orders
       const pendingOrders = response.data
         .filter((order: Order) => ['pending', 'preparing', 'ready'].includes(order.status))
@@ -161,14 +161,7 @@ const ReceptionHome: React.FC = () => {
   };
 
   const handleLogout = () => {
-    const restaurantSlug = user?.restaurantSlug;
     logout();
-    // Redirect to restaurant dashboard after logout
-    if (restaurantSlug) {
-      navigate(`/${restaurantSlug}/dashboard`);
-    } else {
-      navigate("/login");
-    }
   };
 
   if (loading) {
@@ -221,19 +214,18 @@ const ReceptionHome: React.FC = () => {
                 <Users className="w-5 h-5 text-green-600" />
                 Tables ({tables.length})
               </h2>
-              
+
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {tables.map((table) => (
                   <button
                     key={table.id}
                     onClick={() => setSelectedTable(table)}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                      selectedTable?.id === table.id
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${selectedTable?.id === table.id
                         ? "border-green-500 bg-green-50"
                         : table.hasActiveOrders
-                        ? "border-orange-200 bg-orange-50 hover:border-orange-300"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
+                          ? "border-orange-200 bg-orange-50 hover:border-orange-300"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -289,11 +281,10 @@ const ReceptionHome: React.FC = () => {
                       {tableOrders.map((order) => (
                         <div
                           key={order.id}
-                          className={`border rounded-lg p-4 ${
-                            selectedOrders.includes(order.id)
+                          className={`border rounded-lg p-4 ${selectedOrders.includes(order.id)
                               ? "border-green-500 bg-green-50"
                               : "border-gray-200"
-                          }`}
+                            }`}
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div>
@@ -314,13 +305,12 @@ const ReceptionHome: React.FC = () => {
                               </p>
                             </div>
                             <span
-                              className={`px-2 py-1 text-xs font-medium rounded-full ${
-                                order.status === 'completed'
+                              className={`px-2 py-1 text-xs font-medium rounded-full ${order.status === 'completed'
                                   ? 'bg-gray-100 text-gray-700'
                                   : order.status === 'ready'
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-yellow-100 text-yellow-700'
-                              }`}
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-yellow-100 text-yellow-700'
+                                }`}
                             >
                               {order.status}
                             </span>

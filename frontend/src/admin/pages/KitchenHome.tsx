@@ -1,22 +1,17 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import { LogOut, Bell, Clock, CheckCircle, Truck } from "lucide-react";
+import { LogOut, Bell, Clock, CheckCircle, Truck, ChefHat, AlertCircle, Volume2, VolumeX } from "lucide-react";
 import axios from "axios";
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import OrderColumn from "../components/kitchen/OrderColumn";
+import { motion, AnimatePresence } from "framer-motion";
+
 import { OrderNotificationModal } from "../components/kitchen/OrderNotificationModal";
 import { KitchenSettings } from "../components/kitchen/KitchenSettings";
-
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// import { useSocket } from "../hooks/useSocket"; // Socket disabled for now to rely on polling if needed or re-enable
 import { useSocket } from "../hooks/useSocket";
 import { toast } from "sonner";
 import { notificationSounds } from "../utils/notificationSounds";
+
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export interface Order {
   id?: string;
@@ -29,7 +24,7 @@ export interface Order {
     quantity: number;
     specialInstructions?: string;
   }>;
-  status: "pending" | "preparing" | "ready" | "served" | "completed" | "cancelled";
+  status: "pending" | "preparing" | "prepared" | "ready" | "served" | "completed" | "cancelled";
   createdAt: string;
   totalAmount: number;
 }
@@ -38,7 +33,7 @@ const KitchenHome = () => {
   const { logout, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStatus, setSelectedStatus] = useState<"all" | Order["status"]>("all");
+  const [selectedStatus, setSelectedStatus] = useState<"preparing" | "prepared" | "ready" | "history">("preparing");
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Array<{
@@ -48,7 +43,7 @@ const KitchenHome = () => {
     read: boolean;
   }>>([]);
   const [pendingOrder, setPendingOrder] = useState<Order | null>(null);
-  
+
   // Clear notifications and orders when user logs out
   useEffect(() => {
     if (!user) {
@@ -59,6 +54,7 @@ const KitchenHome = () => {
       setPendingOrder(null);
     }
   }, [user]);
+
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('kitchenSoundEnabled');
     return saved !== null ? JSON.parse(saved) : true;
@@ -88,24 +84,8 @@ const KitchenHome = () => {
     };
   }, [showNotifications]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   useEffect(() => {
-    console.log('[KITCHEN] Current user:', user)
-    console.log('[KITCHEN] User restaurantId:', user?.restaurantId)
-    
-    // Only fetch orders and setup socket if user is authenticated
-    if (!user || !user.restaurantId) {
-      console.log('[KITCHEN] User not authenticated, skipping socket setup');
-      return;
-    }
-    
     fetchOrders();
 
     // Set up polling as backup for real-time updates (every 30 seconds)
@@ -123,15 +103,15 @@ const KitchenHome = () => {
 
       socket.on("new-order", (order: Order) => {
         console.log('[KITCHEN] Received new order, user authenticated:', !!user);
-        
+
         // Double-check user is still authenticated before showing notification
         if (!user || !user.restaurantId) {
           console.log('[KITCHEN] User not authenticated, ignoring notification');
           return;
         }
-        
-        setOrders((prev) => [...prev, order]);
-        
+
+        setOrders((prev) => [order, ...prev]);
+
         // Add notification
         const newNotification = {
           id: order.id || order._id || `${Date.now()}`,
@@ -141,15 +121,15 @@ const KitchenHome = () => {
         };
         setNotifications((prev) => [newNotification, ...prev].slice(0, 10)); // Keep last 10
         setUnreadCount((prev) => prev + 1);
-        
+
         // Play notification sound if enabled
         if (soundEnabled) {
           notificationSounds.playNewOrderSound();
         }
-        
+
         // Show modal notification (always visible)
         setPendingOrder(order);
-        
+
         // Show toast notification as backup
         toast.success(`New order #${order.orderNumber} received!`, {
           description: `Table ${order.tableNumber} - ${order.items.length} items`,
@@ -198,7 +178,7 @@ const KitchenHome = () => {
   ) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`${apiUrl}/api/orders/${orderId}/status`, 
+      await axios.put(`${apiUrl}/api/orders/${orderId}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -207,38 +187,31 @@ const KitchenHome = () => {
           (order.id || order._id) === orderId ? { ...order, status: newStatus } : order
         )
       );
-      
+
       // Play success sound when order is marked as ready
       if (newStatus === "ready") {
         notificationSounds.playSuccessSound();
       }
-      
+
       toast.success(`Order moved to ${newStatus}`);
     } catch (error) {
       toast.error("Failed to update order status");
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over || active.id === over.id) return;
-
-    const orderId = active.id as string;
-    const newStatus = over.id as Order["status"];
-
-    updateOrderStatus(orderId, newStatus);
-  };
-
-  const preparingOrders = orders.filter((o) => o.status === "preparing");
+  const preparingOrders = orders.filter((o) => o.status === "preparing" || o.status === "pending");
   const preparedOrders = orders.filter((o) => o.status === "prepared");
   const readyOrders = orders.filter((o) => o.status === "ready");
-  const servedOrders = orders.filter((o) => o.status === "served");
+  const historyOrders = orders.filter((o) => o.status === "served" || o.status === "completed");
 
-  // Filter orders based on selected status
-  const filteredOrders = selectedStatus === "all" 
-    ? orders 
-    : orders.filter((o) => o.status === selectedStatus);
+  // Filter based on active tab
+  const activeOrders = selectedStatus === "preparing"
+    ? preparingOrders
+    : selectedStatus === "prepared"
+      ? preparedOrders
+      : selectedStatus === "ready"
+        ? readyOrders
+        : historyOrders;
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
@@ -256,159 +229,176 @@ const KitchenHome = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-500 font-medium">Loading Kitchen...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Mobile Header */}
-      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-xl">🍳</span>
+      {/* Professional Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-lg shadow-blue-200">
+              <ChefHat className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-gray-900">QuickServe Kitchen</h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 leading-none">Kitchen Display</h1>
+              <p className="text-xs text-gray-500 mt-1 font-medium tracking-wide">QUICKSERVE PRO</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            {/* Kitchen Settings */}
-            <KitchenSettings
-              soundEnabled={soundEnabled}
-              onSoundToggle={setSoundEnabled}
-            />
-            
-            {/* Notification Bell */}
+
+          <div className="flex items-center gap-2">
+            {/* Sound Toggle */}
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-lg transition-colors ${soundEnabled ? 'text-gray-600 hover:bg-gray-100' : 'text-gray-400 hover:bg-gray-100'
+                }`}
+              title="Toggle Sound"
+            >
+              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </button>
+
+            {/* Notifications */}
             <div className="relative" ref={notificationRef}>
-              <button 
+              <button
                 onClick={handleNotificationClick}
-                className="p-2 hover:bg-gray-100 rounded-lg relative"
+                className="p-2 rounded-lg hover:bg-gray-100 relative transition-colors"
               >
-                <Bell className="w-6 h-6 text-gray-700" />
+                <Bell className="w-5 h-5 text-gray-600" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-600 rounded-full ring-2 ring-white"></span>
                 )}
               </button>
-              
-              {/* Notifications Dropdown */}
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    {notifications.length > 0 && (
-                      <button
-                        onClick={clearNotifications}
-                        className="text-xs text-blue-600 hover:text-blue-700"
-                      >
-                        Clear all
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-8 text-center text-gray-400">
-                        <Bell className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                        <p className="text-sm">No notifications yet</p>
-                      </div>
-                    ) : (
-                      notifications.map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`p-4 border-b hover:bg-gray-50 ${
-                            !notification.read ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <p className="text-sm text-gray-900">{notification.message}</p>
-                          <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 origin-top-right z-50"
+                  >
+                    {/* Notification content same as before but styled professionally */}
+                    <div className="flex items-center justify-between p-4 border-b border-gray-50">
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      {notifications.length > 0 && (
+                        <button onClick={clearNotifications} className="text-xs font-medium text-blue-600 hover:text-blue-700">
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-sm">No new alerts</p>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+                      ) : (
+                        notifications.map((n) => (
+                          <div key={n.id} className={`p-4 border-b border-gray-50 hover:bg-gray-50 ${!n.read ? 'bg-blue-50/30' : ''}`}>
+                            <p className="text-sm text-gray-800">{n.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">{n.time}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-            <button 
-              onClick={() => {
-                const restaurantSlug = user?.restaurantSlug;
-                logout();
-                if (restaurantSlug) {
-                  window.location.href = `/${restaurantSlug}/dashboard`;
-                } else {
-                  window.location.href = "/login";
-                }
-              }}
-              className="flex items-center space-x-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-              title="Logout"
+
+            <button
+              onClick={() => logout()}
+              className="ml-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors flex items-center gap-2"
             >
               <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
+          </div>
+        </div>
+
+        {/* Status Tabs */}
+        <div className="px-4 border-t border-gray-100">
+          <div className="max-w-7xl mx-auto flex gap-6 overflow-x-auto">
+            {(["preparing", "prepared", "ready", "history"] as const).map((status) => {
+              const isActive = selectedStatus === status;
+              const count = status === "preparing"
+                ? preparingOrders.length
+                : status === "prepared"
+                  ? preparedOrders.length
+                  : status === "ready"
+                    ? readyOrders.length
+                    : historyOrders.length;
+
+              const label = status === "preparing" ? "Processing" : status === "history" ? "Completed" : status;
+
+              return (
+                <button
+                  key={status}
+                  onClick={() => setSelectedStatus(status)}
+                  className={`relative py-4 text-sm font-bold uppercase tracking-wide transition-colors flex items-center gap-2 flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-500 hover:text-gray-700"
+                    }`}
+                >
+                  {label}
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] ${isActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                    }`}>
+                    {count}
+                  </span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Title */}
-      <div className="bg-white px-4 py-3 border-b">
-        <h2 className="text-xl font-bold text-gray-900">Kitchen Dashboard</h2>
-      </div>
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {activeOrders.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <Clock className="w-10 h-10 text-gray-300" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">No {selectedStatus} orders</h3>
+              <p className="text-gray-500 mt-1 max-w-sm">
+                Orders will appear here once customers place them.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <AnimatePresence>
+                {activeOrders.map((order) => (
+                  <motion.div
+                    key={order.id || order._id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="h-full"
+                  >
+                    <OrderCard order={order} onStatusChange={updateOrderStatus} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </main>
 
-      {/* Status Tabs */}
-      <div className="bg-white px-4 py-2 border-b flex space-x-2 overflow-x-auto">
-        <button 
-          onClick={() => setSelectedStatus("preparing")}
-          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
-            selectedStatus === "preparing" 
-              ? "bg-yellow-100 text-yellow-800" 
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          In Queue {preparingOrders.length}
-        </button>
-        <button 
-          onClick={() => setSelectedStatus("prepared")}
-          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
-            selectedStatus === "prepared" 
-              ? "bg-green-100 text-green-800" 
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Preparing {preparedOrders.length}
-        </button>
-        <button 
-          onClick={() => setSelectedStatus("ready")}
-          className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
-            selectedStatus === "ready" 
-              ? "bg-blue-100 text-blue-800" 
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          Ready {readyOrders.length}
-        </button>
-      </div>
-
-      {/* Orders List - Mobile View */}
-      <div className="flex-1 overflow-auto p-4 space-y-3">
-        {filteredOrders.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No orders in this status</p>
-          </div>
-        ) : (
-          filteredOrders.map((order) => (
-            <MobileOrderCard
-              key={order.id || order._id}
-              order={order}
-              onStatusChange={updateOrderStatus}
-            />
-          ))
-        )}
-      </div>
-      
-      {/* Order Notification Modal */}
+      {/* Modal Notification */}
       {pendingOrder && (
         <OrderNotificationModal
           order={pendingOrder}
@@ -419,92 +409,109 @@ const KitchenHome = () => {
   );
 };
 
-interface MobileOrderCardProps {
-  order: Order;
-  onStatusChange: (orderId: string, newStatus: Order["status"]) => void;
-}
+const OrderCard = ({ order, onStatusChange }: { order: Order; onStatusChange: (id: string, status: Order["status"]) => void }) => {
+  const orderId = order.id || order._id || "";
 
-const MobileOrderCard = ({ order, onStatusChange }: MobileOrderCardProps) => {
-  const orderId = order.id || order._id;
-  
-  const getStatusBadge = (status: Order["status"]) => {
-    switch (status) {
-      case "preparing":
-        return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Cooking</span>;
-      case "ready":
-        return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Ready</span>;
-      case "served":
-        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">Served</span>;
-      default:
-        return null;
-    }
-  };
+  // Calculate time elapsed
+  const [elapsed, setElapsed] = useState(0);
 
-  const getTimeAgo = (createdAt: string) => {
-    const minutes = Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000);
-    return `${minutes} min ago`;
-  };
+  useEffect(() => {
+    const updateTime = () => {
+      const diff = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
+      setElapsed(diff);
+    };
 
-  const getNextStatus = (): Order["status"] | null => {
-    if (order.status === "preparing") return "ready";
-    if (order.status === "ready") return "served";
-    return null;
-  };
+    updateTime();
+    const timer = setInterval(updateTime, 60000);
+    return () => clearInterval(timer);
+  }, [order.createdAt]);
 
-  const getButtonText = () => {
-    if (order.status === "preparing") return "Mark Ready";
-    if (order.status === "ready") return "Mark Served";
-    return "Update";
-  };
+  const isUrgent = elapsed > 20;
+  const isWarning = elapsed > 10;
 
-  const nextStatus = getNextStatus();
+  const nextStatus =
+    order.status === "preparing" || order.status === "pending" ? "ready" :
+      order.status === "prepared" ? "ready" :
+        order.status === "ready" ? "served" : null;
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-      {/* Order Header */}
-      <div className="flex items-center justify-between mb-3">
+    <div className={`bg-white rounded-xl shadow-sm border h-full flex flex-col transition-shadow hover:shadow-md ${isUrgent ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-200'
+      }`}>
+      {/* Card Header */}
+      <div className={`p-4 border-b flex justify-between items-start rounded-t-xl ${isUrgent ? 'bg-red-50/50' : 'bg-gray-50/50'
+        }`}>
         <div>
-          <h3 className="text-base font-bold text-gray-900">#{order.orderNumber}</h3>
-          <p className="text-sm text-gray-500">Table #{order.tableNumber} • {getTimeAgo(order.createdAt)}</p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-bold">
-            {Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000)} min ago
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">
+            Table
           </span>
-          {getStatusBadge(order.status)}
+          <span className="text-3xl font-black text-gray-900 leading-none">
+            {order.tableNumber}
+          </span>
         </div>
-      </div>
-
-      {/* Order Items */}
-      <div className="space-y-1 mb-3">
-        {order.items.map((item, index) => (
-          <div key={`${orderId}-item-${index}`} className="flex items-start">
-            <span className="text-sm text-gray-900">
-              <span className="font-medium">{item.quantity}×</span> {item.name}
+        <div className="text-right">
+          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-bold ${isUrgent ? 'bg-red-100 text-red-700' :
+            isWarning ? 'bg-orange-100 text-orange-700' :
+              'bg-green-100 text-green-700'
+            }`}>
+            <Clock className="w-3.5 h-3.5" />
+            <span>
+              {elapsed < 60
+                ? `${elapsed}m`
+                : `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')} hrs`}
             </span>
           </div>
-        ))}
-        {order.items.some(item => item.specialInstructions) && (
-          <div className="mt-2">
-            {order.items.filter(item => item.specialInstructions).map((item, index) => (
-              <p key={`spec-${index}`} className="text-xs text-orange-600">• {item.specialInstructions}</p>
-            ))}
-          </div>
-        )}
+          <p className="text-[10px] text-gray-400 mt-1.5 font-medium font-mono">
+            #{order.orderNumber.slice(-6)}
+          </p>
+        </div>
       </div>
 
-      {/* Action Button */}
+      {/* Items List */}
+      <div className="p-4 flex-1 space-y-4">
+        {order.items.map((item, idx) => (
+          <div key={idx} className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-sm text-gray-700">
+              {item.quantity}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 leading-snug">
+                {item.name}
+              </p>
+              {item.specialInstructions && (
+                <div className="mt-1.5 flex items-start gap-1.5 text-xs text-orange-700 bg-orange-50 px-2 py-1.5 rounded-md border border-orange-100">
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  <span className="font-medium">{item.specialInstructions}</span>
+                </div>
+              )}
+            </div>
+            {/* Checkbox for item completion could go here */}
+          </div>
+        ))}
+      </div>
+
+      {/* Action Footer */}
       {nextStatus && (
-        <button
-          onClick={() => onStatusChange(orderId, nextStatus)}
-          className={`w-full py-3 rounded-lg font-medium text-white transition-colors ${
-            nextStatus === "ready" 
-              ? "bg-green-600 hover:bg-green-700" 
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
-        >
-          {getButtonText()}
-        </button>
+        <div className="p-3 bg-gray-50 border-t border-gray-100 rounded-b-xl">
+          <button
+            onClick={() => onStatusChange(orderId, nextStatus)}
+            className={`w-full py-3.5 rounded-lg font-bold text-white shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${nextStatus === 'ready'
+              ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
+              : 'bg-green-600 hover:bg-green-700 shadow-green-200'
+              }`}
+          >
+            {nextStatus === 'ready' ? (
+              <>
+                <CheckCircle className="w-5 h-5" />
+                <span>Mark Ready</span>
+              </>
+            ) : (
+              <>
+                <Truck className="w-5 h-5" />
+                <span>Mark Served</span>
+              </>
+            )}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -11,6 +11,11 @@ import {
   Wallet,
   Tag,
   Utensils,
+  Search,
+  Bell,
+  ChevronDown,
+  LayoutDashboard,
+  Settings
 } from "lucide-react";
 import Dashboard from "../components/admin/Dashboard";
 import MenuManagement from "../components/admin/MenuManagement";
@@ -46,12 +51,12 @@ const AdminHome = () => {
 
   useEffect(() => {
     fetchLowStockCount();
-    
+
     // Check every minute
     const interval = setInterval(() => {
       fetchLowStockCount();
     }, 60000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -69,110 +74,139 @@ const AdminHome = () => {
   };
 
   const handleLogout = () => {
-    const restaurantSlug = user?.restaurantSlug;
     logout();
-    // Redirect to restaurant dashboard after logout
-    if (restaurantSlug) {
-      navigate(`/${restaurantSlug}/dashboard`);
-    } else {
-      navigate("/login");
-    }
   };
 
   const tabs = [
-    { id: "dashboard" as Tab, name: "Dashboard", icon: TrendingUp },
-    { id: "menu" as Tab, name: "Menu Management", icon: MenuIcon },
-    { id: "tables" as Tab, name: "Table Management", icon: Utensils },
+    { id: "dashboard" as Tab, name: "Dashboard", icon: LayoutDashboard },
+    { id: "menu" as Tab, name: "Menu", icon: MenuIcon },
+    { id: "tables" as Tab, name: "Active Tables", icon: Utensils },
     { id: "inventory" as Tab, name: "Inventory", icon: Package },
-    { id: "tracking" as Tab, name: "Consumption Tracking", icon: TrendingUp },
-    { id: "users" as Tab, name: "Staff Management", icon: Users },
+    { id: "tracking" as Tab, name: "Reports", icon: TrendingUp },
+    { id: "users" as Tab, name: "Users", icon: Users },
     { id: "promos" as Tab, name: "Promo Codes", icon: Tag },
-    { id: "info" as Tab, name: "Restaurant Info", icon: Building2 },
-    { id: "payment" as Tab, name: "Payment Settings", icon: Wallet },
+    { id: "payment" as Tab, name: "Payments", icon: Wallet },
+    { id: "info" as Tab, name: "Settings", icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <div
-        className={`${
-          sidebarOpen ? "w-64" : "w-20"
-        } bg-blue-900 text-white transition-all duration-300 flex flex-col`}
+        className={`${sidebarOpen ? "w-64" : "w-20"
+          } bg-slate-900 text-white transition-all duration-300 flex flex-col shadow-xl z-20`}
       >
-        {/* Top Section */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-8">
-            {sidebarOpen && (
-              <h1 className="text-xl font-bold">QuickServe Admin</h1>
-            )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-blue-800 rounded-lg"
-            >
-              <MenuIcon className="w-6 h-6" />
-            </button>
-          </div>
-
-          <nav className="space-y-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors relative ${
-                  activeTab === tab.id
-                    ? "bg-blue-700 text-white"
-                    : "text-blue-100 hover:bg-blue-800"
-                }`}
-              >
-                <tab.icon className="w-5 h-5" />
-                {sidebarOpen && <span>{tab.name}</span>}
-                {tab.id === "inventory" && lowStockCount > 0 && (
-                  <span className="absolute right-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                    {lowStockCount}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+        {/* Logo Section */}
+        <div className="h-16 flex items-center px-6 border-b border-slate-800">
+          <MenuIcon className="w-6 h-6 text-blue-500 mr-3" />
+          {sidebarOpen && (
+            <span className="text-lg font-bold tracking-tight">QuickServe</span>
+          )}
         </div>
 
-        {/* Spacer to push logout to bottom */}
-        <div className="flex-grow"></div>
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${activeTab === tab.id
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                }`}
+            >
+              <tab.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${activeTab === tab.id ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} />
+              {sidebarOpen && <span className="font-medium text-sm">{tab.name}</span>}
 
-        {/* Logout Button - Fixed at Bottom */}
-        <div className="p-4">
+              {/* Notification Badge for Inventory */}
+              {tab.id === "inventory" && lowStockCount > 0 && sidebarOpen && (
+                <span className="absolute right-3 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-sm">
+                  {lowStockCount}
+                </span>
+              )}
+              {tab.id === "inventory" && lowStockCount > 0 && !sidebarOpen && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Bottom Section (Logout) */}
+        <div className="p-4 border-t border-slate-800">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="w-full flex items-center justify-center p-2 mb-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          >
+            {sidebarOpen ? 'Collapse' : 'Expand'}
+          </button>
           <button
             onClick={handleLogout}
-            className={`${
-              sidebarOpen ? "w-full" : "w-12"
-            } flex items-center ${sidebarOpen ? 'justify-start' : 'justify-center'} gap-2 px-3 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-all duration-300`}
+            className={`w-full flex items-center ${sidebarOpen ? 'justify-start px-4' : 'justify-center'} py-3 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-all duration-200`}
             title="Logout"
           >
-            <LogOut className="w-4 h-4" />
-            {sidebarOpen && <span>Logout</span>}
+            <LogOut className="w-5 h-5" />
+            {sidebarOpen && <span className="ml-3 font-medium text-sm">Logout</span>}
           </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-gray-800">
-              {tabs.find((t) => t.id === activeTab)?.name}
-            </h2>
-            <p className="text-gray-600">Welcome back, {user?.username}!</p>
+      {/* Main Content Wrapper */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+
+        {/* Top Header */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
+          {/* Search Bar */}
+          <div className="flex items-center w-96">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search..."
+                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
+              />
+            </div>
           </div>
 
-          {activeTab === "dashboard" && <Dashboard />}
-          {activeTab === "menu" && <MenuManagement />}
-          {activeTab === "tables" && <TableManagement />}
-          {activeTab === "inventory" && <InventoryManagement />}
-          {activeTab === "tracking" && <InventoryTracking />}
-          {activeTab === "users" && <UserManagement />}
-          {activeTab === "promos" && <PromoCodeManagement />}
-          {activeTab === "info" && <RestaurantInfo />}
-          {activeTab === "payment" && <PaymentSettings />}
+          {/* Right Header Controls */}
+          <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-1 text-gray-800 font-semibold cursor-default">
+              <span>QuickServe</span>
+            </div>
+
+            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+            </button>
+
+            <div className="flex items-center space-x-3 pl-6 border-l border-gray-200">
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-semibold text-gray-900">{user?.username || 'Admin'}</span>
+                <span className="text-xs text-gray-500">Administrator</span>
+              </div>
+              <div className="h-9 w-9 rounded-full bg-slate-900 flex items-center justify-center text-white font-bold shadow-md">
+                {(user?.username || 'A')[0].toUpperCase()}
+              </div>
+              <ChevronDown className="h-4 w-4 text-gray-400 cursor-pointer" />
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-auto bg-gray-50 p-8">
+          {/* Dynamic Content */}
+          <div className="max-w-7xl mx-auto">
+            {activeTab === "dashboard" && <Dashboard />}
+            {activeTab === "menu" && <MenuManagement />}
+            {activeTab === "tables" && <TableManagement />}
+            {activeTab === "inventory" && <InventoryManagement />}
+            {activeTab === "tracking" && <InventoryTracking />}
+            {activeTab === "users" && <UserManagement />}
+            {activeTab === "promos" && <PromoCodeManagement />}
+            {activeTab === "info" && <RestaurantInfo />}
+            {activeTab === "payment" && <PaymentSettings />}
+          </div>
         </div>
       </div>
     </div>
