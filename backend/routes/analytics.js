@@ -153,7 +153,7 @@ router.get('/', enforceTenantIsolation, async (req, res) => {
     ]
 
     console.log('[ANALYTICS] Generated analytics');
-    
+
     res.json({
       revenue: {
         today: todayRevenue,
@@ -181,13 +181,47 @@ router.get('/inventory-consumption', enforceTenantIsolation, async (req, res) =>
     const { days = 7 } = req.query;
     // SECURITY: Use authenticated restaurant ID only
     const restaurantId = req.restaurantId;
-    
+
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - parseInt(days));
     startDate.setHours(0, 0, 0, 0);
-    
+
     console.log(`[ANALYTICS] Fetching inventory consumption for restaurant ${restaurantId}, last ${days} days`);
-    
+    console.log(`[ANALYTICS] Start Date: ${startDate.toISOString()}`);
+
+    // DEBUG: Check total orders in range regardless of status
+    const allOrdersCount = await Order.count({
+      where: {
+        restaurantId,
+        createdAt: { [Op.gte]: startDate }
+      }
+    });
+    console.log(`[ANALYTICS] DEBUG: Total orders found in range (any status): ${allOrdersCount}`);
+
+    // DEBUG: Check eligible orders (status filter)
+    const eligibleOrdersCount = await Order.count({
+      where: {
+        restaurantId,
+        createdAt: { [Op.gte]: startDate },
+        status: { [Op.in]: ['preparing', 'ready', 'served', 'completed'] }
+      }
+    });
+    console.log(`[ANALYTICS] DEBUG: Eligible orders found (status filtered): ${eligibleOrdersCount}`);
+
+    // DEBUG: Inspect the first eligible order to verify JSON structure
+    if (eligibleOrdersCount > 0) {
+      const sampleOrder = await Order.findOne({
+        where: {
+          restaurantId,
+          createdAt: { [Op.gte]: startDate },
+          status: { [Op.in]: ['pending', 'preparing', 'ready', 'served', 'completed'] }
+        }
+      });
+      if (sampleOrder) {
+        console.log('[ANALYTICS] DEBUG: Sample Order Items Structure:', JSON.stringify(sampleOrder.items));
+      }
+    }
+
     // Get item-wise consumption from JSONB items array
     const [itemConsumption] = await sequelize.query(`
       SELECT 
@@ -201,14 +235,15 @@ router.get('/inventory-consumption', enforceTenantIsolation, async (req, res) =>
       jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
-        AND o.status IN ('preparing', 'ready', 'served', 'completed')
+        AND o."createdAt" >= :startDate
+        AND o.status IN ('pending', 'preparing', 'ready', 'served', 'completed')
       GROUP BY item->>'menuItemId', item->>'name', item->>'price'
       ORDER BY "totalQuantity" DESC
     `, {
       replacements: { restaurantId, startDate },
       type: sequelize.QueryTypes.SELECT
     });
-    
+
     // Get daily breakdown
     const [dailyConsumption] = await sequelize.query(`
       SELECT 
@@ -226,17 +261,19 @@ router.get('/inventory-consumption', enforceTenantIsolation, async (req, res) =>
       jsonb_array_elements(o.items) as item
       WHERE o."restaurantId" = :restaurantId
         AND o."createdAt" >= :startDate
-        AND o.status IN ('preparing', 'ready', 'served', 'completed')
+      WHERE o."restaurantId" = :restaurantId
+        AND o."createdAt" >= :startDate
+        AND o.status IN ('pending', 'preparing', 'ready', 'served', 'completed')
       GROUP BY DATE(o."createdAt")
       ORDER BY date DESC
     `, {
       replacements: { restaurantId, startDate },
       type: sequelize.QueryTypes.SELECT
     });
-    
+
     console.log(`[ANALYTICS] Found ${itemConsumption.length} items consumed`);
     console.log(`[ANALYTICS] Found ${dailyConsumption.length} days of data`);
-    
+
     res.json({
       itemConsumption: itemConsumption.map(item => ({
         itemId: item.itemId,

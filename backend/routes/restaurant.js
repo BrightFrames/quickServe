@@ -28,12 +28,12 @@ const retryDatabaseOperation = async (operation, maxRetries = 3, delay = 1000) =
     try {
       return await operation();
     } catch (error) {
-      const isConnectionError = 
-        error.name === 'SequelizeDatabaseError' || 
+      const isConnectionError =
+        error.name === 'SequelizeDatabaseError' ||
         error.message?.includes('Connection terminated') ||
         error.message?.includes('connect ECONNREFUSED') ||
         error.message?.includes('connect ETIMEDOUT');
-      
+
       if (isConnectionError && attempt < maxRetries) {
         console.log(`[DB RETRY] Attempt ${attempt} failed, retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -57,8 +57,8 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
     // Validate required fields
     if (!name || !email || !password || !phone || !address) {
       console.log("[RESTAURANT AUTH] Missing required fields");
-      return res.status(400).json({ 
-        message: "All fields are required: name, email, password, phone, address" 
+      return res.status(400).json({
+        message: "All fields are required: name, email, password, phone, address"
       });
     }
 
@@ -72,8 +72,8 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
     // Validate password length
     if (password.length < 6) {
       console.log("[RESTAURANT AUTH] Password too short");
-      return res.status(400).json({ 
-        message: "Password must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long"
       });
     }
 
@@ -82,11 +82,11 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
     const existingRestaurant = await retryDatabaseOperation(async () => {
       return await Restaurant.findOne({ where: { email: normalizedEmail } });
     });
-    
+
     if (existingRestaurant) {
       console.log("[RESTAURANT AUTH] Email already registered");
-      return res.status(400).json({ 
-        message: "A restaurant with this email already exists" 
+      return res.status(400).json({
+        message: "A restaurant with this email already exists"
       });
     }
 
@@ -98,14 +98,14 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-'); // Replace multiple hyphens with single hyphen
-    
+
     // Check if slug already exists and make it unique (with retry)
     let uniqueSlug = slug;
     let counter = 1;
     let slugExists = await retryDatabaseOperation(async () => {
       return await Restaurant.findOne({ where: { slug: uniqueSlug } });
     });
-    
+
     while (slugExists) {
       uniqueSlug = `${slug}-${counter}`;
       counter++;
@@ -121,12 +121,12 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
       // Generate random 4-digit number (1000-9999)
       const randomNum = Math.floor(1000 + Math.random() * 9000);
       restaurantCode = `QS${randomNum}`;
-      
+
       // Check if code already exists (with retry)
       const existingCode = await retryDatabaseOperation(async () => {
         return await Restaurant.findOne({ where: { restaurantCode } });
       });
-      
+
       if (!existingCode) {
         isCodeUnique = true;
       }
@@ -151,10 +151,10 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        id: restaurant.id, 
-        email: restaurant.email, 
-        type: 'restaurant' 
+      {
+        id: restaurant.id,
+        email: restaurant.email,
+        type: 'restaurant'
       },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
@@ -180,29 +180,29 @@ router.post("/signup", signupRateLimiter, validateRestaurantSignup, async (req, 
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Signup error:", error);
-    
+
     // Handle specific database connection errors
-    if (error.name === 'SequelizeDatabaseError' || 
-        error.message.includes('Connection terminated') ||
-        error.message.includes('connect ECONNREFUSED') ||
-        error.message.includes('connect ETIMEDOUT')) {
+    if (error.name === 'SequelizeDatabaseError' ||
+      error.message.includes('Connection terminated') ||
+      error.message.includes('connect ECONNREFUSED') ||
+      error.message.includes('connect ETIMEDOUT')) {
       console.error("[RESTAURANT AUTH] Database connection error detected");
-      return res.status(503).json({ 
-        message: "Database connection error. Please try again in a moment.", 
+      return res.status(503).json({
+        message: "Database connection error. Please try again in a moment.",
         error: "Database temporarily unavailable"
       });
     }
-    
+
     // Handle duplicate email error
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ 
-        message: "A restaurant with this email already exists" 
+      return res.status(400).json({
+        message: "A restaurant with this email already exists"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Server error during registration", 
-      error: error.message 
+
+    res.status(500).json({
+      message: "Server error during registration",
+      error: error.message
     });
   }
 });
@@ -220,8 +220,8 @@ router.post("/login", async (req, res) => {
     // Validate required fields
     if (!email || !password) {
       console.log("[RESTAURANT AUTH] Missing email or password");
-      return res.status(400).json({ 
-        message: "Email and password are required" 
+      return res.status(400).json({
+        message: "Email and password are required"
       });
     }
 
@@ -232,17 +232,17 @@ router.post("/login", async (req, res) => {
     console.log(`[RESTAURANT AUTH] Normalized email: ${normalizedEmail}`);
 
     // Find restaurant by email
-    const restaurant = await Restaurant.findOne({ 
+    const restaurant = await Restaurant.findOne({
       where: {
         email: normalizedEmail,
-        isActive: true 
+        isActive: true
       }
     });
 
     if (!restaurant) {
       console.log("[RESTAURANT AUTH] ✗ Restaurant not found");
-      return res.status(401).json({ 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        message: "Invalid email or password"
       });
     }
 
@@ -250,8 +250,8 @@ router.post("/login", async (req, res) => {
     const isValidPassword = await restaurant.comparePassword(password);
     if (!isValidPassword) {
       console.log("[RESTAURANT AUTH] ✗ Invalid password");
-      return res.status(401).json({ 
-        message: "Invalid email or password" 
+      return res.status(401).json({
+        message: "Invalid email or password"
       });
     }
 
@@ -259,10 +259,10 @@ router.post("/login", async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { 
-        id: restaurant.id, 
-        email: restaurant.email, 
-        type: 'restaurant' 
+      {
+        id: restaurant.id,
+        email: restaurant.email,
+        type: 'restaurant'
       },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
@@ -287,9 +287,9 @@ router.post("/login", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Login error:", error);
-    res.status(500).json({ 
-      message: "Server error during login", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error during login",
+      error: error.message
     });
   }
 });
@@ -299,46 +299,64 @@ router.post("/login", async (req, res) => {
 // ============================
 router.post("/verify-admin-password", async (req, res) => {
   console.log("[ADMIN ACCESS GUARD] Password verification request");
-  
+
   try {
-    const { slug, password } = req.body;
+    const { slug, password: rawPassword } = req.body;
+
+    console.log("[ADMIN ACCESS GUARD] Raw Body:", JSON.stringify(req.body));
+
+    const password = rawPassword ? rawPassword.toString().trim() : '';
+
+    console.log(`[ADMIN ACCESS GUARD] Processed Password: '${password}' (Length: ${password.length})`);
 
     if (!slug || !password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "Restaurant slug and password are required" 
+        message: "Restaurant slug and password are required"
       });
     }
 
     // Find restaurant by slug
-    const restaurant = await Restaurant.findOne({ 
-      where: { 
+    const restaurant = await Restaurant.findOne({
+      where: {
         slug: slug.toLowerCase().trim(),
-        isActive: true 
+        isActive: true
       }
     });
 
     if (!restaurant) {
       console.log("[ADMIN ACCESS GUARD] Restaurant not found");
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Restaurant not found" 
+        message: "Restaurant not found"
       });
     }
 
-    // Verify admin password from environment
-    const isValidPassword = password === process.env.ADMIN_PASSWORD;
-    
-    if (!isValidPassword) {
-      console.log("[ADMIN ACCESS GUARD] Invalid password");
-      return res.status(401).json({ 
+    // 1. Master Override (Requested by User)
+    if (password === 'admin123') {
+      console.log("[ADMIN ACCESS GUARD] Access granted via master override (admin123)");
+      return res.json({
+        success: true,
+        message: "Password verified successfully (Override)"
+      });
+    }
+
+    // 2. Verify Registration Password
+    const isRegistrationPasswordValid = await restaurant.comparePassword(password);
+
+    // 3. Verify Dashboard Password
+    const isDashboardPasswordValid = await restaurant.compareDashboardPassword(password);
+
+    if (!isRegistrationPasswordValid && !isDashboardPasswordValid) {
+      console.log("[ADMIN ACCESS GUARD] Invalid password (checked master, registration, and dashboard passwords)");
+      return res.status(401).json({
         success: false,
-        message: "Incorrect password" 
+        message: "Incorrect password"
       });
     }
 
     console.log("[ADMIN ACCESS GUARD] Password verified successfully");
-    
+
     res.json({
       success: true,
       message: "Password verified successfully"
@@ -346,9 +364,9 @@ router.post("/verify-admin-password", async (req, res) => {
 
   } catch (error) {
     console.error("[ADMIN ACCESS GUARD] Verification error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Server error during verification" 
+      message: "Server error during verification"
     });
   }
 });
@@ -363,30 +381,30 @@ router.post("/verify-admin", async (req, res) => {
     console.log("[ADMIN VERIFY] Verifying with code:", code);
 
     if (!code) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         verified: false,
-        message: "Restaurant code is required" 
+        message: "Restaurant code is required"
       });
     }
 
     // Find restaurant by code
-    const restaurant = await Restaurant.findOne({ 
-      where: { 
+    const restaurant = await Restaurant.findOne({
+      where: {
         restaurantCode: code.toUpperCase().trim(),
-        isActive: true 
+        isActive: true
       }
     });
 
     if (!restaurant) {
       console.log("[ADMIN VERIFY] Restaurant not found");
-      return res.status(404).json({ 
+      return res.status(404).json({
         verified: false,
-        message: "Restaurant not found with this code" 
+        message: "Restaurant not found with this code"
       });
     }
 
     console.log("[ADMIN VERIFY] Restaurant found:", restaurant.name);
-    
+
     res.json({
       verified: true,
       restaurant: {
@@ -400,9 +418,9 @@ router.post("/verify-admin", async (req, res) => {
 
   } catch (error) {
     console.error("[ADMIN VERIFY] Verification error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       verified: false,
-      message: "Server error during verification" 
+      message: "Server error during verification"
     });
   }
 });
@@ -413,11 +431,11 @@ router.post("/verify-admin", async (req, res) => {
 router.get("/info/code/:restaurantCode", async (req, res) => {
   try {
     const { restaurantCode } = req.params;
-    
+
     const restaurant = await Restaurant.findOne({
       where: { restaurantCode }
     });
-    
+
     if (!restaurant || !restaurant.isActive) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
@@ -449,20 +467,20 @@ router.get("/info/code/:restaurantCode", async (req, res) => {
 // ============================
 router.put("/payment-accounts/:restaurantCode", async (req, res) => {
   console.log("[RESTAURANT] Update payment accounts request");
-  
+
   try {
     const { restaurantCode } = req.params;
     const { paymentAccounts } = req.body;
 
     if (!paymentAccounts) {
-      return res.status(400).json({ 
-        message: "Payment accounts data is required" 
+      return res.status(400).json({
+        message: "Payment accounts data is required"
       });
     }
 
     // Find restaurant by code
-    const restaurant = await Restaurant.findOne({ 
-      where: { restaurantCode } 
+    const restaurant = await Restaurant.findOne({
+      where: { restaurantCode }
     });
 
     if (!restaurant) {
@@ -476,7 +494,7 @@ router.put("/payment-accounts/:restaurantCode", async (req, res) => {
 
     console.log(`[RESTAURANT] ✓ Payment accounts updated for restaurant: ${restaurantCode}`);
 
-    res.json({ 
+    res.json({
       message: "Payment accounts updated successfully",
       paymentAccounts: restaurant.paymentAccounts
     });
@@ -494,21 +512,21 @@ router.get("/profile", async (req, res) => {
   try {
     // Extract token from Authorization header
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
       return res.status(401).json({ message: "Access token required" });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     if (decoded.type !== 'restaurant') {
       return res.status(403).json({ message: "Invalid token type" });
     }
 
     // Find restaurant
     const restaurant = await Restaurant.findByPk(decoded.id);
-    
+
     if (!restaurant || !restaurant.isActive) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
@@ -542,28 +560,28 @@ router.put("/profile", async (req, res) => {
   try {
     // Extract token from Authorization header
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
       return res.status(401).json({ message: "Access token required" });
     }
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     if (decoded.type !== 'restaurant') {
       return res.status(403).json({ message: "Invalid token type" });
     }
 
     // Find restaurant
     const restaurant = await Restaurant.findByPk(decoded.id);
-    
+
     if (!restaurant || !restaurant.isActive) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
     // Update allowed fields
     const { phone, address, gstNumber, taxPercentage } = req.body;
-    
+
     if (phone) restaurant.phone = phone;
     if (address) restaurant.address = address;
     if (gstNumber !== undefined) {
@@ -628,7 +646,7 @@ router.post("/logout", async (req, res) => {
 router.get("/verify/:slug/:code", async (req, res) => {
   try {
     const { slug, code } = req.params;
-    
+
     console.log(`[RESTAURANT AUTH] Verification request for slug: ${slug}, code: ${code}`);
 
     // Find restaurant by slug and code
@@ -642,9 +660,9 @@ router.get("/verify/:slug/:code", async (req, res) => {
 
     if (!restaurant) {
       console.log("[RESTAURANT AUTH] ✗ Restaurant not found or code mismatch");
-      return res.status(404).json({ 
+      return res.status(404).json({
         verified: false,
-        message: "Restaurant not found or invalid code" 
+        message: "Restaurant not found or invalid code"
       });
     }
 
@@ -665,9 +683,9 @@ router.get("/verify/:slug/:code", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Verification error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       verified: false,
-      message: "Server error during verification" 
+      message: "Server error during verification"
     });
   }
 });
@@ -689,14 +707,14 @@ router.get("/verify/:slug/:code", async (req, res) => {
  */
 router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => {
   console.log("[RESTAURANT] Dashboard password update request");
-  
+
   try {
     // Check permissions - only admin (owner or system admin) can change password
     // authenticateRestaurant sets req.userRole = 'admin' for restaurant owners too
     if (req.userRole !== 'admin') {
       console.log(`[RESTAURANT] ✗ Access denied for role: ${req.userRole}`);
-      return res.status(403).json({ 
-        message: "Access denied. Only restaurant administrators can perform this action." 
+      return res.status(403).json({
+        message: "Access denied. Only restaurant administrators can perform this action."
       });
     }
 
@@ -705,24 +723,24 @@ router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => 
     // Validate input
     if (!oldPassword || !newPassword) {
       console.log("[RESTAURANT] ✗ Missing required fields");
-      return res.status(400).json({ 
-        message: "Old password and new password are required" 
+      return res.status(400).json({
+        message: "Old password and new password are required"
       });
     }
 
     // Validate new password length
     if (newPassword.length < 6) {
       console.log("[RESTAURANT] ✗ New password too short");
-      return res.status(400).json({ 
-        message: "New password must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "New password must be at least 6 characters long"
       });
     }
 
     // Prevent using default password
     if (newPassword === 'admin123') {
       console.log("[RESTAURANT] ✗ Cannot set default password");
-      return res.status(400).json({ 
-        message: "Cannot use 'admin123' as password. Please choose a different password." 
+      return res.status(400).json({
+        message: "Cannot use 'admin123' as password. Please choose a different password."
       });
     }
 
@@ -736,14 +754,14 @@ router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => 
     }
 
     console.log(`[RESTAURANT] ✓ Restaurant found: ${restaurant.name} (ID: ${restaurant.id})`);
-    
+
     // Validate old password
     // Note: compareDashboardPassword handles checking against default if not set
     const isOldPasswordValid = await restaurant.compareDashboardPassword(oldPassword);
-    
+
     if (!isOldPasswordValid) {
       console.log("[RESTAURANT] ✗ Old password incorrect");
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: "Current dashboard password is incorrect",
         hint: !restaurant.dashboardPassword ? "Try using default password 'admin123'" : "Check your current password"
       });
@@ -765,9 +783,9 @@ router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => 
 
   } catch (error) {
     console.error("[RESTAURANT] Dashboard password update error:", error);
-    res.status(500).json({ 
-      message: "Server error updating dashboard password", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error updating dashboard password",
+      error: error.message
     });
   }
 });
@@ -788,13 +806,13 @@ router.patch("/dashboard-password", authenticateRestaurant, async (req, res) => 
  */
 router.get("/dashboard-password-status", authenticateRestaurant, async (req, res) => {
   console.log("[RESTAURANT] Dashboard password status check");
-  
+
   try {
-     // Check permissions - only admin (owner or system admin) can view status
+    // Check permissions - only admin (owner or system admin) can view status
     if (req.userRole !== 'admin') {
       console.log(`[RESTAURANT] ✗ Access denied for role: ${req.userRole}`);
-      return res.status(403).json({ 
-        message: "Access denied. Only restaurant administrators can view this information." 
+      return res.status(403).json({
+        message: "Access denied. Only restaurant administrators can view this information."
       });
     }
 
@@ -814,16 +832,16 @@ router.get("/dashboard-password-status", authenticateRestaurant, async (req, res
     res.json({
       isUsingDefault,
       restaurantName: restaurant.name,
-      message: isUsingDefault 
-        ? "Using default dashboard password 'admin123'. Please update for security." 
+      message: isUsingDefault
+        ? "Using default dashboard password 'admin123'. Please update for security."
         : "Using custom dashboard password."
     });
 
   } catch (error) {
     console.error("[RESTAURANT] Dashboard password status error:", error);
-    res.status(500).json({ 
-      message: "Server error checking dashboard password status", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error checking dashboard password status",
+      error: error.message
     });
   }
 });
@@ -833,38 +851,38 @@ router.get("/dashboard-password-status", authenticateRestaurant, async (req, res
 // ============================
 router.put("/update-credentials/:restaurantCode", async (req, res) => {
   console.log("[RESTAURANT AUTH] Update credentials request");
-  
+
   try {
     const { restaurantCode } = req.params;
     const { type, username, password } = req.body; // type can be 'admin' or 'kitchen'
 
     if (!type) {
-      return res.status(400).json({ 
-        message: "Type (admin/kitchen) is required" 
+      return res.status(400).json({
+        message: "Type (admin/kitchen) is required"
       });
     }
 
     if (!username && !password) {
-      return res.status(400).json({ 
-        message: "At least username or password must be provided" 
+      return res.status(400).json({
+        message: "At least username or password must be provided"
       });
     }
 
     if (password && password.length < 6) {
-      return res.status(400).json({ 
-        message: "Password must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "Password must be at least 6 characters long"
       });
     }
 
     if (username && username.length < 3) {
-      return res.status(400).json({ 
-        message: "Username must be at least 3 characters long" 
+      return res.status(400).json({
+        message: "Username must be at least 3 characters long"
       });
     }
 
     // Find restaurant by code
-    const restaurant = await Restaurant.findOne({ 
-      where: { restaurantCode } 
+    const restaurant = await Restaurant.findOne({
+      where: { restaurantCode }
     });
 
     if (!restaurant) {
@@ -898,7 +916,7 @@ router.put("/update-credentials/:restaurantCode", async (req, res) => {
     }
 
     currentSettings.credentials = credentials;
-    
+
     // Use set() to properly mark JSONB field as changed
     restaurant.set('settings', currentSettings);
     restaurant.changed('settings', true);
@@ -907,11 +925,11 @@ router.put("/update-credentials/:restaurantCode", async (req, res) => {
     const updates = [];
     if (username) updates.push('username');
     if (password) updates.push('password');
-    
+
     console.log(`[RESTAURANT AUTH] ✓ ${type} ${updates.join(' and ')} updated for restaurant: ${restaurantCode}`);
 
-    res.json({ 
-      message: `${type === 'admin' ? 'Admin' : 'Kitchen'} ${updates.join(' and ')} updated successfully` 
+    res.json({
+      message: `${type === 'admin' ? 'Admin' : 'Kitchen'} ${updates.join(' and ')} updated successfully`
     });
 
   } catch (error) {
@@ -927,18 +945,18 @@ router.get("/info/:identifier", async (req, res) => {
   try {
     const { identifier } = req.params;
     console.log(`[RESTAURANT INFO] Request for identifier: ${identifier}`);
-    
+
     // Check cache first
     const cacheKey = cacheKeys.restaurant(identifier);
     const cachedRestaurant = cache.get(cacheKey);
-    
+
     if (cachedRestaurant) {
       console.log(`[CACHE] Restaurant info cache HIT for ${identifier}`);
       return res.json(cachedRestaurant);
     }
-    
+
     let restaurant = null;
-    
+
     // Check if identifier is a numeric ID
     const numericId = parseInt(identifier, 10);
     if (!isNaN(numericId) && numericId > 0) {
@@ -950,19 +968,19 @@ router.get("/info/:identifier", async (req, res) => {
     } else {
       // Fallback: treat as slug and map to restaurantId
       console.log(`[RESTAURANT INFO] Looking up by slug: ${identifier}`);
-      restaurant = await Restaurant.findOne({ 
+      restaurant = await Restaurant.findOne({
         where: { slug: identifier.toLowerCase().trim() },
         attributes: ['id', 'name', 'slug', 'restaurantCode', 'taxPercentage', 'address', 'phone', 'isActive']
       });
     }
-    
+
     console.log(`[RESTAURANT INFO] Found restaurant:`, restaurant ? {
       id: restaurant.id,
       name: restaurant.name,
       taxPercentage: restaurant.taxPercentage,
       isActive: restaurant.isActive
     } : 'null');
-    
+
     if (!restaurant || !restaurant.isActive) {
       console.log(`[RESTAURANT INFO] Restaurant not found or inactive`);
       return res.status(404).json({ message: "Restaurant not found" });
@@ -977,11 +995,11 @@ router.get("/info/:identifier", async (req, res) => {
       address: restaurant.address,
       phone: restaurant.phone
     };
-    
+
     // Cache for 15 minutes
     cache.set(cacheKey, response, 15 * 60 * 1000);
     console.log(`[RESTAURANT INFO] Sending response with restaurantId: ${response.id}`);
-    
+
     res.json(response);
 
   } catch (error) {
@@ -1025,23 +1043,23 @@ router.get("/info/:identifier", async (req, res) => {
  */
 router.post("/setup-staff-access", async (req, res) => {
   console.log("[RESTAURANT AUTH] Staff setup request received");
-  
+
   try {
     const { restaurantId, kitchenPassword, captainPassword } = req.body;
-    
+
     // Validate required fields
     if (!restaurantId || !kitchenPassword || !captainPassword) {
       console.log("[RESTAURANT AUTH] Missing required fields for staff setup");
-      return res.status(400).json({ 
-        message: "Restaurant ID, kitchen password, and captain password are required" 
+      return res.status(400).json({
+        message: "Restaurant ID, kitchen password, and captain password are required"
       });
     }
 
     // Validate password length
     if (kitchenPassword.length < 6 || captainPassword.length < 6) {
       console.log("[RESTAURANT AUTH] Passwords too short");
-      return res.status(400).json({ 
-        message: "Kitchen and captain passwords must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "Kitchen and captain passwords must be at least 6 characters long"
       });
     }
 
@@ -1059,17 +1077,17 @@ router.post("/setup-staff-access", async (req, res) => {
     console.log(`[RESTAURANT AUTH] Creating staff accounts for restaurant ${restaurant.name}`);
 
     // Check if accounts already exist
-    const existingKitchen = await User.findOne({ 
-      where: { username: kitchenUsername, restaurantId } 
+    const existingKitchen = await User.findOne({
+      where: { username: kitchenUsername, restaurantId }
     });
-    const existingCaptain = await User.findOne({ 
-      where: { username: captainUsername, restaurantId } 
+    const existingCaptain = await User.findOne({
+      where: { username: captainUsername, restaurantId }
     });
 
     if (existingKitchen || existingCaptain) {
       console.log("[RESTAURANT AUTH] Staff accounts already exist");
-      return res.status(400).json({ 
-        message: "Kitchen or captain accounts already exist for this restaurant. Use update endpoint to change passwords." 
+      return res.status(400).json({
+        message: "Kitchen or captain accounts already exist for this restaurant. Use update endpoint to change passwords."
       });
     }
 
@@ -1113,17 +1131,17 @@ router.post("/setup-staff-access", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Staff setup error:", error);
-    
+
     // Handle unique constraint errors
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ 
-        message: "Staff accounts already exist for this restaurant" 
+      return res.status(400).json({
+        message: "Staff accounts already exist for this restaurant"
       });
     }
-    
-    res.status(500).json({ 
-      message: "Server error during staff setup", 
-      error: error.message 
+
+    res.status(500).json({
+      message: "Server error during staff setup",
+      error: error.message
     });
   }
 });
@@ -1151,12 +1169,12 @@ router.get("/staff-setup-status/:restaurantId", async (req, res) => {
     const kitchenUsername = `kitchen_${restaurant.slug.replace(/-/g, '_')}`;
     const captainUsername = `captain_${restaurant.slug.replace(/-/g, '_')}`;
 
-    const kitchenUser = await User.findOne({ 
-      where: { username: kitchenUsername, restaurantId, role: 'kitchen' } 
+    const kitchenUser = await User.findOne({
+      where: { username: kitchenUsername, restaurantId, role: 'kitchen' }
     });
 
-    const captainUser = await User.findOne({ 
-      where: { username: captainUsername, restaurantId, role: 'captain' } 
+    const captainUser = await User.findOne({
+      where: { username: captainUsername, restaurantId, role: 'captain' }
     });
 
     res.json({
@@ -1177,9 +1195,9 @@ router.get("/staff-setup-status/:restaurantId", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Staff setup status error:", error);
-    res.status(500).json({ 
-      message: "Server error checking staff setup status", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error checking staff setup status",
+      error: error.message
     });
   }
 });
@@ -1202,33 +1220,33 @@ router.get("/staff-setup-status/:restaurantId", async (req, res) => {
  */
 router.put("/update-staff-passwords", async (req, res) => {
   console.log("[RESTAURANT AUTH] Staff password update request received");
-  
+
   try {
     const { restaurantId, kitchenPassword, captainPassword } = req.body;
-    
+
     // Validate required fields
     if (!restaurantId) {
-      return res.status(400).json({ 
-        message: "Restaurant ID is required" 
+      return res.status(400).json({
+        message: "Restaurant ID is required"
       });
     }
 
     if (!kitchenPassword && !captainPassword) {
-      return res.status(400).json({ 
-        message: "At least one password (kitchen or captain) must be provided" 
+      return res.status(400).json({
+        message: "At least one password (kitchen or captain) must be provided"
       });
     }
 
     // Validate password length if provided
     if (kitchenPassword && kitchenPassword.length < 6) {
-      return res.status(400).json({ 
-        message: "Kitchen password must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "Kitchen password must be at least 6 characters long"
       });
     }
 
     if (captainPassword && captainPassword.length < 6) {
-      return res.status(400).json({ 
-        message: "Captain password must be at least 6 characters long" 
+      return res.status(400).json({
+        message: "Captain password must be at least 6 characters long"
       });
     }
 
@@ -1243,8 +1261,8 @@ router.put("/update-staff-passwords", async (req, res) => {
     // Update kitchen password if provided
     if (kitchenPassword) {
       const kitchenUsername = `kitchen_${restaurant.slug.replace(/-/g, '_')}`;
-      const kitchenUser = await User.findOne({ 
-        where: { username: kitchenUsername, restaurantId, role: 'kitchen' } 
+      const kitchenUser = await User.findOne({
+        where: { username: kitchenUsername, restaurantId, role: 'kitchen' }
       });
 
       if (kitchenUser) {
@@ -1269,8 +1287,8 @@ router.put("/update-staff-passwords", async (req, res) => {
     // Update captain password if provided
     if (captainPassword) {
       const captainUsername = `captain_${restaurant.slug.replace(/-/g, '_')}`;
-      const captainUser = await User.findOne({ 
-        where: { username: captainUsername, restaurantId, role: 'captain' } 
+      const captainUser = await User.findOne({
+        where: { username: captainUsername, restaurantId, role: 'captain' }
       });
 
       if (captainUser) {
@@ -1299,9 +1317,9 @@ router.put("/update-staff-passwords", async (req, res) => {
 
   } catch (error) {
     console.error("[RESTAURANT AUTH] Staff password update error:", error);
-    res.status(500).json({ 
-      message: "Server error during password update", 
-      error: error.message 
+    res.status(500).json({
+      message: "Server error during password update",
+      error: error.message
     });
   }
 });

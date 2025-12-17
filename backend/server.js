@@ -41,6 +41,17 @@ console.log(`[ENV] CUSTOMER_APP_URL: ${process.env.CUSTOMER_APP_URL ? 'Set' : 'M
 console.log(`[ENV] NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL ? 'Set' : 'MISSING'} (${process.env.NEXT_PUBLIC_APP_URL || 'N/A'})`);
 console.log(`[ENV] PORT: ${process.env.PORT || 5000}`);
 console.log(`[ENV] NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`[ENV] ADMIN_PASSWORD: ${process.env.ADMIN_PASSWORD ? 'Set' : 'MISSING (Dashboard access might fail)'}`);
+
+// Check for malformed CUSTOMER_APP_URL (common user error)
+if (process.env.CUSTOMER_APP_URL && process.env.CUSTOMER_APP_URL.includes(',')) {
+  console.warn('[ENV] ⚠️  CUSTOMER_APP_URL contains a comma. Using the first value only.');
+  process.env.CUSTOMER_APP_URL = process.env.CUSTOMER_APP_URL.split(',')[0].trim();
+  console.log(`[ENV] Fixed CUSTOMER_APP_URL: ${process.env.CUSTOMER_APP_URL}`);
+}
+
+import Order from "./models/Order.js";
+import { Op } from "sequelize";
 
 const app = express();
 const httpServer = createServer(app);
@@ -482,23 +493,37 @@ httpServer.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
 
   // Start cleanup job for old orders
-  startOrderCleanupJob();
+  try {
+    startOrderCleanupJob();
+  } catch (err) {
+    console.error('[CLEANUP] Failed to start cleanup job:', err);
+  }
+});
+
+httpServer.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`[FATAL] Port ${PORT} is already in use. Server cannot start.`);
+    process.exit(1);
+  } else {
+    console.error('[FATAL] Server error:', error);
+  }
 });
 
 // ============================
 // Order Cleanup Job
 // ============================
-import Order from "./models/Order.js";
-import { Op } from "sequelize";
+// Imports moved to top of file
 
 function startOrderCleanupJob() {
   console.log('[CLEANUP] Starting daily order cleanup job');
 
   // Run cleanup immediately on startup
-  cleanupOldOrders();
+  cleanupOldOrders().catch(err => console.error('[CLEANUP] Initial cleanup failed:', err.message));
 
   // Run cleanup every 24 hours
-  setInterval(cleanupOldOrders, 24 * 60 * 60 * 1000);
+  setInterval(() => {
+    cleanupOldOrders().catch(err => console.error('[CLEANUP] Scheduled cleanup failed:', err.message));
+  }, 24 * 60 * 60 * 1000);
 }
 
 async function cleanupOldOrders() {

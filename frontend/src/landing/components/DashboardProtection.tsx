@@ -28,11 +28,11 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
     const dashboardAuth = sessionStorage.getItem('dashboardAuth');
     const authSlug = sessionStorage.getItem('dashboardAuthSlug');
     const authTime = sessionStorage.getItem('dashboardAuthTime');
-    
+
     if (dashboardAuth === 'true' && authSlug === restaurantSlug && authTime) {
       const elapsed = Date.now() - parseInt(authTime);
       const expiryTime = 60 * 60 * 1000; // 1 hour
-      
+
       if (elapsed < expiryTime) {
         setIsAuthenticated(true);
       } else {
@@ -47,7 +47,7 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password.trim()) {
       toast.error('Please enter the restaurant password');
       return;
@@ -77,14 +77,14 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
         sessionStorage.setItem('dashboardAuth', 'true');
         sessionStorage.setItem('dashboardAuthSlug', restaurantSlug || '');
         sessionStorage.setItem('dashboardAuthTime', Date.now().toString());
-        
+
         setIsAuthenticated(true);
         toast.success('Access granted');
       }
     } catch (error: any) {
       const newAttemptCount = attemptCount + 1;
       setAttemptCount(newAttemptCount);
-      
+
       if (newAttemptCount >= 5) {
         toast.error('Too many failed attempts. Redirecting...');
         setTimeout(() => {
@@ -93,7 +93,7 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
       } else {
         toast.error(error.response?.data?.message || 'Incorrect password');
       }
-      
+
       setPassword('');
     } finally {
       setIsVerifying(false);
@@ -102,6 +102,16 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
 
   const handleCancel = () => {
     navigate('/');
+  };
+
+  const handleSignOut = () => {
+    // Clear all auth data
+    sessionStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    toast.info('Signed out successfully');
+    // Force hard redirect to landing page to ensure clean state
+    window.location.href = '/';
   };
 
   // Show loading while checking session
@@ -127,7 +137,7 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
               This dashboard is protected. Please enter your restaurant password to continue.
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             {/* Security Notice */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-6">
@@ -154,7 +164,7 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
                 style={{ display: 'none' }}
                 aria-hidden="true"
               />
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Restaurant Password
@@ -207,10 +217,19 @@ export const DashboardProtection = ({ children }: DashboardProtectionProps) => {
               </div>
             </form>
 
-            {/* Help Text */}
-            <p className="text-xs text-gray-500 text-center mt-6">
-              Forgot your password? Contact support or reset it from the registration page.
-            </p>
+            {/* Help Text & Sign Out */}
+            <div className="text-center mt-6 space-y-2">
+              <p className="text-xs text-gray-500">
+                Forgot your password? Contact support or reset it from the registration page.
+              </p>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
+              >
+                Sign Out & Return Home
+              </button>
+            </div>
           </CardContent>
         </Card>
       </div>
