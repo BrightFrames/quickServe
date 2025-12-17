@@ -26,7 +26,21 @@ import captainRoutes from "./routes/captain.js";
 import receptionRoutes from "./routes/reception.js";
 import publicRoutes from "./routes/public.js";
 
-dotenv.config();
+// Load environment variables
+const result = dotenv.config();
+
+if (result.error) {
+  console.warn('[ENV] ⚠️ Error loading .env file:', result.error.message);
+  console.warn('[ENV] This is normal in production if env vars are set via dashboard.');
+} else {
+  console.log('[ENV] ✓ .env file loaded successfully');
+}
+
+console.log('[ENV] Checker:');
+console.log(`[ENV] CUSTOMER_APP_URL: ${process.env.CUSTOMER_APP_URL ? 'Set' : 'MISSING'} (${process.env.CUSTOMER_APP_URL || 'N/A'})`);
+console.log(`[ENV] NEXT_PUBLIC_APP_URL: ${process.env.NEXT_PUBLIC_APP_URL ? 'Set' : 'MISSING'} (${process.env.NEXT_PUBLIC_APP_URL || 'N/A'})`);
+console.log(`[ENV] PORT: ${process.env.PORT || 5000}`);
+console.log(`[ENV] NODE_ENV: ${process.env.NODE_ENV}`);
 
 const app = express();
 const httpServer = createServer(app);
@@ -38,8 +52,8 @@ const httpServer = createServer(app);
 // Allowed origins from environment variable or local dev
 const envOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean)
+    .map((s) => s.trim())
+    .filter(Boolean)
   : [];
 
 const allowedOrigins = [
@@ -86,7 +100,7 @@ app.use((req, res, next) => {
     );
     res.setHeader("Access-Control-Max-Age", "86400"); // 24 hours
     console.log(`[CORS] ✓ Allowed origin: ${origin}`);
-    
+
     // Handle preflight OPTIONS requests
     if (req.method === "OPTIONS") {
       console.log("[CORS] ✓ Responding to OPTIONS preflight with 204");
@@ -222,17 +236,17 @@ const io = new Server(httpServer, {
 io.use((socket, next) => {
   try {
     const token = socket.handshake.auth.token;
-    
+
     if (!token) {
       // Allow connection without auth (for customers tracking orders)
       console.log('[SOCKET] Connection allowed without token (customer)');
       socket.user = null; // Mark as unauthenticated
       return next();
     }
-    
+
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Attach user data to socket
     socket.user = {
       id: decoded.id,
@@ -241,7 +255,7 @@ io.use((socket, next) => {
       restaurantId: decoded.restaurantId || decoded.id, // Restaurant owner uses their ID
       type: decoded.type,
     };
-    
+
     console.log('[SOCKET] ✓ Authenticated socket:', socket.user);
     next();
   } catch (error) {
@@ -265,17 +279,17 @@ io.on("connection", (socket) => {
       console.log(`[SOCKET] ✅ Customer socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
       return;
     }
-    
+
     // SECURITY FIX: Use strict equality (===) and convert types properly
     const userRestaurantId = parseInt(socket.user.restaurantId, 10);
     const requestedRestaurantId = parseInt(restaurantId, 10);
-    
+
     if (userRestaurantId !== requestedRestaurantId) {
       console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join restaurant ${requestedRestaurantId}`);
       socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s room' });
       return;
     }
-    
+
     const restaurantRoom = getRestaurantRoom(restaurantId);
     socket.join(restaurantRoom);
     console.log(`[SOCKET] ✅ Socket ${socket.id} joined restaurant room: ${restaurantRoom}`);
@@ -287,20 +301,20 @@ io.on("connection", (socket) => {
     // SECURITY FIX: Use strict equality (===) and convert types properly
     const userRestaurantId = parseInt(socket.user.restaurantId, 10);
     const requestedRestaurantId = parseInt(restaurantId, 10);
-    
+
     if (userRestaurantId !== requestedRestaurantId) {
       console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join kitchen ${requestedRestaurantId}`);
       socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s kitchen' });
       return;
     }
-    
+
     // SECURITY: Verify user has kitchen role
     if (socket.user.role !== 'kitchen' && socket.user.role !== 'cook' && socket.user.type !== 'restaurant') {
       console.log(`[SOCKET] ❌ Access denied: User with role ${socket.user.role} cannot join kitchen room`);
       socket.emit('error', { message: 'Access denied: Only kitchen staff can join kitchen room' });
       return;
     }
-    
+
     const kitchenRoom = getKitchenRoom(restaurantId);
     socket.join(kitchenRoom);
     console.log(`Socket ${socket.id} joined kitchen room: ${kitchenRoom}`);
@@ -311,20 +325,20 @@ io.on("connection", (socket) => {
     // SECURITY FIX: Use strict equality (===) and convert types properly
     const userRestaurantId = parseInt(socket.user.restaurantId, 10);
     const requestedRestaurantId = parseInt(restaurantId, 10);
-    
+
     if (userRestaurantId !== requestedRestaurantId) {
       console.log(`[SOCKET] ❌ Access denied: User from restaurant ${userRestaurantId} tried to join captain room ${requestedRestaurantId}`);
       socket.emit('error', { message: 'Access denied: Cannot join another restaurant\'s captain room' });
       return;
     }
-    
+
     // SECURITY: Verify user has captain role
     if (socket.user.role !== 'captain' && socket.user.type !== 'restaurant') {
       console.log(`[SOCKET] ❌ Access denied: User with role ${socket.user.role} cannot join captain room`);
       socket.emit('error', { message: 'Access denied: Only captains can join captain room' });
       return;
     }
-    
+
     const captainRoom = getCaptainRoom(restaurantId);
     socket.join(captainRoom);
     console.log(`Socket ${socket.id} joined captain room: ${captainRoom}`);
@@ -352,14 +366,14 @@ app.get("/health", async (req, res) => {
   try {
     // Test database connection
     await sequelize.authenticate();
-    res.json({ 
-      status: "healthy", 
+    res.json({
+      status: "healthy",
       database: "connected",
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(503).json({ 
-      status: "unhealthy", 
+    res.status(503).json({
+      status: "unhealthy",
       database: "disconnected",
       error: error.message,
       timestamp: new Date().toISOString()
@@ -466,7 +480,7 @@ const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  
+
   // Start cleanup job for old orders
   startOrderCleanupJob();
 });
@@ -479,10 +493,10 @@ import { Op } from "sequelize";
 
 function startOrderCleanupJob() {
   console.log('[CLEANUP] Starting daily order cleanup job');
-  
+
   // Run cleanup immediately on startup
   cleanupOldOrders();
-  
+
   // Run cleanup every 24 hours
   setInterval(cleanupOldOrders, 24 * 60 * 60 * 1000);
 }
@@ -491,7 +505,7 @@ async function cleanupOldOrders() {
   try {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-    
+
     // Delete orders older than 1 day that are served/completed
     const deletedCount = await Order.destroy({
       where: {
@@ -504,7 +518,7 @@ async function cleanupOldOrders() {
         }
       }
     });
-    
+
     if (deletedCount > 0) {
       console.log(`[CLEANUP] ✓ Deleted ${deletedCount} old paid orders (>1 day old)`);
     }
