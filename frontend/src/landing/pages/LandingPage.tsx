@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChefHat, UtensilsCrossed, Sparkles, ArrowRight, Clock, Users, TrendingUp, Shield } from 'lucide-react';
+import { ArrowRight, Users, TrendingUp, UtensilsCrossed, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
-import { AuroraBackground } from '../components/ui/aurora-background';
 import LoginForm from '../components/LoginForm';
 import SignupForm from '../components/SignupForm';
+import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 
 type AuthMode = 'landing' | 'login' | 'signup';
@@ -15,6 +15,15 @@ const LandingPage: React.FC = () => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const { restaurant } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state && (location.state as any).mode) {
+      setAuthMode((location.state as any).mode);
+      // Optional: Clear state so refresh/back doesn't loop, but strictly not required for this simple case
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Redirect to dashboard if already logged in
   useEffect(() => {
@@ -23,28 +32,7 @@ const LandingPage: React.FC = () => {
     }
   }, [restaurant, navigate]);
 
-  const features = [
-    {
-      icon: Clock,
-      title: "Lightning Fast",
-      description: "Real-time order processing that keeps your kitchen moving",
-    },
-    {
-      icon: Users,
-      title: "Customer First",
-      description: "Intuitive experiences that turn guests into regulars",
-    },
-    {
-      icon: TrendingUp,
-      title: "Data Driven",
-      description: "Analytics that reveal what's working and what's not",
-    },
-    {
-      icon: Shield,
-      title: "Rock Solid",
-      description: "Enterprise-grade security protecting your business",
-    },
-  ];
+
 
   if (authMode === 'login') {
     return (
@@ -87,52 +75,11 @@ const LandingPage: React.FC = () => {
   return (
     <>
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl shadow-lg overflow-hidden">
-                <img src="/icon of the quick serve.png" alt="QuickServe" className="w-full h-full object-cover" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">
-                QuickServe
-              </span>
-            </div>
-            <div className="flex items-center space-x-8">
-              <div className="hidden md:flex items-center space-x-8">
-                <button onClick={() => navigate('/about')} className="text-gray-700 hover:text-red-600 font-medium transition-colors">
-                  About
-                </button>
-                <button onClick={() => navigate('/pricing')} className="text-gray-700 hover:text-red-600 font-medium transition-colors">
-                  Pricing
-                </button>
-                <button onClick={() => navigate('/blog')} className="text-gray-700 hover:text-red-600 font-medium transition-colors">
-                  Blog
-                </button>
-              </div>
-              <div className="flex items-center space-x-4">
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setAuthMode('login')}
-                  className="text-gray-700 hover:text-gray-900"
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  onClick={() => setAuthMode('signup')}
-                  className="bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-500/50 transition-all duration-300"
-                >
-                  Get Started
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section with Aurora Background */}
-      <section className="relative min-h-screen bg-gradient-to-br from-gray-300 via-gray-200 to-gray-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20">
+      <section className="relative bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Column - Text Content */}
             <motion.div
@@ -148,20 +95,20 @@ const LandingPage: React.FC = () => {
               <h1 className="text-4xl md:text-5xl lg:text-5xl font-bold leading-tight text-gray-900">
                 Streamline Your Restaurant Operations & Order Management
               </h1>
-              
-              <p className="text-lg text-gray-600 leading-relaxed">
+
+              <p className="text-lg text-gray-900 leading-relaxed">
                 The complete solution for restaurants, cafes, and food businesses to manage everything from orders to kitchen and staff.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
+                <Button
                   size="lg"
                   onClick={() => setAuthMode('signup')}
                   className="bg-blue-900 hover:bg-blue-950 text-white text-base px-8 py-6 shadow-lg transition-all duration-300 rounded-md font-semibold"
                 >
                   Get Started
                 </Button>
-                <Button 
+                <Button
                   size="lg"
                   variant="outline"
                   onClick={() => setAuthMode('login')}
@@ -180,9 +127,9 @@ const LandingPage: React.FC = () => {
               className="relative"
             >
               <div className="relative w-full">
-                <img 
-                  src="/image.png" 
-                  alt="QuickServe Dashboard on multiple devices" 
+                <img
+                  src="/image.png"
+                  alt="QuickServe Dashboard on multiple devices"
                   className="w-full h-auto object-contain"
                 />
               </div>
@@ -192,77 +139,80 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-32 bg-white">
+      <section className="py-8 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16"
+            className="text-center mb-2"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
               Why QuickServe?
             </h2>
           </motion.div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-5xl mx-auto">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {/* Feature 1: Multi-Panel System (Left) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0 }}
-              className="text-center"
+              transition={{ delay: 0.2 }}
+              className="text-center group"
             >
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 mb-4 flex items-center justify-center bg-white rounded-lg overflow-hidden">
-                  <img src="/stopwatch.png" alt="Lightning Fast" className="w-full h-full object-contain scale-[3]" />
+                <div className="w-72 h-72 -mb-20 flex items-center justify-center rounded-2xl mx-auto transition-transform duration-300 group-hover:scale-105">
+                  <img src="/multipanel.png" alt="Multi-Panel System" className="w-72 h-72 object-contain" />
                 </div>
-                <h3 className="text-lg font-extrabold text-gray-900 mb-2">
-                  Lightning Fast
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Multi-Panel System
                 </h3>
-                <p className="text-sm text-gray-700 font-medium leading-relaxed">
-                  Real-time order processing that keeps your kitchen moving
+                <p className="text-gray-900 leading-relaxed max-w-xs mx-auto">
+                  Seamlessly connect Admin, Kitchen, and Staff panels for unified operations.
                 </p>
               </div>
             </motion.div>
-            
+
+            {/* Feature 2: Faster Order Handling (Center) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-center"
+              transition={{ delay: 0.4 }}
+              className="text-center group"
             >
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 mb-4 flex items-center justify-center bg-white rounded-lg overflow-hidden">
-                  <img src="/settings.png" alt="Customer First" className="w-full h-full object-contain scale-[2]" />
+                <div className="w-72 h-72 -mb-20 flex items-center justify-center rounded-2xl mx-auto transition-transform duration-300 group-hover:scale-105">
+                  <img src="/stopwatch.png" alt="Faster Order Handling" className="w-72 h-72 object-contain" />
                 </div>
-                <h3 className="text-lg font-extrabold text-gray-900 mb-2">
-                  Better Resturant Control
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Faster Order Handling
                 </h3>
-                <p className="text-sm text-gray-700 font-medium leading-relaxed">
-                  Analytics that reveal what's working and what's not
+                <p className="text-gray-900 leading-relaxed max-w-xs mx-auto">
+                  Efficiently receive, process, and fulfill orders to reduce wait times.
                 </p>
               </div>
             </motion.div>
-            
+
+            {/* Feature 3: Better Restaurant Control (Right) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-center"
+              transition={{ delay: 0.6 }}
+              className="text-center group"
             >
               <div className="flex flex-col items-center">
-                <div className="w-24 h-24 mb-4 flex items-center justify-center bg-white rounded-lg p-2">
-                  <img src="/device.png" alt="Data Driven" className="w-20 h-20 object-contain" />
+                <div className="w-72 h-72 -mb-20 flex items-center justify-center rounded-2xl mx-auto transition-transform duration-300 group-hover:scale-105">
+                  <img src="/settings.png" alt="Better Restaurant Control" className="w-72 h-72 object-contain" />
                 </div>
-                <h3 className="text-lg font-extrabold text-gray-900 mb-2">
-                  Multi-Panel Support
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Better Restaurant Control
                 </h3>
-                <p className="text-sm text-gray-700 font-medium leading-relaxed">
-                  Seamlessly connect Admin, Kitchen, Captain panels for unified operations
+                <p className="text-gray-900 leading-relaxed max-w-xs mx-auto">
+                  Gain insights and manage every aspect of your business with clarity.
                 </p>
               </div>
             </motion.div>
@@ -299,7 +249,7 @@ const LandingPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   Register
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-900 leading-relaxed">
                   Sign up with your restaurant's details
                 </p>
               </div>
@@ -320,7 +270,7 @@ const LandingPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   Add Menu
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-900 leading-relaxed">
                   Upload dishes & set prices.
                 </p>
               </div>
@@ -341,7 +291,7 @@ const LandingPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   Customize
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-900 leading-relaxed">
                   Match the platform to your brand.
                 </p>
               </div>
@@ -362,7 +312,7 @@ const LandingPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   Go Live
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-900 leading-relaxed">
                   Start accepting orders instantly.
                 </p>
               </div>
@@ -421,7 +371,7 @@ const LandingPage: React.FC = () => {
                   onClick={() => setOpenFaqIndex(openFaqIndex === index ? null : index)}
                   className="w-full bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-white p-6 flex justify-between items-center transition-all duration-300"
                 >
-                  <span className="text-left font-semibold text-lg pr-4">{faq.question}</span>
+                  <span className="text-left font-medium text-lg pr-4">{faq.question}</span>
                   <span className="text-2xl flex-shrink-0">
                     {openFaqIndex === index ? '−' : '+'}
                   </span>
@@ -434,7 +384,7 @@ const LandingPage: React.FC = () => {
                     transition={{ duration: 0.3 }}
                     className="bg-gray-50 border border-gray-200 border-t-0 rounded-b-lg"
                   >
-                    <p className="p-6 text-gray-700 leading-relaxed">
+                    <p className="p-6 text-gray-900 leading-relaxed">
                       {faq.answer}
                     </p>
                   </motion.div>
@@ -451,11 +401,11 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-3 mb-4 md:mb-0">
               <div className="w-10 h-10 rounded-xl shadow-md overflow-hidden">
-                <img src="/icon of the quick serve.png" alt="QuickServe" className="w-full h-full object-cover" />
+                <img src="/icon of the quick serve.png" alt="QuickServe" className="w-full h-full object-cover" style={{ filter: 'hue-rotate(220deg) brightness(0.7) saturate(1.2)' }} />
               </div>
-              <span className="text-xl font-bold text-gray-900">QuickServe</span>
+              <span className="text-xl font-bold text-blue-900">QuickServe</span>
             </div>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-900 text-sm">
               © 2024 QuickServe. Crafted with care for restaurants.
             </p>
           </div>
