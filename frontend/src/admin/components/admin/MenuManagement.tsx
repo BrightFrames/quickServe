@@ -221,8 +221,8 @@ const MenuManagement = () => {
         </div>
       </div>
 
-      {/* Menu Tables */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Desktop Table View - Hidden on Mobile */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
@@ -311,6 +311,82 @@ const MenuManagement = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card View - Shown on Mobile Only */}
+      <div className="md:hidden space-y-4">
+        {filteredMenuItems.map((item) => (
+          <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+            {/* Item Header with Image */}
+            <div className="flex gap-4">
+              <div className="w-20 h-20 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                {item.image ? (
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-gray-900 flex items-center gap-2 mb-1">
+                  {item.name}
+                  <span className={`w-2 h-2 rounded-full flex-shrink-0 ${item.isVegetarian ? 'bg-green-500' : 'bg-red-500'}`} title={item.isVegetarian ? "Veg" : "Non-Veg"}></span>
+                </div>
+                <p className="text-sm text-gray-600 line-clamp-2 mb-2">{item.description}</p>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                    {item.category}
+                  </span>
+                  <span className="font-bold text-gray-900">{formatCurrency(item.price)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Item Details Grid */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Inventory</label>
+                <input
+                  type="number"
+                  value={item.inventoryCount || ""}
+                  onChange={(e) => updateInventory(item.id!, parseInt(e.target.value) || 0)}
+                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 ${item.inventoryCount <= item.lowStockThreshold ? 'border-red-300 bg-red-50 text-red-900' : 'border-gray-300'}`}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Status</label>
+                <button
+                  onClick={() => toggleAvailability(item)}
+                  className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors ${item.available ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}
+                >
+                  {item.available ? 'Available' : 'Unavailable'}
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => startEdit(item)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(item.id!)}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors font-medium"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+        {filteredMenuItems.length === 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-500">
+            No items found matching your filters.
+          </div>
+        )}
       </div>
 
       {/* Modal Form */}

@@ -90,17 +90,17 @@ const LandingPage: React.FC = () => {
                 duration: 0.8,
                 ease: "easeOut",
               }}
-              className="space-y-8"
+              className="space-y-8 px-4"
             >
-              <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight text-gray-900">
+              <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-5xl font-bold leading-tight text-gray-900 break-words">
                 Streamline Your Restaurant Operations & Order Management
               </h1>
 
-              <p className="text-lg text-gray-900 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-900 leading-relaxed max-w-2xl mx-auto px-4">
                 The complete solution for restaurants, cafes, and food businesses to manage everything from orders to kitchen and staff.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
                 <Button
                   size="lg"
                   onClick={() => setAuthMode('signup')}
@@ -148,7 +148,7 @@ const LandingPage: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-2"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 text-center mb-4 break-words px-4">
               Why QuickServe?
             </h2>
           </motion.div>
