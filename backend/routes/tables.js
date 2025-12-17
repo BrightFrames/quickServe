@@ -104,8 +104,14 @@ router.post("/", enforceTenantIsolation, requirePermission('write:tables'), asyn
     // Target: /:slug/customer/menu/table/:tableId
     const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${tableId}`;
 
-    console.log('[TABLES] ✓ QR Code URL generated:', orderUrl);
-    console.log('[TABLES]   Format: /menu/:restaurantId?table=:tableId');
+    console.log('[TABLES] ==========================================');
+    console.log('[TABLES] QR Code Generation Debug:');
+    console.log('[TABLES] env.CUSTOMER_APP_URL:', process.env.CUSTOMER_APP_URL);
+    console.log('[TABLES] env.NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL);
+    console.log('[TABLES] Selected Base URL:', baseUrl);
+    console.log('[TABLES] Generated Order URL:', orderUrl);
+    console.log('[TABLES] ==========================================');
+    console.log('[TABLES]   Format: /:slug/customer/menu/table/:tableId');
 
     // Generate QR code as base64 image
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
@@ -191,6 +197,14 @@ router.post("/:id/regenerate-qr", async (req, res) => {
 
     // Target: /:slug/customer/menu/table/:tableId
     const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${table.tableId}`;
+
+    console.log('[TABLES] ==========================================');
+    console.log('[TABLES] QR Code Regeneration Debug:');
+    console.log('[TABLES] env.CUSTOMER_APP_URL:', process.env.CUSTOMER_APP_URL);
+    console.log('[TABLES] env.NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL);
+    console.log('[TABLES] Selected Base URL:', baseUrl);
+    console.log('[TABLES] Generated Order URL:', orderUrl);
+    console.log('[TABLES] ==========================================');
 
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
       errorCorrectionLevel: "H",
