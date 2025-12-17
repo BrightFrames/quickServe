@@ -60,10 +60,10 @@ const PricingPage: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-16"
           >
-            <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold text-gray-900 mb-6">
               Simple, <span className="bg-gradient-to-r from-blue-900 to-blue-700 bg-clip-text text-transparent">Transparent</span> Pricing
             </h1>
-            <p className="text-xl text-gray-900 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-900 max-w-3xl mx-auto leading-relaxed">
               Choose the plan that works best for your restaurant. No hidden fees, no surprises.
             </p>
           </motion.div>

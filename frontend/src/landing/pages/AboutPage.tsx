@@ -19,10 +19,10 @@ const AboutPage: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-20"
           >
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
               About <span className="text-blue-900">QuickServe</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-900 max-w-3xl mx-auto leading-relaxed font-light">
+            <p className="text-lg md:text-xl lg:text-2xl text-gray-900 max-w-3xl mx-auto leading-relaxed font-light">
               Revolutionizing restaurant operations with cutting-edge technology.
             </p>
           </motion.div>
@@ -34,7 +34,7 @@ const AboutPage: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="space-y-6"
             >
-              <h2 className="text-3xl font-bold text-gray-900">Who We Are</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Who We Are</h2>
               <p className="text-lg text-gray-900 leading-relaxed">
                 QuickServe is a comprehensive restaurant management platform designed to streamline every aspect of your dining business. From order processing to customer engagement, we provide the tools modern restaurants need to thrive in today's competitive market.
               </p>
@@ -52,7 +52,7 @@ const AboutPage: React.FC = () => {
               transition={{ duration: 0.6, delay: 0.4 }}
               className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 hover:shadow-2xl transition-shadow duration-300"
             >
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Core Functionality</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">Core Functionality</h3>
               <ul className="space-y-4">
                 <li className="flex items-start">
                   <div className="w-2 h-2 bg-blue-900 rounded-full mt-2 mr-3 flex-shrink-0"></div>

@@ -94,10 +94,19 @@ const AdminHome = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <div
-        className={`${sidebarOpen ? "w-64" : "w-20"
-          } bg-slate-900 text-white transition-all duration-300 flex flex-col shadow-xl z-20`}
+        className={`fixed left-0 top-0 h-full ${sidebarOpen ? "w-64" : "w-20"
+          } bg-slate-900 text-white transition-all duration-300 flex flex-col shadow-xl z-40 ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
@@ -159,13 +168,22 @@ const AdminHome = () => {
         </div>
       </div>
 
-      {/* Main Content Wrapper */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10">
+      {/* Main Content Area */}
+      <div
+        className={`flex-1 transition-all duration-300 ${sidebarOpen ? "md:ml-64" : "md:ml-20"
+          } ml-0`}
+      >
+        {/* Top Bar */}
+        <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <MenuIcon className="w-6 h-6 text-gray-700" />
+          </button>
           {/* Search Bar */}
-          <div className="flex items-center w-96">
+          <div className="hidden md:flex items-center w-96">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="h-4 w-4 text-gray-400" />
@@ -254,7 +272,7 @@ const AdminHome = () => {
               <ChevronDown className="h-4 w-4 text-gray-400 cursor-pointer" />
             </div>
           </div>
-        </header>
+        </div>
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-auto bg-gray-50 p-8">

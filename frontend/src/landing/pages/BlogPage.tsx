@@ -102,10 +102,10 @@ const ListingView = ({ posts, onReadMore }: { posts: BlogPost[], onReadMore: (p:
     className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12"
   >
     <div className="text-center mb-16">
-      <h1 className="text-4xl md:text-5xl font-bold text-blue-900 mb-6">
+      <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-blue-900 mb-6">
         Latest Insights & Updates
       </h1>
-      <p className="text-xl text-gray-900 max-w-2xl mx-auto">
+      <p className="text-lg md:text-xl text-gray-900 max-w-2xl mx-auto">
         Expert advice on restaurant management, technology trends, and operational efficiency.
       </p>
     </div>
