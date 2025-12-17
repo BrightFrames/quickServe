@@ -96,8 +96,11 @@ router.post("/", enforceTenantIsolation, requirePermission('write:tables'), asyn
     }
 
     console.log('[TABLES] Restaurant found:', restaurant.slug);
-    const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    // CUSTOMER QR CODE: Direct public menu access - no authentication
+    // URL Construction:
+    // 1. Use env var for base URL (set in Vercel/Render/etc)
+    // 2. Use canonical customer path pattern to ensure direct access + auth bypass
+    const baseUrl = process.env.CUSTOMER_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080";
+
     // Target: /:slug/customer/menu/table/:tableId
     const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${tableId}`;
 
@@ -181,8 +184,11 @@ router.post("/:id/regenerate-qr", async (req, res) => {
 
     // Get restaurant slug for QR code URL
     const restaurant = await Restaurant.findByPk(req.restaurantId);
-    const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
-    // CUSTOMER QR CODE: Direct public menu access - no authentication
+    // URL Construction:
+    // 1. Use env var for base URL (set in Vercel/Render/etc)
+    // 2. Use canonical customer path pattern to ensure direct access + auth bypass
+    const baseUrl = process.env.CUSTOMER_APP_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:8080";
+
     // Target: /:slug/customer/menu/table/:tableId
     const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${table.tableId}`;
 
