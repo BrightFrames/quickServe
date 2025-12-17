@@ -332,14 +332,8 @@ router.post("/verify-admin-password", async (req, res) => {
       });
     }
 
-    // 1. Master Override (Requested by User)
-    if (password === 'admin123') {
-      console.log("[ADMIN ACCESS GUARD] Access granted via master override (admin123)");
-      return res.json({
-        success: true,
-        message: "Password verified successfully (Override)"
-      });
-    }
+    // 1. Master Override REMOVED for security
+    // if (password === 'admin123') { ... }
 
     // 2. Verify Registration Password
     const isRegistrationPasswordValid = await restaurant.comparePassword(password);

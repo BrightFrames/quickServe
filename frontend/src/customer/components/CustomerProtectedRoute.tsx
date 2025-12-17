@@ -21,10 +21,30 @@ export const CustomerProtectedRoute = ({ children }: CustomerProtectedRouteProps
   const { restaurantSlug, tableNumber } = useParams();
   const [showAdminGuard, setShowAdminGuard] = useState(false);
 
-  // Mark this session as customer session
+  // Mark this session as customer session AND clear any admin privileges
   useEffect(() => {
     sessionStorage.setItem('userType', 'customer');
     sessionStorage.setItem('customerSessionStart', Date.now().toString());
+
+    // SECURITY: Forcefully clear any existing admin/staff sessions
+    // This prevents "Kiosk" devices or shared phones from leaking admin access
+    const tokens = ['token', 'user', 'restaurantToken', 'captainToken', 'receptionToken'];
+    let cleared = false;
+
+    tokens.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        cleared = true;
+      }
+    });
+
+    if (cleared) {
+      console.log('[SECURITY] Cleared existing admin session for Customer Mode');
+    }
+
+    // Also remove axios default header
+    // @ts-ignore
+    delete window.axios?.defaults?.headers?.common['Authorization'];
   }, []);
 
   // Block back button attempts
@@ -46,20 +66,20 @@ export const CustomerProtectedRoute = ({ children }: CustomerProtectedRouteProps
     const path = location.pathname;
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
-    
+
     // Check for admin/kitchen route attempts
     const isAdminAttempt = path.includes('/admin') || hash.includes('admin');
     const isKitchenAttempt = path.includes('/kitchen') || hash.includes('kitchen');
     const hasAdminParam = searchParams.has('admin') || searchParams.has('kitchen');
-    
+
     if (isAdminAttempt || isKitchenAttempt || hasAdminParam) {
       console.warn('[SECURITY] Blocked unauthorized access attempt:', path);
-      
+
       // Check if admin verification was already done
       const adminVerified = sessionStorage.getItem('adminVerified');
       const verifiedAt = sessionStorage.getItem('adminVerifiedAt');
       const verificationExpiry = 5 * 60 * 1000; // 5 minutes
-      
+
       if (adminVerified && verifiedAt) {
         const elapsed = Date.now() - parseInt(verifiedAt);
         if (elapsed < verificationExpiry) {
@@ -71,7 +91,7 @@ export const CustomerProtectedRoute = ({ children }: CustomerProtectedRouteProps
           sessionStorage.removeItem('adminVerifiedAt');
         }
       }
-      
+
       // Show password guard
       setShowAdminGuard(true);
     }
@@ -85,7 +105,7 @@ export const CustomerProtectedRoute = ({ children }: CustomerProtectedRouteProps
   // Double-check: Prevent direct navigation to admin/kitchen routes
   if (location.pathname.includes('/admin') || location.pathname.includes('/kitchen')) {
     const adminVerified = sessionStorage.getItem('adminVerified');
-    
+
     if (!adminVerified) {
       console.error('[SECURITY] Unauthorized access attempt blocked');
       return <AdminAccessGuard />;
