@@ -92,7 +92,7 @@ const LandingPage: React.FC = () => {
               }}
               className="space-y-8"
             >
-              <h1 className="text-4xl md:text-5xl lg:text-5xl font-bold leading-tight text-gray-900">
+              <h1 className="text-3xl md:text-5xl lg:text-5xl font-bold leading-tight text-gray-900">
                 Streamline Your Restaurant Operations & Order Management
               </h1>
 

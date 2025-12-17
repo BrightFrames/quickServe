@@ -27,13 +27,13 @@ export const MenuList = ({ menu, onSearch }: MenuListProps) => {
 
   const filterItems = (items: any[]) => {
     let filtered = items;
-    
+
     if (selectedFilter === 'veg') {
       filtered = filtered.filter((item) => item.isVegetarian);
     } else if (selectedFilter === 'vegan') {
       filtered = filtered.filter((item) => item.isVegan);
     }
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -42,7 +42,7 @@ export const MenuList = ({ menu, onSearch }: MenuListProps) => {
           item.description.toLowerCase().includes(query)
       );
     }
-    
+
     return filtered;
   };
 
@@ -60,7 +60,7 @@ export const MenuList = ({ menu, onSearch }: MenuListProps) => {
             className="pl-10 h-12 text-base"
           />
         </div>
-        
+
         <div className="flex gap-2 overflow-x-auto pb-1">
           <Button
             variant={selectedFilter === 'all' ? 'default' : 'outline'}
@@ -93,9 +93,9 @@ export const MenuList = ({ menu, onSearch }: MenuListProps) => {
       <Accordion type="multiple" defaultValue={menu.map((cat) => cat.id)} className="space-y-4">
         {menu.map((category) => {
           const filteredItems = filterItems(category.items);
-          
+
           if (filteredItems.length === 0) return null;
-          
+
           return (
             <AccordionItem
               key={category.id}
@@ -111,7 +111,7 @@ export const MenuList = ({ menu, onSearch }: MenuListProps) => {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-4 pb-4">
-                <div className="grid gap-4 pt-2">
+                <div className="grid gap-4 pt-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {filteredItems.map((item) => (
                     <MenuItem key={item.id} item={item} />
                   ))}

@@ -15,11 +15,11 @@ const LoginSelection = () => {
               className="w-full h-full object-cover"
             />
           </div>
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">QuickServe Admin Panel</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">QuickServe Admin Panel</h1>
           <p className="text-gray-600">Select your role to continue</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Admin Login Card */}
           <div
             onClick={() => navigate('/admin/login')}

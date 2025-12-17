@@ -15,7 +15,7 @@ export const StickyCartBar = () => {
     const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
     return (
-        <div className="fixed bottom-6 left-4 right-4 z-50 animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-4 left-4 right-4 z-[100] animate-in slide-in-from-bottom-5 duration-300 pb-safe">
             <div
                 onClick={() => navigate(`/${restaurantSlug}/customer/checkout`)}
                 className={cn(

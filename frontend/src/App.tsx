@@ -187,9 +187,11 @@ function App() {
               element={
                 <AdminAuthProvider>
                   <AdminRestaurantProvider>
-                    <ProtectedRoute role="admin">
-                      <AdminHome />
-                    </ProtectedRoute>
+                    <NotificationProvider>
+                      <ProtectedRoute role="admin">
+                        <AdminHome />
+                      </ProtectedRoute>
+                    </NotificationProvider>
                   </AdminRestaurantProvider>
                 </AdminAuthProvider>
               }
@@ -201,9 +203,11 @@ function App() {
               element={
                 <AdminAuthProvider>
                   <AdminRestaurantProvider>
-                    <ProtectedRoute role="kitchen">
-                      <KitchenHome />
-                    </ProtectedRoute>
+                    <NotificationProvider>
+                      <ProtectedRoute role="kitchen">
+                        <KitchenHome />
+                      </ProtectedRoute>
+                    </NotificationProvider>
                   </AdminRestaurantProvider>
                 </AdminAuthProvider>
               }
@@ -217,9 +221,11 @@ function App() {
               element={
                 <AdminAuthProvider>
                   <AdminRestaurantProvider>
-                    <ProtectedRoute role="captain">
-                      <CaptainHome />
-                    </ProtectedRoute>
+                    <NotificationProvider>
+                      <ProtectedRoute role="captain">
+                        <CaptainHome />
+                      </ProtectedRoute>
+                    </NotificationProvider>
                   </AdminRestaurantProvider>
                 </AdminAuthProvider>
               }
@@ -257,9 +263,11 @@ function App() {
               element={
                 <AdminAuthProvider>
                   <AdminRestaurantProvider>
-                    <ProtectedRoute role="reception">
-                      <ReceptionHome />
-                    </ProtectedRoute>
+                    <NotificationProvider>
+                      <ProtectedRoute role="reception">
+                        <ReceptionHome />
+                      </ProtectedRoute>
+                    </NotificationProvider>
                   </AdminRestaurantProvider>
                 </AdminAuthProvider>
               }

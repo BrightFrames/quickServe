@@ -376,9 +376,9 @@ const Dashboard: React.FC = () => {
 
               {/* Admin Credentials */}
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-red-50/30">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center shadow-inner">
+                    <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center shadow-inner flex-shrink-0">
                       <ShieldCheck className="w-8 h-8 text-red-600" />
                     </div>
                     <div>
@@ -389,7 +389,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     variant={showAdminForm ? "secondary" : "default"}
                     onClick={() => setShowAdminForm(!showAdminForm)}
-                    className={showAdminForm ? "bg-gray-100 text-gray-900" : "bg-gray-900 hover:bg-black text-white px-6"}
+                    className={showAdminForm ? "w-full sm:w-auto bg-gray-100 text-gray-900" : "w-full sm:w-auto bg-gray-900 hover:bg-black text-white px-6"}
                   >
                     {showAdminForm ? "Cancel" : "Update"}
                   </Button>
@@ -441,9 +441,9 @@ const Dashboard: React.FC = () => {
 
               {/* Kitchen Credentials */}
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-orange-50/30">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center shadow-inner">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center shadow-inner flex-shrink-0">
                       <ChefHat className="w-8 h-8 text-orange-600" />
                     </div>
                     <div>
@@ -454,7 +454,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     variant={showKitchenForm ? "secondary" : "default"}
                     onClick={() => setShowKitchenForm(!showKitchenForm)}
-                    className={showKitchenForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
+                    className={showKitchenForm ? "w-full sm:w-auto bg-gray-100 text-gray-900" : "w-full sm:w-auto bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
                   >
                     {showKitchenForm ? "Cancel" : "Update"}
                   </Button>
@@ -506,9 +506,9 @@ const Dashboard: React.FC = () => {
 
               {/* Captain Credentials */}
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center shadow-inner">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center shadow-inner flex-shrink-0">
                       <Users className="w-8 h-8 text-blue-600" />
                     </div>
                     <div>
@@ -519,7 +519,7 @@ const Dashboard: React.FC = () => {
                   <Button
                     variant={showCaptainForm ? "secondary" : "default"}
                     onClick={() => setShowCaptainForm(!showCaptainForm)}
-                    className={showCaptainForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
+                    className={showCaptainForm ? "w-full sm:w-auto bg-gray-100 text-gray-900" : "w-full sm:w-auto bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
                   >
                     {showCaptainForm ? "Cancel" : "Update"}
                   </Button>

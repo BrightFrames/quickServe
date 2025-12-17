@@ -186,8 +186,8 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                 item.variants || item.addOns ? (
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="w-full h-9 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-xs shadow-sm">
-                        ADD <Plus className="w-3 h-3 ml-1" />
+                      <Button className="w-full h-10 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-sm shadow-sm">
+                        ADD <Plus className="w-4 h-4 ml-1" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -318,9 +318,9 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                 ) : (
                   <Button
                     onClick={handleQuickAdd}
-                    className="w-full h-9 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-xs shadow-sm"
+                    className="w-full h-10 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-sm shadow-sm"
                   >
-                    ADD <Plus className="w-3 h-3 ml-1" />
+                    ADD <Plus className="w-4 h-4 ml-1" />
                   </Button>
                 )
               )
