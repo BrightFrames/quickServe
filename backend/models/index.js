@@ -4,6 +4,7 @@ import Order from './Order.js';
 import Table from './Table.js';
 import User from './User.js';
 import Rating from './Rating.js';
+import Notification from './Notification.js';
 
 // Define all relationships
 export function setupAssociations() {
@@ -62,7 +63,18 @@ export function setupAssociations() {
     as: 'restaurant',
   });
 
+  // Restaurant has many Notifications
+  Restaurant.hasMany(Notification, {
+    foreignKey: 'restaurantId',
+    as: 'notifications',
+    onDelete: 'CASCADE',
+  });
+  Notification.belongsTo(Restaurant, {
+    foreignKey: 'restaurantId',
+    as: 'restaurant',
+  });
+
   console.log('✓ Database associations configured');
 }
 
-export { Restaurant, MenuItem, Order, Table, User, Rating };
+export { Restaurant, MenuItem, Order, Table, User, Rating, Notification };

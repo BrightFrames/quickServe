@@ -85,92 +85,109 @@ export const MenuItem = ({ item }: MenuItemProps) => {
     );
   };
 
-  return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="flex gap-4 p-4">
-        {/* Item Image */}
-        <div className="relative w-24 h-24 sm:w-28 sm:h-28 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-          <img
-            src={item.image}
-            alt={item.name}
-            className="w-full h-full object-cover"
-          />
-          {!item.inStock && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <span className="text-white text-xs font-semibold">
-                Out of Stock
-              </span>
-            </div>
-          )}
-        </div>
+  // Check if item is already in cart to show inline controls
+  const { cart, updateQuantity, removeFromCart } = useCart();
 
-        {/* Item Details */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="flex items-center gap-1.5">
-              {/* Veg/Non-Veg Dot Indicator */}
-              <span
-                className={`text-xl ${
-                  item.isVegetarian ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                ●
+  const cartItem = cart.find(
+    (c) => c.name === item.name && c.variant === undefined && (!c.addOns || c.addOns.length === 0)
+  );
+
+  const handleInlineIncrement = () => {
+    if (cartItem) {
+      updateQuantity(cartItem.id, cartItem.quantity + 1);
+    } else {
+      handleQuickAdd();
+    }
+  };
+
+  const handleInlineDecrement = () => {
+    if (cartItem) {
+      if (cartItem.quantity === 1) {
+        removeFromCart(cartItem.id);
+      } else {
+        updateQuantity(cartItem.id, cartItem.quantity - 1);
+      }
+    }
+  };
+
+  const showInlineControls = !item.variants && (!item.addOns || item.addOns.length === 0) && item.inStock;
+
+  return (
+    <Card className="overflow-hidden border-0 shadow-sm bg-white rounded-xl mb-3">
+      <div className="flex p-3 gap-3">
+        {/* Left Side: Content */}
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-start gap-2 mb-1">
+              <span className={item.isVegetarian ? "text-green-600 text-xs mt-1" : "text-red-600 text-xs mt-1"}>
+                {item.isVegetarian ? "🟢" : "🔴"}
               </span>
-              <h3 className="font-semibold text-base sm:text-lg leading-tight">
+              <h3 className="font-bold text-gray-900 text-base leading-tight pr-2">
                 {item.name}
               </h3>
             </div>
-            <div className="flex gap-1 flex-shrink-0">
-              {item.spicyLevel && item.spicyLevel > 0 && (
-                <Badge
-                  variant="outline"
-                  className="bg-orange-50 text-orange-700 border-orange-200"
-                >
-                  <Flame className="w-3 h-3" />
-                </Badge>
-              )}
-            </div>
+
+            <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed mb-2">
+              {item.description}
+            </p>
           </div>
 
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-            {item.description}
-          </p>
-
-          {/* Rating Display */}
-          {item.averageRating && item.totalRatings > 0 && (
-            <div className="flex items-center gap-1 mb-2">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-3.5 h-3.5 ${
-                      i < Math.round(item.averageRating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {item.averageRating.toFixed(1)} ({item.totalRatings}{" "}
-                {item.totalRatings === 1 ? "rating" : "ratings"})
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-primary text-lg">
+          <div className="flex items-center justify-between mt-1">
+            <span className="font-bold text-gray-900">
               {formatCurrency(item.price)}
             </span>
 
-            {item.inStock && (
-              <div className="flex gap-2">
-                {item.variants || item.addOns ? (
+            {/* Rating Pill (if applicable) */}
+            {item.averageRating && (
+              <div className="flex items-center gap-1 bg-yellow-50 px-1.5 py-0.5 rounded text-[10px] text-yellow-700 font-medium">
+                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                {Number(item.averageRating).toFixed(1)}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Image & Action */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative w-28 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <img
+              src={item.image}
+              alt={item.name}
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+            {!item.inStock && (
+              <div className="absolute inset-0 bg-white/80 flex items-center justify-center backdrop-blur-sm">
+                <span className="text-xs font-bold text-gray-500 uppercase">Sold Out</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Area */}
+          <div className="-mt-6 relative z-10 w-24">
+            {item.inStock ? (
+              showInlineControls && cartItem ? (
+                <div className="flex items-center justify-between bg-white border border-green-500 rounded-lg shadow-sm h-9 overflow-hidden">
+                  <button
+                    onClick={handleInlineDecrement}
+                    className="w-8 h-full flex items-center justify-center text-green-600 hover:bg-green-50 active:bg-green-100"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm font-bold text-green-700">{cartItem.quantity}</span>
+                  <button
+                    onClick={handleInlineIncrement}
+                    className="w-8 h-full flex items-center justify-center text-green-600 hover:bg-green-50 active:bg-green-100"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                item.variants || item.addOns ? (
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="h-9">
-                        <Plus className="w-4 h-4 mr-1" />
-                        Customize
+                      <Button className="w-full h-9 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-xs shadow-sm">
+                        ADD <Plus className="w-3 h-3 ml-1" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -299,12 +316,16 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                     </DialogContent>
                   </Dialog>
                 ) : (
-                  <Button size="sm" onClick={handleQuickAdd} className="h-9">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
+                  <Button
+                    onClick={handleQuickAdd}
+                    className="w-full h-9 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-xs shadow-sm"
+                  >
+                    ADD <Plus className="w-3 h-3 ml-1" />
                   </Button>
-                )}
-              </div>
+                )
+              )
+            ) : (
+              <Button disabled className="w-full h-9 opacity-50 text-xs">Unavailable</Button>
             )}
           </div>
         </div>

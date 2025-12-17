@@ -1,102 +1,117 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogOut, ArrowLeft } from "lucide-react";
+import { LogOut } from "lucide-react";
+import axios from 'axios';
+import { toast } from 'sonner';
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../hooks/useSocket";
-import CaptainTableSelection from "../components/captain/CaptainTableSelection";
-import { RestaurantProvider } from "../../customer/context/RestaurantContext";
-import { CartProvider } from "../../customer/context/CartContext";
-import { MenuPage } from "../../customer/pages/MenuPage";
+import OrderQueue from "../components/captain/OrderQueue";
+import TableView from "../components/captain/TableView";
 
 const CaptainHome: React.FC = () => {
-  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const socket = useSocket();
-  const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [view, setView] = useState<'orders' | 'tables'>('orders');
+  const [orders, setOrders] = useState<any[]>([]);
 
-  // Join captain-specific Socket.IO room
+  // Sound & Socket Logic similar to Kitchen but simplified
   useEffect(() => {
     if (socket && user?.restaurantId) {
       socket.emit("join-captain", user.restaurantId);
-      console.log(`[CAPTAIN] Joined captain room for restaurant ${user.restaurantId}`);
+
+      socket.on("new-order", (newOrder: any) => {
+        setOrders(prev => [newOrder, ...prev]);
+        toast.info(`New Order Table ${newOrder.tableNumber}`);
+      });
+
+      socket.on("order-updated", (updatedOrder: any) => {
+        setOrders(prev => prev.map(o => (o.id || o._id) === (updatedOrder.id || updatedOrder._id) ? updatedOrder : o));
+      });
     }
   }, [socket, user]);
 
-  const handleLogout = () => {
-    logout();
-  };
+  // Initial Fetch
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/orders/active`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setOrders(res.data);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    if (user) fetchOrders();
+  }, [user]);
 
-  const handleTableSelect = (tableNumber: number) => {
-    console.log('[CAPTAIN] Table selected:', tableNumber);
-
-    // Get captain's restaurant data
-    if (user?.restaurantSlug) {
-      // Navigate to customer app with restaurant slug and table number
-      const customerUrl = `/${user.restaurantSlug}/customer/menu/table/${tableNumber}`;
-
-      // Set restaurant data for customer context
-      const restaurantData = {
-        restaurantName: user.restaurantName || 'Restaurant',
-        restaurantSlug: user.restaurantSlug,
-        token: localStorage.getItem('token') || ''
-      };
-      localStorage.setItem('customer_restaurant_data', JSON.stringify(restaurantData));
-      sessionStorage.setItem('captainTableNumber', tableNumber.toString());
-
-      // Open in same tab
-      window.location.href = customerUrl;
-    } else {
-      console.error('[CAPTAIN] No restaurant slug found');
+  const handleStatusUpdate = async (orderId: string, status: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, { status }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Optimistic update
+      setOrders(prev => prev.map(o => (o.id || o._id) === orderId ? { ...o, status } : o));
+      toast.success(`Order marked as ${status}`);
+    } catch (e) {
+      toast.error('Failed to update status');
     }
   };
 
-  const handleBackToTables = () => {
-    setSelectedTable(null);
+  const handleTableSelect = (tableNumber: number) => {
+    const safeUser = user as any;
+    if (safeUser?.restaurantSlug) {
+      // Logic to open customer menu for this table
+      // We use window.location.href to do a full refresh/redirect so it loads the customer app cleanly
+      // Store necessary data for the customer app to know it's a captain session?
+      // Actually, the customer app just needs the URL. Captain session persistence might be needed if we want to "go back" easily.
+      // For now, let's just open it.
+
+      const restaurantData = {
+        restaurantName: safeUser.restaurantName || 'Restaurant',
+        restaurantSlug: safeUser.restaurantSlug,
+        token: localStorage.getItem('token') || ''
+      };
+      localStorage.setItem('customer_restaurant_data', JSON.stringify(restaurantData));
+
+      window.location.href = `/${safeUser.restaurantSlug}/customer/menu/table/${tableNumber}`;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {selectedTable && (
-              <button
-                onClick={handleBackToTables}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-            )}
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Captain Dashboard
-              </h1>
-              <p className="text-sm text-gray-600">
-                {selectedTable ? `Table ${selectedTable}` : "Select a table to start order"}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* TableFlow Header */}
+      <div className="bg-white border-b sticky top-0 z-20 px-4 py-3 shadow-sm flex justify-between items-center">
+        <h1 className="text-xl font-black tracking-tight text-gray-900">TableFlow</h1>
+
+        {/* View Toggle */}
+        <div className="flex bg-gray-100 p-1 rounded-lg">
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            onClick={() => setView('orders')}
+            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${view === 'orders' ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`}
           >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
+            Orders
+          </button>
+          <button
+            onClick={() => setView('tables')}
+            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${view === 'tables' ? 'bg-white text-black shadow-sm' : 'text-gray-500'}`}
+          >
+            Tables
           </button>
         </div>
+
+        <button onClick={logout} className="p-2 text-gray-400 hover:text-red-600">
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-4">
-        {!selectedTable ? (
-          <CaptainTableSelection onSelectTable={handleTableSelect} />
+      {/* Content */}
+      <div className="flex-1 overflow-hidden relative">
+        {view === 'orders' ? (
+          <OrderQueue orders={orders} onStatusUpdate={handleStatusUpdate} />
         ) : (
-          <RestaurantProvider>
-            <CartProvider>
-              <MenuPage />
-            </CartProvider>
-          </RestaurantProvider>
+          <TableView onTableClick={handleTableSelect} />
         )}
       </div>
     </div>

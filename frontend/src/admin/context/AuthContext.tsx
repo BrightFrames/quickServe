@@ -82,9 +82,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Verify token is still valid by making a test request
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
-        // Make a lightweight validation request
+        // Make a lightweight validation request to generic verify endpoint
         try {
-          await axios.get(`${apiUrl}/api/restaurant/profile`)
+          await axios.get(`${apiUrl}/api/auth/verify`)
 
           // Token is valid, restore session
           const parsedUser = JSON.parse(storedUser)

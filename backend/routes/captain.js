@@ -16,18 +16,18 @@ const router = express.Router();
 const resolveRestaurantSlug = async (req, res, next) => {
   try {
     const { restaurantSlug } = req.params;
-    
+
     if (!restaurantSlug) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Restaurant slug is required',
         error: 'Missing restaurantSlug parameter'
       });
     }
 
     const restaurant = await Restaurant.findOne({ where: { slug: restaurantSlug } });
-    
+
     if (!restaurant) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         message: 'Restaurant not found',
         error: `No restaurant found with slug: ${restaurantSlug}`
       });
@@ -36,7 +36,7 @@ const resolveRestaurantSlug = async (req, res, next) => {
     // CRITICAL: Validate captain can ONLY access their assigned restaurant
     // req.restaurantId comes from JWT token (set by authenticateCaptain middleware)
     if (!req.restaurantId) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Authentication required',
         error: 'Captain restaurant ID not found in token'
       });
@@ -44,7 +44,7 @@ const resolveRestaurantSlug = async (req, res, next) => {
 
     if (parseInt(restaurant.id) !== parseInt(req.restaurantId)) {
       console.log(`[SLUG RESOLVER] ✗ ACCESS DENIED: Captain ${req.username} (RestaurantID: ${req.restaurantId}) tried to access ${restaurantSlug} (RestaurantID: ${restaurant.id})`);
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Access denied',
         error: `You can only access your assigned restaurant. Your restaurant ID: ${req.restaurantId}, Requested: ${restaurant.id}`
       });
@@ -52,12 +52,12 @@ const resolveRestaurantSlug = async (req, res, next) => {
 
     req.resolvedRestaurantId = restaurant.id;
     req.restaurantName = restaurant.name;
-    
+
     console.log(`[SLUG RESOLVER] ✓ ${req.username} (RestaurantID: ${req.restaurantId}) → ${restaurantSlug} (ID: ${restaurant.id}) ALLOWED`);
     next();
   } catch (error) {
     console.error('[SLUG RESOLVER] Error:', error.message);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Failed to resolve restaurant',
       error: error.message
     });
@@ -71,35 +71,35 @@ const resolveRestaurantSlug = async (req, res, next) => {
 const authenticateCaptain = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Authentication required',
         error: 'No authorization header provided'
       });
     }
 
     const token = authHeader.split(' ')[1];
-    
+
     if (!token) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Authentication required',
         error: 'Invalid authorization header format'
       });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Verify user is captain and has restaurantId
     if (decoded.role !== 'captain') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Access denied',
         error: 'Only captains can access this endpoint'
       });
     }
 
     if (!decoded.restaurantId) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Access denied',
         error: 'No restaurant assigned to this captain'
       });
@@ -108,27 +108,27 @@ const authenticateCaptain = (req, res, next) => {
     req.captainId = decoded.id;
     req.restaurantId = decoded.restaurantId;
     req.username = decoded.username;
-    
+
     console.log(`[CAPTAIN AUTH] ✓ Captain authenticated: ${req.username} (Restaurant: ${req.restaurantId})`);
     next();
   } catch (error) {
     console.error('[CAPTAIN AUTH] Error:', error.message);
-    
+
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Invalid token',
         error: 'Token is malformed or invalid'
       });
     }
-    
+
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: 'Token expired',
         error: 'Please login again'
       });
     }
-    
-    return res.status(401).json({ 
+
+    return res.status(401).json({
       message: 'Authentication failed',
       error: error.message
     });
@@ -139,7 +139,7 @@ const authenticateCaptain = (req, res, next) => {
 router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug, async (req, res) => {
   try {
     const restaurantId = req.resolvedRestaurantId;
-    
+
     console.log(`[CAPTAIN TABLES] Querying tables with:`, {
       slug: req.params.restaurantSlug,
       restaurantId: restaurantId,
@@ -148,13 +148,13 @@ router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug
     });
 
     const tables = await Table.findAll({
-      where: { 
+      where: {
         restaurantId: restaurantId,
         isActive: true // Only show active tables to captains
       },
       order: [['tableId', 'ASC']],
     });
-    
+
     console.log(`[CAPTAIN TABLES] Raw tables from DB:`, tables.map(t => ({
       id: t.id,
       tableId: t.tableId,
@@ -162,7 +162,7 @@ router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug
       restaurantId: t.restaurantId,
       isActive: t.isActive
     })));
-    
+
     // Get active orders to determine table status
     const activeOrders = await Order.findAll({
       where: {
@@ -173,15 +173,15 @@ router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug
       },
       attributes: ['tableNumber']
     });
-    
+
     const occupiedTableNumbers = new Set(activeOrders.map(order => order.tableNumber));
     console.log(`[CAPTAIN TABLES] Occupied table numbers:`, Array.from(occupiedTableNumbers));
-    
+
     // Transform to match captain's expected format with real-time status
     const formattedTables = tables.map(table => {
       const tableNumber = parseInt(table.tableId.replace(/\D/g, '')) || table.id;
       const isOccupied = occupiedTableNumbers.has(tableNumber);
-      
+
       return {
         id: table.id,
         tableNumber: tableNumber,
@@ -191,15 +191,15 @@ router.get("/tables/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug
         restaurantId: table.restaurantId
       };
     });
-    
+
     console.log(`[CAPTAIN TABLES] ✓ Sending ${formattedTables.length} tables to captain`);
     console.log(`[CAPTAIN TABLES] Formatted tables:`, formattedTables);
     res.json(formattedTables);
   } catch (error) {
     console.error('[CAPTAIN] Error fetching tables:', error);
-    res.status(500).json({ 
-      message: "Failed to load tables", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to load tables",
+      error: error.message
     });
   }
 });
@@ -209,12 +209,12 @@ router.post("/tables/:restaurantSlug/free/:tableNumber", authenticateCaptain, re
   try {
     const { tableNumber } = req.params;
     const restaurantId = req.resolvedRestaurantId;
-    
+
     console.log(`[CAPTAIN FREE TABLE] Request to free table ${tableNumber} by ${req.username}`);
-    
+
     // Update all active orders for this table to 'served' status
     const [updatedCount] = await Order.update(
-      { 
+      {
         status: 'served',
         deliveredAt: new Date()
       },
@@ -228,9 +228,9 @@ router.post("/tables/:restaurantSlug/free/:tableNumber", authenticateCaptain, re
         }
       }
     );
-    
+
     console.log(`[CAPTAIN FREE TABLE] ✓ Updated ${updatedCount} orders to served for table ${tableNumber}`);
-    
+
     res.json({
       success: true,
       message: `Table ${tableNumber} freed successfully`,
@@ -238,9 +238,9 @@ router.post("/tables/:restaurantSlug/free/:tableNumber", authenticateCaptain, re
     });
   } catch (error) {
     console.error('[CAPTAIN FREE TABLE] Error:', error);
-    res.status(500).json({ 
-      message: "Failed to free table", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to free table",
+      error: error.message
     });
   }
 });
@@ -250,13 +250,13 @@ router.get("/tables/:restaurantSlug/orders/:tableNumber", authenticateCaptain, r
   try {
     const { tableNumber } = req.params;
     const restaurantId = req.resolvedRestaurantId;
-    
+
     console.log(`[CAPTAIN BILLING] Fetching orders for table ${tableNumber}`);
-    
+
     // Get restaurant tax percentage
     const restaurant = await Restaurant.findByPk(restaurantId);
     const taxPercentage = restaurant?.taxPercentage || 5.0; // Default 5% if not set
-    
+
     // Only fetch ACTIVE orders (not completed)
     const orders = await Order.findAll({
       where: {
@@ -271,11 +271,11 @@ router.get("/tables/:restaurantSlug/orders/:tableNumber", authenticateCaptain, r
       },
       order: [['createdAt', 'DESC']]
     });
-    
+
     // Calculate proper totals if missing
     const ordersWithTotals = orders.map(order => {
       const orderData = order.toJSON();
-      
+
       // Parse items if it's a string
       let items = orderData.items;
       if (typeof items === 'string') {
@@ -285,19 +285,20 @@ router.get("/tables/:restaurantSlug/orders/:tableNumber", authenticateCaptain, r
           items = [];
         }
       }
-      
+
       // Calculate subtotal from items
       const calculatedSubtotal = items.reduce((sum, item) => {
         const price = parseFloat(item.price) || 0;
         const quantity = parseInt(item.quantity) || 0;
         return sum + (price * quantity);
       }, 0);
-      
-      // Use calculated subtotal if totalAmount is 0 or missing
-      const subtotal = parseFloat(orderData.totalAmount) || calculatedSubtotal;
-      const tax = subtotal * (taxPercentage / 100); // Use restaurant tax percentage
-      const total = subtotal + tax;
-      
+
+      // Use stored values if available, otherwise fallback to calculation
+      // This prevents double-taxation or rounding differences
+      const subtotal = order.subtotal ? parseFloat(order.subtotal) : calculatedSubtotal;
+      const tax = order.taxAmount ? parseFloat(order.taxAmount) : (calculatedSubtotal * (taxPercentage / 100));
+      const total = order.totalAmount ? parseFloat(order.totalAmount) : (subtotal + tax);
+
       return {
         ...orderData,
         items,
@@ -306,15 +307,15 @@ router.get("/tables/:restaurantSlug/orders/:tableNumber", authenticateCaptain, r
         total: total.toFixed(2)
       };
     });
-    
+
     console.log(`[CAPTAIN BILLING] Found ${ordersWithTotals.length} active orders for table ${tableNumber}, tax: ${taxPercentage}%`);
-    
+
     res.json(ordersWithTotals);
   } catch (error) {
     console.error('[CAPTAIN BILLING] Error:', error);
-    res.status(500).json({ 
-      message: "Failed to fetch orders", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to fetch orders",
+      error: error.message
     });
   }
 });
@@ -324,12 +325,12 @@ router.post("/tables/:restaurantSlug/mark-paid/:tableNumber", authenticateCaptai
   try {
     const { tableNumber } = req.params;
     const restaurantId = req.resolvedRestaurantId;
-    
+
     console.log(`[CAPTAIN PAYMENT] Marking table ${tableNumber} as paid by ${req.username}`);
-    
+
     // Update all orders for this table to completed status and paid
     const [updatedCount] = await Order.update(
-      { 
+      {
         status: 'completed',
         paymentStatus: 'paid',
         paymentProcessedAt: new Date(),
@@ -345,9 +346,9 @@ router.post("/tables/:restaurantSlug/mark-paid/:tableNumber", authenticateCaptai
         }
       }
     );
-    
+
     console.log(`[CAPTAIN PAYMENT] ✓ Marked ${updatedCount} orders as completed for table ${tableNumber}`);
-    
+
     res.json({
       success: true,
       message: `Payment received for Table ${tableNumber}`,
@@ -355,9 +356,9 @@ router.post("/tables/:restaurantSlug/mark-paid/:tableNumber", authenticateCaptai
     });
   } catch (error) {
     console.error('[CAPTAIN PAYMENT] Error:', error);
-    res.status(500).json({ 
-      message: "Failed to process payment", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to process payment",
+      error: error.message
     });
   }
 });
@@ -366,17 +367,17 @@ router.post("/tables/:restaurantSlug/mark-paid/:tableNumber", authenticateCaptai
 router.get("/menu/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug, async (req, res) => {
   try {
     const restaurantId = req.resolvedRestaurantId;
-    
+
     const menuItems = await MenuItem.findAll({
-      where: { 
+      where: {
         restaurantId: parseInt(restaurantId),
         available: true // Only show available items
       },
       order: [['category', 'ASC'], ['name', 'ASC']],
     });
-    
+
     console.log(`[CAPTAIN] Retrieved ${menuItems.length} menu items for restaurant ${restaurantId}`);
-    
+
     // Log first item to verify restaurantId
     if (menuItems.length > 0) {
       console.log(`[CAPTAIN] Sample menu item:`, {
@@ -386,13 +387,13 @@ router.get("/menu/:restaurantSlug", authenticateCaptain, resolveRestaurantSlug, 
         category: menuItems[0].category
       });
     }
-    
+
     res.json(menuItems);
   } catch (error) {
     console.error('[CAPTAIN] Error fetching menu:', error);
-    res.status(500).json({ 
-      message: "Failed to load menu", 
-      error: error.message 
+    res.status(500).json({
+      message: "Failed to load menu",
+      error: error.message
     });
   }
 });

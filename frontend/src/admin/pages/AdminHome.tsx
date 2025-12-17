@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useRestaurant } from "../context/RestaurantContext";
+import { useNotifications } from "../context/NotificationContext";
 import {
   LogOut,
   Menu as MenuIcon,
@@ -33,9 +34,11 @@ type Tab = "dashboard" | "menu" | "inventory" | "tracking" | "users" | "info" | 
 const AdminHome = () => {
   const { logout, user } = useAuth();
   const { restaurantSlug } = useRestaurant();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -175,10 +178,64 @@ const AdminHome = () => {
               <span>QuickServe</span>
             </div>
 
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-            </button>
+            <div className="relative">
+              <button
+                className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowNotifications(!showNotifications)}
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100 max-h-96 overflow-y-auto">
+                  <div className="px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                    <span className="font-semibold text-sm">Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => markAllAsRead()}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                      No notifications
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <div
+                        key={notification.id}
+                        onClick={() => markAsRead(notification.id)}
+                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0 ${!notification.isRead ? 'bg-blue-50/50' : ''}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className={`text-sm ${!notification.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <span className="text-[10px] text-gray-400 mt-1 block">
+                              {new Date(notification.createdAt).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          {!notification.isRead && (
+                            <span className="h-2 w-2 rounded-full bg-blue-600 mt-1.5 flex-shrink-0"></span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center space-x-3 pl-6 border-l border-gray-200">
               <div className="flex flex-col items-end">

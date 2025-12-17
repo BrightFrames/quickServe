@@ -25,18 +25,18 @@ const CaptainLogin: React.FC = () => {
         setLoading(false);
         return;
       }
-      
+
       // Use captain-specific login endpoint via AuthContext with restaurantSlug
       const userData = await login(username, password, 'captain', restaurantSlug);
-      
+
       // Override backend slug with URL slug and save to localStorage
       const updatedUser = {
         ...userData.user,
         restaurantSlug: restaurantSlug // Force URL slug, not backend database slug
       };
-      
+
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       // Redirect to dashboard with URL slug
       navigate(`/${restaurantSlug}/captain/dashboard`);
     } catch (err: any) {
@@ -52,13 +52,13 @@ const CaptainLogin: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-              <ChefHat className="w-8 h-8 text-purple-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200 transform rotate-3">
+              <ChefHat className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Captain Login
+            <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">
+              TableFlow
             </h1>
-            <p className="text-gray-600">Table service & ordering</p>
+            <p className="text-gray-500 font-medium">Captain Task Interface</p>
           </div>
 
           {/* Error Message */}

@@ -20,6 +20,7 @@ import Order from "../models/Order.js";
 import MenuItem from "../models/MenuItem.js";
 import Table from "../models/Table.js";
 import PromoCode from "../models/PromoCode.js";
+import Notification from "../models/Notification.js";
 
 const router = express.Router();
 const logger = createLogger("Orders");
@@ -348,6 +349,72 @@ router.post("/", orderRateLimiter, rateLimitCustomer, sanitizeCustomerInput, val
     const io = req.app.get("io");
     const restaurantRoom = getRestaurantRoom(finalRestaurantId);
     const kitchenRoom = getKitchenRoom(finalRestaurantId);
+
+    // NOTIFICATION LOGIC START
+    try {
+      // 1. Check for Low Stock (Threshold: < 5)
+      for (const item of orderItems) {
+        const menuItem = await MenuItem.findByPk(item.menuItemId);
+        if (menuItem && menuItem.trackInventory && menuItem.inventoryCount < 5) {
+          const alertMessage = `Low stock alert: ${menuItem.name} has only ${menuItem.inventoryCount} left.`;
+
+          // Create Notification
+          const notification = await Notification.create({
+            restaurantId: finalRestaurantId,
+            type: 'inventory',
+            title: 'Low Stock Alert',
+            message: alertMessage,
+            metadata: { menuItemId: menuItem.id, inventoryCount: menuItem.inventoryCount }
+          });
+
+          // Emit Socket Event
+          io.to(restaurantRoom).emit("notification:new", notification);
+        }
+      }
+
+      // 2. Check Daily Revenue Milestone (Threshold: 5000)
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const revenueStats = await Order.sum('totalAmount', {
+        where: {
+          restaurantId: finalRestaurantId,
+          createdAt: { [Op.gte]: todayStart },
+          status: { [Op.not]: 'cancelled' }
+        }
+      });
+
+      const currentRevenue = parseFloat(revenueStats || 0); // revenueStats includes this order because we just saved it (if SAVE_ORDERS is true)
+
+      if (currentRevenue >= 5000) {
+        // Check if we already sent a milestone notification today
+        const existingNotification = await Notification.findOne({
+          where: {
+            restaurantId: finalRestaurantId,
+            type: 'revenue',
+            createdAt: { [Op.gte]: todayStart },
+            title: 'Revenue Milestone Reached'
+          }
+        });
+
+        if (!existingNotification) {
+          const notification = await Notification.create({
+            restaurantId: finalRestaurantId,
+            type: 'revenue',
+            title: 'Revenue Milestone Reached',
+            message: `Congratulations! Your daily revenue has crossed ₹5,000. Current total: ₹${currentRevenue.toFixed(2)}`,
+            metadata: { revenue: currentRevenue }
+          });
+
+          io.to(restaurantRoom).emit("notification:new", notification);
+        }
+      }
+
+    } catch (notifError) {
+      console.error('[ORDER] Error processing notifications:', notifError);
+      // Don't block the order response
+    }
+    // NOTIFICATION LOGIC END
     const captainRoom = getCaptainRoom(finalRestaurantId);
     const orderRoom = `order_${order.id}`; // Customer-specific order room
 

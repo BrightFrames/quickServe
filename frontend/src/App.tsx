@@ -35,6 +35,7 @@ import { AuthProvider as AdminAuthProvider } from './admin/context/AuthContext';
 import { RestaurantProvider as AdminRestaurantProvider } from './admin/context/RestaurantContext';
 import { RestaurantProvider as CustomerRestaurantProvider } from './customer/context/RestaurantContext';
 import { CartProvider } from './customer/context/CartContext';
+import { NotificationProvider } from './admin/context/NotificationContext';
 
 // Performance: React Query Client
 import { queryClient } from './customer/config/queryClient';
@@ -48,7 +49,7 @@ function App() {
   useEffect(() => {
     // Check if this is the first visit in this session
     const hasSeenLoading = sessionStorage.getItem('hasSeenLoading');
-    
+
     if (hasSeenLoading) {
       setIsLoading(false);
     }
@@ -68,270 +69,270 @@ function App() {
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="min-h-screen bg-gray-50">
           <Routes>
-          {/* Landing Routes - Public */}
-          <Route 
-            path="/" 
-            element={
-              <LandingAuthProvider>
-                <LandingPage />
-              </LandingAuthProvider>
-            } 
-          />
+            {/* Landing Routes - Public */}
+            <Route
+              path="/"
+              element={
+                <LandingAuthProvider>
+                  <LandingPage />
+                </LandingAuthProvider>
+              }
+            />
 
-          {/* About Page - Public */}
-          <Route 
-            path="/about" 
-            element={<AboutPage />} 
-          />
+            {/* About Page - Public */}
+            <Route
+              path="/about"
+              element={<AboutPage />}
+            />
 
-          {/* Pricing Page - Public */}
-          <Route 
-            path="/pricing" 
-            element={<PricingPage />} 
-          />
+            {/* Pricing Page - Public */}
+            <Route
+              path="/pricing"
+              element={<PricingPage />}
+            />
 
-          {/* Blog Page - Public */}
-          <Route 
-            path="/blog" 
-            element={<BlogPage />} 
-          />
-          
-          {/* Admin/Kitchen Login Selection */}
-          <Route 
-            path="/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <LoginSelection />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Blog Page - Public */}
+            <Route
+              path="/blog"
+              element={<BlogPage />}
+            />
 
-          {/* Admin Login with Restaurant Slug */}
-          <Route 
-            path="/:restaurantSlug/admin/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <AdminLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Admin/Kitchen Login Selection */}
+            <Route
+              path="/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <LoginSelection />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Admin Login (fallback without slug) */}
-          <Route 
-            path="/admin/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <AdminLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Admin Login with Restaurant Slug */}
+            <Route
+              path="/:restaurantSlug/admin/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <AdminLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Kitchen Login with Restaurant Slug */}
-          <Route 
-            path="/:restaurantSlug/kitchen/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <KitchenLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Admin Login (fallback without slug) */}
+            <Route
+              path="/admin/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <AdminLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Kitchen Login (fallback without slug) */}
-          <Route 
-            path="/kitchen/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <KitchenLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Kitchen Login with Restaurant Slug */}
+            <Route
+              path="/:restaurantSlug/kitchen/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <KitchenLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Captain Login with Restaurant Slug */}
-          <Route 
-            path="/:restaurantSlug/captain/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <CaptainLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Kitchen Login (fallback without slug) */}
+            <Route
+              path="/kitchen/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <KitchenLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Captain Login (fallback without slug) */}
-          <Route 
-            path="/captain/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <CaptainLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Captain Login with Restaurant Slug */}
+            <Route
+              path="/:restaurantSlug/captain/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <CaptainLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Admin Dashboard - Protected (with slug) */}
-          <Route
-            path="/:restaurantSlug/admin/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="admin">
-                    <AdminHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
+            {/* Captain Login (fallback without slug) */}
+            <Route
+              path="/captain/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <CaptainLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Kitchen Dashboard with Restaurant Slug - Protected */}
-          <Route
-            path="/:restaurantSlug/kitchen/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="kitchen">
-                    <KitchenHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
+            {/* Admin Dashboard - Protected (with slug) */}
+            <Route
+              path="/:restaurantSlug/admin/dashboard"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ProtectedRoute role="admin">
+                      <AdminHome />
+                    </ProtectedRoute>
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-
-
-          {/* Captain Dashboard with Restaurant Slug - Protected */}
-          <Route
-            path="/:restaurantSlug/captain/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="captain">
-                    <CaptainHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
-
-          {/* Reception Login */}
-          <Route 
-            path="/reception/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ReceptionLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
-
-          {/* Reception Login with Restaurant Slug */}
-          <Route 
-            path="/:restaurantSlug/reception/login" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ReceptionLogin />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Kitchen Dashboard with Restaurant Slug - Protected */}
+            <Route
+              path="/:restaurantSlug/kitchen/dashboard"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ProtectedRoute role="kitchen">
+                      <KitchenHome />
+                    </ProtectedRoute>
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
 
 
-          {/* Reception Dashboard with Restaurant Slug - Protected */}
-          <Route
-            path="/:restaurantSlug/reception/dashboard"
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <ProtectedRoute role="reception">
-                    <ReceptionHome />
-                  </ProtectedRoute>
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            }
-          />
+            {/* Captain Dashboard with Restaurant Slug - Protected */}
+            <Route
+              path="/:restaurantSlug/captain/dashboard"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ProtectedRoute role="captain">
+                      <CaptainHome />
+                    </ProtectedRoute>
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* PUBLIC MENU - QR Code entry point with table (no auth required) */}
-          {/* IMPORTANT: These routes MUST come before /:restaurantSlug/dashboard to avoid conflicts */}
-          <Route 
-            path="/menu/:restaurantSlug/table/:tableId" 
-            element={
-              <CustomerRestaurantProvider>
-                <CartProvider>
-                  <CustomerApp />
-                </CartProvider>
-              </CustomerRestaurantProvider>
-            } 
-          />
+            {/* Reception Login */}
+            <Route
+              path="/reception/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ReceptionLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* PUBLIC MENU - Direct menu access without table (no auth required) */}
-          <Route 
-            path="/menu/:restaurantSlug" 
-            element={
-              <CustomerRestaurantProvider>
-                <CartProvider>
-                  <CustomerApp />
-                </CartProvider>
-              </CustomerRestaurantProvider>
-            } 
-          />
+            {/* Reception Login with Restaurant Slug */}
+            <Route
+              path="/:restaurantSlug/reception/login"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ReceptionLogin />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Restaurant Dashboard - Password Protected */}
-          <Route 
-            path="/:restaurantSlug/dashboard" 
-            element={
-              <LandingAuthProvider>
-                <DashboardProtection>
-                  <Dashboard />
-                </DashboardProtection>
-              </LandingAuthProvider>
-            } 
-          />
 
-          {/* Customer Routes - All under /:slug/customer/* */}
-          <Route 
-            path="/:restaurantSlug/customer/*" 
-            element={
-              <CustomerRestaurantProvider>
-                <CartProvider>
-                  <CustomerApp />
-                </CartProvider>
-              </CustomerRestaurantProvider>
-            } 
-          />
 
-          {/* Staff Verification - Staff/Admin slug+code verification */}
-          <Route 
-            path="/verify/:restaurantSlug" 
-            element={
-              <AdminAuthProvider>
-                <AdminRestaurantProvider>
-                  <RestaurantVerification />
-                </AdminRestaurantProvider>
-              </AdminAuthProvider>
-            } 
-          />
+            {/* Reception Dashboard with Restaurant Slug - Protected */}
+            <Route
+              path="/:restaurantSlug/reception/dashboard"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <ProtectedRoute role="reception">
+                      <ReceptionHome />
+                    </ProtectedRoute>
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        
-        <Toaster position="top-right" richColors />
-      </div>
-    </Router>
+            {/* PUBLIC MENU - QR Code entry point with table (no auth required) */}
+            {/* IMPORTANT: These routes MUST come before /:restaurantSlug/dashboard to avoid conflicts */}
+            <Route
+              path="/menu/:restaurantSlug/table/:tableId"
+              element={
+                <CustomerRestaurantProvider>
+                  <CartProvider>
+                    <CustomerApp />
+                  </CartProvider>
+                </CustomerRestaurantProvider>
+              }
+            />
+
+            {/* PUBLIC MENU - Direct menu access without table (no auth required) */}
+            <Route
+              path="/menu/:restaurantSlug"
+              element={
+                <CustomerRestaurantProvider>
+                  <CartProvider>
+                    <CustomerApp />
+                  </CartProvider>
+                </CustomerRestaurantProvider>
+              }
+            />
+
+            {/* Restaurant Dashboard - Password Protected */}
+            <Route
+              path="/:restaurantSlug/dashboard"
+              element={
+                <LandingAuthProvider>
+                  <DashboardProtection>
+                    <Dashboard />
+                  </DashboardProtection>
+                </LandingAuthProvider>
+              }
+            />
+
+            {/* Customer Routes - All under /:slug/customer/* */}
+            <Route
+              path="/:restaurantSlug/customer/*"
+              element={
+                <CustomerRestaurantProvider>
+                  <CartProvider>
+                    <CustomerApp />
+                  </CartProvider>
+                </CustomerRestaurantProvider>
+              }
+            />
+
+            {/* Staff Verification - Staff/Admin slug+code verification */}
+            <Route
+              path="/verify/:restaurantSlug"
+              element={
+                <AdminAuthProvider>
+                  <AdminRestaurantProvider>
+                    <RestaurantVerification />
+                  </AdminRestaurantProvider>
+                </AdminAuthProvider>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+
+          <Toaster position="top-right" richColors />
+        </div>
+      </Router>
     </QueryClientProvider>
   );
 }

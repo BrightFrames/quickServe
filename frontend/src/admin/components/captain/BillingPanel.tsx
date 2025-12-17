@@ -127,107 +127,102 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <Receipt className="w-8 h-8" />
+        <div className="bg-white border-b border-gray-100 p-6 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
+              <Receipt className="w-6 h-6 text-blue-600" />
+            </div>
             <div>
-              <h2 className="text-2xl font-bold">Table {tableNumber} - Billing</h2>
-              <p className="text-blue-100 text-sm">
-                {orders.length} order(s) • Total: ₹{totalAmount.toFixed(2)}
+              <h2 className="text-xl font-bold text-gray-900">Table {tableNumber}</h2>
+              <p className="text-gray-500 text-sm font-medium">
+                Billing Details • {orders.length} Order{orders.length !== 1 && 's'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-all"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">{error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 flex items-center gap-3">
+        <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">{error}</p>
+              <p className="text-red-700 font-medium">{error}</p>
             </div>
           )}
 
           {orders.length === 0 ? (
-            <div className="text-center py-12">
-              <Receipt className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No orders found for this table</p>
+            <div className="text-center py-16">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Receipt className="w-10 h-10 text-gray-400" />
+              </div>
+              <p className="text-gray-900 font-semibold text-lg">No orders found</p>
+              <p className="text-gray-500 text-sm">This table currently has no active orders.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {orders.map((order) => (
                 <div
                   key={order.id}
-                  className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                  className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Order #{order.orderNumber}
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {new Date(order.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 justify-end mb-1">
-                        {order.paymentMethod === 'cash' ? (
-                          <Banknote className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <CreditCard className="w-4 h-4 text-blue-600" />
-                        )}
-                        <span className="text-sm font-medium capitalize">
-                          {order.paymentMethod}
-                        </span>
-                      </div>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          order.paymentStatus === 'paid'
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}
-                      >
-                        {order.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/30">
+                    <div className="flex items-center gap-3">
+                      <span className="bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded">
+                        #{order.orderNumber}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${order.paymentStatus === 'paid'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-yellow-100 text-yellow-700'
+                        }`}
+                    >
+                      {order.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                    </span>
                   </div>
 
-                  <div className="space-y-2 mb-3">
-                    {order.items.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex justify-between text-sm"
-                      >
-                        <span className="text-gray-700">
-                          {item.quantity}x {item.name}
-                        </span>
-                        <span className="font-medium text-gray-900">
-                          ₹{(item.price * item.quantity).toFixed(2)}
-                        </span>
+                  <div className="p-4">
+                    <div className="space-y-2 mb-4">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-sm group">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 bg-gray-100 rounded flex items-center justify-center text-xs font-bold text-gray-600">
+                              {item.quantity}
+                            </span>
+                            <span className="text-gray-700 font-medium">{item.name}</span>
+                          </div>
+                          <span className="text-gray-900 font-semibold group-hover:text-blue-600 transition-colors">
+                            ₹{(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-dashed border-gray-200 pt-3 space-y-1">
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Subtotal</span>
+                        <span>₹{order.subtotal.toFixed(2)}</span>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="border-t border-gray-300 pt-3 space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="text-gray-900">₹{order.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Tax</span>
-                      <span className="text-gray-900">₹{order.tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-300">
-                      <span>Total</span>
-                      <span className="text-blue-600">₹{order.total.toFixed(2)}</span>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span>Tax</span>
+                        <span>₹{order.tax.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-base font-bold text-gray-900 pt-2">
+                        <span>Total</span>
+                        <span className="text-blue-600">₹{order.total.toFixed(2)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -238,84 +233,66 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
 
         {/* Footer - Actions */}
         {orders.length > 0 && (
-          <div className="border-t border-gray-200 p-6 bg-gray-50 flex-shrink-0">
-            {/* Payment Method Selection */}
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                Select Payment Method
-              </h3>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => setSelectedPaymentMethod("cash")}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                    selectedPaymentMethod === "cash"
-                      ? "border-green-600 bg-green-50 text-green-700"
-                      : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
-                  }`}
-                >
-                  <Banknote className="w-6 h-6" />
-                  <span className="font-medium text-sm">Cash</span>
-                </button>
+          <div className="border-t border-gray-200 p-6 bg-white flex-shrink-0 z-10 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+            <div className="flex flex-col md:flex-row gap-6">
 
-                <button
-                  onClick={() => setSelectedPaymentMethod("card")}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                    selectedPaymentMethod === "card"
-                      ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
-                  }`}
-                >
-                  <CreditCard className="w-6 h-6" />
-                  <span className="font-medium text-sm">Card</span>
-                </button>
-
-                <button
-                  onClick={() => setSelectedPaymentMethod("upi")}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                    selectedPaymentMethod === "upi"
-                      ? "border-purple-600 bg-purple-50 text-purple-700"
-                      : "border-gray-300 bg-white text-gray-600 hover:border-gray-400"
-                  }`}
-                >
-                  <CreditCard className="w-6 h-6" />
-                  <span className="font-medium text-sm">UPI/Online</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Total Amount */}
-            <div className="flex items-center justify-between mb-4 p-3 bg-white rounded-lg border border-gray-200">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Total Amount
+              {/* Payment Methods */}
+              <div className="flex-1">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+                  Payment Method
                 </h3>
-                <p className="text-xs text-gray-600">
-                  {orders.length} order(s) • {selectedPaymentMethod.toUpperCase()}
-                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { id: 'cash', label: 'Cash', icon: Banknote, color: 'green' },
+                    { id: 'card', label: 'Card', icon: CreditCard, color: 'blue' },
+                    { id: 'upi', label: 'UPI', icon: CreditCard, color: 'purple' }
+                  ].map((method) => (
+                    <button
+                      key={method.id}
+                      onClick={() => setSelectedPaymentMethod(method.id)}
+                      className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all duration-200 ${selectedPaymentMethod === method.id
+                        ? `border-${method.color}-500 bg-${method.color}-50 text-${method.color}-700 shadow-sm scale-[1.02]`
+                        : "border-gray-200 hover:border-gray-300 text-gray-600 hover:bg-gray-50"
+                        }`}
+                    >
+                      <method.icon className={`w-5 h-5 ${selectedPaymentMethod === method.id ? '' : 'text-gray-400'}`} />
+                      <span className="font-semibold text-xs">{method.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="text-2xl font-bold text-blue-600">
-                ₹{totalAmount.toFixed(2)}
+
+              {/* Total & Action */}
+              <div className="flex-1 flex flex-col justify-between">
+                <div className="flex justify-between items-end mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Payable</p>
+                    <p className="text-xs text-gray-400 mt-1">Including all taxes</p>
+                  </div>
+                  <div className="text-3xl font-black text-gray-900 tracking-tight">
+                    ₹{totalAmount.toFixed(2)}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleMarkAsPaid}
+                  disabled={processing}
+                  className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-gray-200 hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-3"
+                >
+                  {processing ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white/30 border-t-2 border-white"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Mark as Paid & Free Table
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-
-            {/* Confirm Payment Button */}
-            <button
-              onClick={handleMarkAsPaid}
-              disabled={processing}
-              className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {processing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Confirm Payment & Free Table
-                </>
-              )}
-            </button>
           </div>
         )}
       </div>

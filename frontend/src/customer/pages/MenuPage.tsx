@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMenu } from "../hooks/useMenu";
 import { MenuList } from "../components/MenuList";
-import { CartDrawer } from "../components/CartDrawer";
+import { StickyCartBar } from "../components/StickyCartBar";
 import { Recommendations } from "../components/Recommendations";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { useCart } from "../context/CartContext";
+import { Button } from "@/shared/ui/button";
 
 // Predefined categories (same as admin)
 const MENU_CATEGORIES = [
@@ -30,10 +28,10 @@ export const MenuPage = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
+
     // Only check once
     if (hasCheckedTable) return;
-    
+
     // Check if in captain mode
     const captainTable = sessionStorage.getItem('captainTableNumber');
     if (captainTable) {
@@ -41,7 +39,7 @@ export const MenuPage = () => {
       setHasCheckedTable(true);
       return;
     }
-    
+
     // Priority: URL params > query params > default to t1
     if (urlTableNumber) {
       setTableNumber(urlTableNumber);
@@ -73,13 +71,13 @@ export const MenuPage = () => {
     selectedCategory === "all"
       ? menu
       : menu
-          .map((category) => ({
-            ...category,
-            items: category.items.filter(
-              (item) => item.category === selectedCategory
-            ),
-          }))
-          .filter((category) => category.items.length > 0);
+        .map((category) => ({
+          ...category,
+          items: category.items.filter(
+            (item) => item.category === selectedCategory
+          ),
+        }))
+        .filter((category) => category.items.length > 0);
 
   if (loading) {
     return (
@@ -114,67 +112,65 @@ export const MenuPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("../")}
-              className="rounded-full"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold">Our Menu</h1>
-              <p className="text-sm text-muted-foreground">
-                Choose from our delicious selection
-              </p>
-            </div>
+    <div className="min-h-screen bg-gray-50 pb-32">
+      {/* App Header */}
+      <div className="sticky top-0 z-30 bg-white shadow-sm">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-black text-gray-900 tracking-tight">QuickServe Go</h1>
+            <p className="text-xs text-gray-500 font-medium">Table {tableNumber || 'Unknown'}</p>
           </div>
           {tableNumber && (
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-semibold shadow-lg">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              <span className="text-base">Table {tableNumber}</span>
+            <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+              T-{tableNumber}
             </div>
           )}
+        </div>
+
+        {/* Category Pills (Instagram Style) */}
+        <div className="overflow-x-auto no-scrollbar pb-3 px-4 flex gap-2">
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className={`
+              whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all
+              ${selectedCategory === "all"
+                ? "bg-black text-white shadow-md transform scale-105"
+                : "bg-gray-100 text-gray-600 border border-gray-200"}
+            `}
+          >
+            All Items
+          </button>
+          {MENU_CATEGORIES.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`
+                whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all
+                ${selectedCategory === category
+                  ? "bg-black text-white shadow-md transform scale-105"
+                  : "bg-gray-100 text-gray-600 border border-gray-200"}
+              `}
+            >
+              {category}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Menu Content */}
-      <div className="container mx-auto px-4 py-6 space-y-8">
-        {/* Category Filter */}
-        <div className="bg-card rounded-lg border shadow-sm p-4">
-          <label className="block text-sm font-medium text-foreground mb-3">
-            Filter by Category
-          </label>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary bg-background text-foreground"
-          >
-            <option value="all">All Categories</option>
-            {MENU_CATEGORIES.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
-        </div>
-
+      <div className="px-4 pt-4 space-y-6">
         <MenuList menu={filteredMenu} />
 
         {recommendations.length > 0 && (
-          <Recommendations items={recommendations} />
+          <div className="pt-4">
+            <h3 className="font-bold text-gray-900 mb-3 px-1">Recommended for You</h3>
+            <Recommendations items={recommendations} />
+          </div>
         )}
       </div>
 
-      {/* Floating Cart Button */}
-      <CartDrawer />
+      {/* Sticky Cart Bar (Replaces Drawer Trigger) */}
+      <StickyCartBar />
     </div>
   );
 };

@@ -25,6 +25,7 @@ import debugRoutes from "./routes/debug.js";
 import captainRoutes from "./routes/captain.js";
 import receptionRoutes from "./routes/reception.js";
 import publicRoutes from "./routes/public.js";
+import notificationRoutes from "./routes/notifications.js";
 
 // Load environment variables
 const result = dotenv.config();

@@ -31,6 +31,7 @@ export interface Order {
   promoCode?: string;
   paymentMethod?: "cash" | "card" | "upi";
   paymentStatus?: "pending" | "paid" | "failed";
+  restaurantId?: number;
 }
 
 class OrderService {
@@ -201,6 +202,7 @@ class OrderService {
         status: backendOrder.status,
         createdAt: new Date(backendOrder.createdAt),
         updatedAt: new Date(backendOrder.updatedAt),
+        restaurantId: backendOrder.restaurantId,
       };
     } catch (error) {
       console.error("Error fetching order:", error);
@@ -240,6 +242,7 @@ class OrderService {
         status: backendOrder.status,
         createdAt: new Date(backendOrder.createdAt),
         updatedAt: new Date(backendOrder.updatedAt),
+        restaurantId: backendOrder.restaurantId,
       };
     } catch (error) {
       console.error("Error updating order status:", error);
