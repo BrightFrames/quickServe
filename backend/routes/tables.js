@@ -98,8 +98,8 @@ router.post("/", enforceTenantIsolation, requirePermission('write:tables'), asyn
     console.log('[TABLES] Restaurant found:', restaurant.slug);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
     // CUSTOMER QR CODE: Direct public menu access - no authentication
-    // Requirement match: /menu/{restaurantId}?table={tableId}
-    const orderUrl = `${baseUrl}/menu/${restaurant.id}?table=${tableId}`;
+    // Target: /:slug/customer/menu/table/:tableId
+    const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${tableId}`;
 
     console.log('[TABLES] ✓ QR Code URL generated:', orderUrl);
     console.log('[TABLES]   Format: /menu/:restaurantId?table=:tableId');
@@ -183,8 +183,8 @@ router.post("/:id/regenerate-qr", async (req, res) => {
     const restaurant = await Restaurant.findByPk(req.restaurantId);
     const baseUrl = process.env.CUSTOMER_APP_URL || "http://localhost:8080";
     // CUSTOMER QR CODE: Direct public menu access - no authentication
-    // Requirement match: /menu/{restaurantId}?table={tableId}
-    const orderUrl = `${baseUrl}/menu/${restaurant.id}?table=${table.tableId}`;
+    // Target: /:slug/customer/menu/table/:tableId
+    const orderUrl = `${baseUrl}/${restaurant.slug}/customer/menu/table/${table.tableId}`;
 
     const qrCodeImage = await QRCode.toDataURL(orderUrl, {
       errorCorrectionLevel: "H",
