@@ -7,7 +7,14 @@ const LoginSelection = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-6xl w-full">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 flex flex-col items-center">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
+            <img
+              src="/logo of quick serve.png"
+              alt="QuickServe"
+              className="w-full h-full object-cover"
+            />
+          </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">QuickServe Admin Panel</h1>
           <p className="text-gray-600">Select your role to continue</p>
         </div>

@@ -22,12 +22,11 @@ const Navbar: React.FC = () => {
                     {/* Logo Section */}
                     <div className="flex items-center space-x-3">
                         <button onClick={() => handleNavigate('/')} className="flex items-center space-x-3 cursor-pointer">
-                            <div className="w-10 h-10 rounded-xl shadow-lg overflow-hidden">
+                            <div className="w-10 h-10 bg-white rounded-xl shadow-lg overflow-hidden">
                                 <img
-                                    src="/icon of the quick serve.png"
+                                    src="/logo of quick serve.png"
                                     alt="QuickServe"
                                     className="w-full h-full object-cover"
-                                    style={{ filter: 'hue-rotate(220deg) brightness(0.7) saturate(1.2)' }}
                                 />
                             </div>
                             <span className="text-xl font-bold text-blue-900">

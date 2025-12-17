@@ -39,15 +39,19 @@ const LoadingScreen = ({ onLoadingComplete, minDuration = 2000 }: LoadingScreenP
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-32 h-32 rounded-full border-4 border-white/30 animate-ping-slow"></div>
           </div>
-          
+
           {/* Middle ring pulse */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-28 h-28 rounded-full border-4 border-white/20 animate-ping-slower"></div>
           </div>
 
           {/* Icon with bounce animation */}
-          <div className="relative bg-white rounded-full p-6 shadow-2xl animate-bounce-slow">
-            <Utensils className="w-16 h-16 text-blue-600 animate-pulse" />
+          <div className="relative bg-white rounded-full p-4 shadow-2xl animate-bounce-slow overflow-hidden w-24 h-24 flex items-center justify-center">
+            <img
+              src="/logo of quick serve.png"
+              alt="QuickServe"
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
 

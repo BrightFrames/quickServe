@@ -400,8 +400,8 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-3 mb-4 md:mb-0">
-              <div className="w-10 h-10 rounded-xl shadow-md overflow-hidden">
-                <img src="/icon of the quick serve.png" alt="QuickServe" className="w-full h-full object-cover" style={{ filter: 'hue-rotate(220deg) brightness(0.7) saturate(1.2)' }} />
+              <div className="w-10 h-10 bg-white rounded-xl shadow-md overflow-hidden">
+                <img src="/logo of quick serve.png" alt="QuickServe" className="w-full h-full object-cover" />
               </div>
               <span className="text-xl font-bold text-blue-900">QuickServe</span>
             </div>

@@ -176,8 +176,12 @@ const Dashboard: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-red-600 to-red-700 p-2 rounded-xl shadow-lg shadow-red-200">
-                <ChefHat className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 bg-white rounded-xl shadow-lg overflow-hidden">
+                <img
+                  src="/logo of quick serve.png"
+                  alt="QuickServe"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900 tracking-tight">QuickServe</h1>
@@ -308,50 +312,55 @@ const Dashboard: React.FC = () => {
             {/* Left Column: Stats & Info */}
             <motion.div variants={itemVariants} className="lg:col-span-1 space-y-8">
               {/* Restaurant Info Card */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                  <Building className="w-5 h-5 text-gray-500" />
-                  <h3 className="font-bold text-gray-900">Restaurant Info</h3>
+              <div className="bg-white border border-gray-200 rounded-3xl shadow-sm overflow-hidden h-full">
+                <div className="bg-slate-900 p-6 flex items-center gap-4">
+                  <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm shadow-inner">
+                    <Building className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-white">Restaurant Profile</h3>
+                    <p className="text-slate-400 text-xs uppercase tracking-wider font-medium">Verified Merchant</p>
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <Key className="w-4 h-4 text-gray-600" />
+                <div className="p-6 space-y-6">
+                  <div className="group flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-red-100 transition-colors">
+                      <Key className="w-5 h-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">CODE</p>
-                      <p className="text-lg font-mono font-bold text-red-600">{restaurant?.restaurantCode}</p>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Store Code</p>
+                      <p className="text-xl font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded-md inline-block border border-gray-200">{restaurant?.restaurantCode}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <Mail className="w-4 h-4 text-gray-600" />
+                  <div className="group flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-blue-100 transition-colors">
+                      <Mail className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div>
-                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">EMAIL</p>
-                      <p className="text-sm text-gray-900 font-medium break-all">{restaurant?.email}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Email Address</p>
+                      <p className="text-sm text-gray-900 font-medium truncate">{restaurant?.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <Phone className="w-4 h-4 text-gray-600" />
+                  <div className="group flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-green-100 transition-colors">
+                      <Phone className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">PHONE</p>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Contact Number</p>
                       <p className="text-sm text-gray-900 font-medium">{restaurant?.phone}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3">
-                    <div className="mt-1 w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-4 h-4 text-gray-600" />
+                  <div className="group flex items-start gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-purple-100 transition-colors">
+                      <MapPin className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-uppercase text-gray-500 font-bold tracking-wider">ADDRESS</p>
-                      <p className="text-sm text-gray-900 font-medium">{restaurant?.address}</p>
+                      <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Location</p>
+                      <p className="text-sm text-gray-900 font-medium leading-relaxed">{restaurant?.address}</p>
                     </div>
                   </div>
                 </div>
@@ -366,16 +375,21 @@ const Dashboard: React.FC = () => {
               </h3>
 
               {/* Admin Credentials */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-base font-bold text-gray-900">Admin Account</h4>
-                    <p className="text-sm text-gray-500">Full access to settings and logs.</p>
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-red-50/30">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center shadow-inner">
+                      <ShieldCheck className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">Admin Account</h4>
+                      <p className="text-sm text-gray-500">Full system control</p>
+                    </div>
                   </div>
                   <Button
                     variant={showAdminForm ? "secondary" : "default"}
                     onClick={() => setShowAdminForm(!showAdminForm)}
-                    className={showAdminForm ? "bg-gray-100 text-gray-900" : "bg-gray-900 hover:bg-black text-white"}
+                    className={showAdminForm ? "bg-gray-100 text-gray-900" : "bg-gray-900 hover:bg-black text-white px-6"}
                   >
                     {showAdminForm ? "Cancel" : "Update"}
                   </Button>
@@ -426,16 +440,21 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* Kitchen Credentials */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-base font-bold text-gray-900">Kitchen Display</h4>
-                    <p className="text-sm text-gray-500">Restricted access for kitchen staff.</p>
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-orange-50/30">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-100 flex items-center justify-center shadow-inner">
+                      <ChefHat className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">Kitchen Display</h4>
+                      <p className="text-sm text-gray-500">Chef & staff access</p>
+                    </div>
                   </div>
                   <Button
                     variant={showKitchenForm ? "secondary" : "default"}
                     onClick={() => setShowKitchenForm(!showKitchenForm)}
-                    className={showKitchenForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"}
+                    className={showKitchenForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
                   >
                     {showKitchenForm ? "Cancel" : "Update"}
                   </Button>
@@ -486,16 +505,21 @@ const Dashboard: React.FC = () => {
               </div>
 
               {/* Captain Credentials */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-base font-bold text-gray-900">Captain / Waiter</h4>
-                    <p className="text-sm text-gray-500">Table ordering access for staff.</p>
+              <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center shadow-inner">
+                      <Users className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900">Captain / Waiter</h4>
+                      <p className="text-sm text-gray-500">Order taking access</p>
+                    </div>
                   </div>
                   <Button
                     variant={showCaptainForm ? "secondary" : "default"}
                     onClick={() => setShowCaptainForm(!showCaptainForm)}
-                    className={showCaptainForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50"}
+                    className={showCaptainForm ? "bg-gray-100 text-gray-900" : "bg-white border border-gray-200 text-gray-900 hover:bg-gray-50 px-6"}
                   >
                     {showCaptainForm ? "Cancel" : "Update"}
                   </Button>

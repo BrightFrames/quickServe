@@ -101,7 +101,13 @@ const AdminHome = () => {
       >
         {/* Logo Section */}
         <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <MenuIcon className="w-6 h-6 text-blue-500 mr-3" />
+          <div className="w-8 h-8 bg-white rounded-lg shadow-lg overflow-hidden mr-3">
+            <img
+              src="/logo of quick serve.png"
+              alt="QuickServe"
+              className="w-full h-full object-cover"
+            />
+          </div>
           {sidebarOpen && (
             <span className="text-lg font-bold tracking-tight">QuickServe</span>
           )}

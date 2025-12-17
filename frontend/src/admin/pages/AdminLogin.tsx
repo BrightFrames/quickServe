@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, ArrowLeft, Lock, User, Building } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Shield, ArrowLeft, Lock, User, Building, Settings } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useRestaurant } from '../context/RestaurantContext'
 import { toast } from 'sonner'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Label } from '@/shared/ui/label'
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('')
@@ -46,85 +51,131 @@ const AdminLogin = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-blue-50">
-      <div className="max-w-md w-full p-8">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex items-center mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 relative overflow-hidden">
+      {/* Rich animated background - Red Theme */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-red-100 via-gray-50 to-white -z-20"></div>
+      <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-red-100/50 to-transparent -z-10"></div>
+
+      {/* Decorative Blobs */}
+      <motion.div
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -top-20 -right-20 w-96 h-96 bg-red-300/30 rounded-full blur-3xl -z-10"
+      />
+      <motion.div
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [0.3, 0.4, 0.3],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        className="absolute -bottom-32 -left-20 w-80 h-80 bg-rose-300/30 rounded-full blur-3xl -z-10"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="w-full px-4 sm:px-6 lg:px-8"
+      >
+        <Card className="w-full max-w-md mx-auto shadow-2xl rounded-3xl border-gray-100 bg-white/90 backdrop-blur-xl relative top-5 mt-5">
+          <CardHeader className="space-y-3 pt-8 relative">
             <button
               onClick={handleBack}
-              className="mr-4 text-gray-600 hover:text-gray-800"
+              className="absolute left-6 top-6 text-gray-400 hover:text-red-600 transition-colors p-2 hover:bg-red-50 rounded-full"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="flex-1 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-8 h-8 text-blue-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800">Admin Login</h2>
-              <p className="text-gray-600 mt-2">Access the admin dashboard</p>
 
-              {/* Display restaurant info if verified */}
-              {restaurantName && restaurantCode && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center justify-center space-x-2 text-sm">
-                    <Building className="w-4 h-4 text-green-700" />
-                    <span className="font-semibold text-green-900">{restaurantName}</span>
-                  </div>
-                  <p className="text-xs text-green-700 mt-1">
-                    Code: <span className="font-mono font-bold">{restaurantCode}</span>
-                  </p>
+            <div className="flex justify-center mb-4">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center shadow-inner border border-red-200"
+              >
+                <Settings className="w-10 h-10 text-red-600" />
+              </motion.div>
+            </div>
+
+            <CardTitle className="text-3xl font-bold text-center text-gray-800 tracking-tight">
+              Admin Panel
+            </CardTitle>
+            <CardDescription className="text-center text-gray-600 text-base max-w-sm mx-auto">
+              Configure menu, tables, and settings
+            </CardDescription>
+
+            {/* Display restaurant info if verified */}
+            {restaurantName && restaurantCode && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mx-auto mt-6 p-4 bg-green-50/80 border border-green-200 rounded-2xl shadow-sm max-w-xs backdrop-blur-sm"
+              >
+                <div className="flex items-center justify-center space-x-2 text-sm">
+                  <Building className="w-4 h-4 text-green-700" />
+                  <span className="font-bold text-green-900">{restaurantName}</span>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="flex items-center justify-center mt-1.5 space-x-2">
+                  <span className="text-xs text-green-600 uppercase tracking-wide font-semibold">Store Code</span>
+                  <span className="font-mono font-bold text-green-800 bg-green-100 px-2 py-0.5 rounded text-xs tracking-wider">{restaurantCode}</span>
+                </div>
+              </motion.div>
+            )}
+          </CardHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your email"
-                  autoComplete="email"
-                  required
-                />
+          <CardContent className="space-y-6 px-8 pb-10">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-900 font-medium ml-1">Email Address</Label>
+                <div className="relative group">
+                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400 group-hover:text-red-600 transition-colors" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-red-600 focus:ring-red-600/20 focus-visible:ring-red-600 rounded-xl transition-all"
+                    placeholder="admin@quickserve.com"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter password"
-                  autoComplete="current-password"
-                  required
-                />
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-900 font-medium ml-1">Password</Label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 group-hover:text-red-600 transition-colors" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 h-11 bg-gray-50/50 border-gray-200 focus:bg-white focus:border-red-600 focus:ring-red-600/20 focus-visible:ring-red-600 rounded-xl transition-all"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button type="button" className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors">
+                    Forgot password?
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Logging in...' : 'Login'}
-            </button>
-          </form>
-        </div>
-      </div>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-600/40 transition-all duration-300 h-12 text-lg font-bold rounded-xl mt-4"
+              >
+                {loading ? 'Access Console' : 'Access Console'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }
