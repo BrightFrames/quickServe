@@ -80,10 +80,12 @@ class RestaurantController {
 
     async verifyAdminCode(req, res) {
         try {
+            console.log("[RESTAURANT CTRL] verifyAdminCode called with body:", req.body);
             const { code } = req.body;
             if (!code) return res.status(400).json({ message: "Code required" });
 
             const restaurant = await restaurantService.verifyAdminCode(code);
+            console.log("[RESTAURANT CTRL] Verification success for:", restaurant.name);
             res.json({
                 verified: true,
                 restaurant: {
@@ -184,7 +186,8 @@ class RestaurantController {
                 }
             });
         } catch (error) {
-            res.status(500).json({ message: "Failed to update profile" });
+            console.error("[RESTAURANT CTRL] Update Profile Error:", error);
+            res.status(500).json({ message: "Failed to update profile", error: error.message });
         }
     }
 

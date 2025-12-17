@@ -89,7 +89,7 @@ const RestaurantInfo = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const token = localStorage.getItem('restaurantToken');
+      const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
       if (!token) {

@@ -40,6 +40,10 @@ export const FoodRating = ({
         review: review.trim(),
         customerId: localStorage.getItem("customerId") || null,
         customerPhone: localStorage.getItem("customerPhone") || null,
+      }, {
+        headers: {
+          'x-restaurant-slug': window.location.pathname.split('/')[2] // Reliable way to get slug from URL: /menu/:slug/...
+        }
       });
 
       if (response.data.success) {

@@ -25,10 +25,10 @@ router.get("/info/code/:restaurantCode", restaurantController.getInfoByCode);
 router.put("/payment-accounts/:restaurantCode", restaurantController.updatePaymentAccounts);
 
 // Get Profile (Protected)
-router.get("/profile", restaurantController.getProfile);
+router.get("/profile", authenticateRestaurant, restaurantController.getProfile);
 
 // Update Profile (Protected)
-router.put("/profile", restaurantController.updateProfile);
+router.put("/profile", authenticateRestaurant, restaurantController.updateProfile);
 
 // Logout
 router.post("/logout", restaurantController.logout);
