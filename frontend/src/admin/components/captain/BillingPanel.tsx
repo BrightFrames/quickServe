@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { X, Receipt, CreditCard, Banknote, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/shared/ui/alert-dialog";
+import { Spinner } from "@/shared/ui/spinner";
+import { toast } from "sonner";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const apiUrl = import.meta.env.VITE_API_URL;
 
 interface OrderItem {
   id: number;
@@ -41,6 +53,7 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>("cash");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     fetchTableOrders();
@@ -81,11 +94,7 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
     }
   };
 
-  const handleMarkAsPaid = async () => {
-    if (!confirm(`Mark Table ${tableNumber} as paid and free the table?`)) {
-      return;
-    }
-
+  const handlePaymentComplete = async () => {
     setProcessing(true);
     try {
       const token = localStorage.getItem("token");
@@ -100,25 +109,27 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
         }
       );
 
+      toast.success(`Table ${tableNumber} marked as paid and released`);
       onPaymentComplete();
       onClose();
     } catch (err: any) {
       console.error("[BILLING] Error marking as paid:", err);
-      alert(err.response?.data?.message || "Failed to process payment");
+      toast.error(err.response?.data?.message || "Failed to process payment");
     } finally {
       setProcessing(false);
+      setShowConfirmDialog(false);
     }
   };
 
   const totalAmount = orders.reduce((sum, order) => sum + order.total, 0);
-  const cashOrders = orders.filter(o => o.paymentMethod === 'cash' && o.paymentStatus !== 'paid');
+
 
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-center flex flex-col items-center justify-center">
+            <Spinner size={48} className="text-blue-600 mb-4" />
             <p className="text-gray-600">Loading billing details...</p>
           </div>
         </div>
@@ -275,19 +286,19 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
                 </div>
 
                 <button
-                  onClick={handleMarkAsPaid}
+                  onClick={() => setShowConfirmDialog(true)}
                   disabled={processing}
                   className="w-full bg-gray-900 hover:bg-black disabled:bg-gray-300 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-gray-200 hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-3"
                 >
                   {processing ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white/30 border-t-2 border-white"></div>
+                      <Spinner size={20} className="text-white" />
                       Processing...
                     </>
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5" />
-                      Mark as Paid & Free Table
+                      Mark as Paid & Release Table
                     </>
                   )}
                 </button>
@@ -295,8 +306,34 @@ const BillingPanel: React.FC<BillingPanelProps> = ({
             </div>
           </div>
         )}
+
       </div>
-    </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Release Table {tableNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark all orders as paid and free up the table for new customers. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={processing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handlePaymentComplete();
+              }}
+              disabled={processing}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {processing ? <Spinner size={16} className="mr-2" /> : null}
+              Confirm Payment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div >
   );
 };
 

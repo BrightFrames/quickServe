@@ -186,14 +186,14 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                 item.variants || item.addOns ? (
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="w-full h-10 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-sm shadow-sm">
-                        ADD <Plus className="w-4 h-4 ml-1" />
+                      <Button className="w-full h-11 bg-white text-green-700 border border-green-200 hover:bg-green-50 hover:border-green-300 font-bold text-sm shadow-sm transition-all active:scale-95">
+                        ADD <Plus className="w-5 h-5 ml-1.5" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[90%] rounded-2xl">
                       <DialogHeader>
-                        <DialogTitle>{item.name}</DialogTitle>
-                        <DialogDescription>
+                        <DialogTitle className="text-xl">{item.name}</DialogTitle>
+                        <DialogDescription className="text-base text-gray-500">
                           {item.description}
                         </DialogDescription>
                       </DialogHeader>
@@ -201,8 +201,8 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                       <div className="space-y-6 py-4">
                         {/* Variants */}
                         {item.variants && item.variants.length > 0 && (
-                          <div>
-                            <Label className="text-base font-semibold mb-3 block">
+                          <div className="bg-gray-50 p-4 rounded-xl">
+                            <Label className="text-base font-bold mb-3 block text-gray-900">
                               Choose Size
                             </Label>
                             <RadioGroup
@@ -212,20 +212,21 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                               {item.variants.map((variant) => (
                                 <div
                                   key={variant.name}
-                                  className="flex items-center space-x-3 mb-2"
+                                  className="flex items-center space-x-3 mb-3 bg-white p-3 rounded-lg border border-gray-100 shadow-sm"
                                 >
                                   <RadioGroupItem
                                     value={variant.name}
                                     id={variant.name}
+                                    className="h-5 w-5 border-2"
                                   />
                                   <Label
                                     htmlFor={variant.name}
-                                    className="flex-1 cursor-pointer"
+                                    className="flex-1 cursor-pointer flex justify-between items-center"
                                   >
-                                    <span className="font-medium">
+                                    <span className="font-semibold text-gray-700">
                                       {variant.name}
                                     </span>
-                                    <span className="ml-auto text-primary font-semibold">
+                                    <span className="text-primary font-bold">
                                       {formatCurrency(variant.price)}
                                     </span>
                                   </Label>
@@ -237,15 +238,15 @@ export const MenuItem = ({ item }: MenuItemProps) => {
 
                         {/* Add-ons */}
                         {item.addOns && item.addOns.length > 0 && (
-                          <div>
-                            <Label className="text-base font-semibold mb-3 block">
+                          <div className="bg-gray-50 p-4 rounded-xl">
+                            <Label className="text-base font-bold mb-3 block text-gray-900">
                               Add-ons (Optional)
                             </Label>
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                               {item.addOns.map((addOn) => (
                                 <div
                                   key={addOn.name}
-                                  className="flex items-center space-x-3"
+                                  className="flex items-center space-x-3 bg-white p-3 rounded-lg border border-gray-100 shadow-sm"
                                 >
                                   <Checkbox
                                     id={addOn.name}
@@ -253,13 +254,14 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                                       (a) => a.name === addOn.name
                                     )}
                                     onCheckedChange={() => toggleAddOn(addOn)}
+                                    className="h-5 w-5 border-2"
                                   />
                                   <Label
                                     htmlFor={addOn.name}
-                                    className="flex-1 cursor-pointer"
+                                    className="flex-1 cursor-pointer flex justify-between items-center"
                                   >
-                                    <span>{addOn.name}</span>
-                                    <span className="ml-auto text-primary font-semibold">
+                                    <span className="text-gray-700 font-medium">{addOn.name}</span>
+                                    <span className="text-primary font-bold">
                                       +{formatCurrency(addOn.price)}
                                     </span>
                                   </Label>
@@ -270,44 +272,46 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                         )}
 
                         {/* Quantity */}
-                        <div>
-                          <Label className="text-base font-semibold mb-3 block">
+                        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-xl">
+                          <Label className="text-base font-bold text-gray-900">
                             Quantity
                           </Label>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-4 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
                               onClick={() =>
                                 setQuantity(Math.max(1, quantity - 1))
                               }
+                              className="h-10 w-10"
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-5 h-5" />
                             </Button>
-                            <span className="text-lg font-semibold w-12 text-center">
+                            <span className="text-xl font-bold w-8 text-center">
                               {quantity}
                             </span>
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
                               onClick={() => setQuantity(quantity + 1)}
+                              className="h-10 w-10 text-primary"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-5 h-5" />
                             </Button>
                           </div>
                         </div>
 
-                        {/* Total Price */}
-                        <div className="pt-4 border-t">
-                          <div className="flex justify-between items-center mb-4">
-                            <span className="text-lg font-semibold">Total</span>
-                            <span className="text-2xl font-bold text-primary">
+                        {/* Total Price & Action */}
+                        <div className="pt-4 border-t space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-lg font-bold text-gray-600">Total</span>
+                            <span className="text-2xl font-black text-primary">
                               {formatCurrency(getPrice() * quantity)}
                             </span>
                           </div>
                           <Button
                             onClick={handleAddToCart}
-                            className="w-full h-12 text-base"
+                            className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 active:scale-95 transition-transform"
                           >
                             Add to Cart
                           </Button>
@@ -318,9 +322,9 @@ export const MenuItem = ({ item }: MenuItemProps) => {
                 ) : (
                   <Button
                     onClick={handleQuickAdd}
-                    className="w-full h-10 bg-white text-green-600 border border-gray-200 hover:bg-green-50 hover:border-green-200 font-bold text-sm shadow-sm"
+                    className="w-full h-11 bg-white text-green-700 border border-green-200 hover:bg-green-50 hover:border-green-300 font-bold text-sm shadow-sm transition-all active:scale-95"
                   >
-                    ADD <Plus className="w-4 h-4 ml-1" />
+                    ADD <Plus className="w-5 h-5 ml-1.5" />
                   </Button>
                 )
               )

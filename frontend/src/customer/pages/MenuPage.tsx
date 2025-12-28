@@ -115,27 +115,28 @@ export const MenuPage = () => {
     <div className="min-h-screen bg-gray-50 pb-32">
       {/* App Header */}
       <div className="sticky top-0 z-30 bg-white shadow-sm">
-        <div className="px-4 py-3 flex items-center justify-between">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
           <div>
-            <h1 className="text-xl font-black text-gray-900 tracking-tight">QuickServe Go</h1>
-            <p className="text-xs text-gray-500 font-medium">Table {tableNumber || 'Unknown'}</p>
+            <h1 className="text-lg font-semibold text-gray-900">QuickServe</h1>
+            <p className="text-sm text-gray-500">Table {tableNumber || 'Unknown'}</p>
           </div>
           {tableNumber && (
-            <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold">
+            <div className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-medium border border-gray-200">
               T-{tableNumber}
             </div>
           )}
         </div>
 
-        {/* Category Pills (Instagram Style) */}
-        <div className="overflow-x-auto no-scrollbar pb-3 px-4 flex gap-2">
+
+        {/* Category Pills - Enterprise Style */}
+        <div className="overflow-x-auto no-scrollbar pb-3 px-4 flex gap-2 border-b border-gray-100 bg-white pt-2">
           <button
             onClick={() => setSelectedCategory("all")}
             className={`
-              whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all
+              whitespace-nowrap px-4 py-1.5 rounded text-sm font-medium transition-colors border
               ${selectedCategory === "all"
-                ? "bg-black text-white shadow-md transform scale-105"
-                : "bg-gray-100 text-gray-600 border border-gray-200"}
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"}
             `}
           >
             All Items
@@ -145,10 +146,10 @@ export const MenuPage = () => {
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`
-                whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all
+                whitespace-nowrap px-4 py-1.5 rounded text-sm font-medium transition-colors border
                 ${selectedCategory === category
-                  ? "bg-black text-white shadow-md transform scale-105"
-                  : "bg-gray-100 text-gray-600 border border-gray-200"}
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"}
               `}
             >
               {category}

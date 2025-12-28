@@ -64,40 +64,40 @@ const TableView: React.FC<TableViewProps> = ({ onTableClick }) => {
     if (loading) return <div className="p-8 text-center text-gray-400">Loading Map...</div>;
 
     return (
-        <div className="p-4 h-full overflow-y-auto pb-24">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+        <div className="p-3 h-full overflow-y-auto pb-24 bg-gray-100">
+            <div className="grid grid-cols-3 gap-3">
                 {tables.map((table) => {
                     const isOccupied = table.status === 'occupied';
                     return (
-                        <div key={table.id} className="relative">
+                        <div key={table.id} className="relative aspect-square">
                             <button
                                 onClick={() => onTableClick?.(table.tableNumber)}
                                 className={`
-                  w-full aspect-square rounded-xl flex flex-col items-center justify-center p-2 border transition-all active:scale-95 shadow-sm
-                  ${isOccupied
-                                        ? "bg-red-500 text-white border-red-600 shadow-red-200"
-                                        : "bg-green-50 text-green-800 border-green-200 hover:bg-green-100 hover:border-green-300"}
-                `}
+                                    w-full h-full rounded-xl flex flex-col items-center justify-center p-2 shadow-sm transition-all active:scale-95 border-b-4
+                                    ${isOccupied
+                                        ? "bg-blue-600 text-white border-blue-800"
+                                        : "bg-white text-gray-900 border-gray-200 hover:border-green-400"}
+                                `}
                             >
-                                <span className="text-2xl font-black">{table.tableNumber}</span>
-                                <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5 opacity-80">
-                                    {isOccupied ? 'Occupied' : 'Available'}
+                                <span className="text-4xl font-black">{table.tableNumber}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${isOccupied ? 'text-blue-200' : 'text-gray-400'}`}>
+                                    {isOccupied ? 'OCCUPIED' : 'FREE'}
                                 </span>
                             </button>
 
                             {isOccupied && (
-                                <div className="absolute -top-2 -right-2 flex gap-1 z-10">
+                                <div className="absolute -bottom-2 -right-2 flex gap-1 z-10">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setBillingTable(table.tableNumber); }}
-                                        className="bg-white text-blue-600 border border-blue-100 p-2 rounded-full shadow-md hover:bg-blue-50"
+                                        className="bg-yellow-400 text-black border-2 border-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center active:scale-90"
                                     >
-                                        <Receipt className="w-4 h-4" />
+                                        <Receipt className="w-5 h-5" />
                                     </button>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleFreeTable(table.tableNumber); }}
-                                        className="bg-white text-red-600 border border-red-100 p-2 rounded-full shadow-md hover:bg-red-50"
+                                        className="bg-gray-800 text-white border-2 border-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center active:scale-90"
                                     >
-                                        <Utensils className="w-4 h-4" />
+                                        <Utensils className="w-5 h-5" />
                                     </button>
                                 </div>
                             )}

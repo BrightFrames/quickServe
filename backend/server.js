@@ -15,7 +15,7 @@ import userRoutes from "./routes/users.js";
 import userCredentialsRoutes from "./routes/userCredentials.js";
 import analyticsRoutes from "./routes/analytics.js";
 import tableRoutes from "./routes/tables.js";
-import paymentRoutes from "./routes/payment.js";
+
 import cashfreePaymentRoutes from "./routes/paymentRoutes.js";
 import ratingRoutes from "./routes/ratings.js";
 import invoiceRoutes from "./routes/invoice.js";
@@ -26,6 +26,11 @@ import captainRoutes from "./routes/captain.js";
 import receptionRoutes from "./routes/reception.js";
 import publicRoutes from "./routes/public.js";
 import notificationRoutes from "./routes/notifications.js";
+import posRoutes from "./routes/pos.js"; // POS Billing Routes
+import inventoryRoutes from "./routes/inventory.js"; // Inventory Module Routes
+import reportsRoutes from "./routes/reports.js"; // Phase 3 Reports Module
+import organizationRoutes from "./routes/organization.js"; // Phase 4 Organization Module
+import paymentRoutes from "./routes/payment.js"; // Phase 5 Payment Gateway Module
 
 // Load environment variables
 const result = dotenv.config();
@@ -455,6 +460,21 @@ console.log("✓ Promo Code routes registered at /api/promo-codes");
 
 app.use("/api/debug", debugRoutes);
 console.log("✓ Debug routes registered at /api/debug");
+
+app.use("/api/pos", posRoutes);
+console.log("✓ POS routes registered at /api/pos");
+
+app.use("/api/inventory", inventoryRoutes);
+console.log("✓ Inventory routes registered at /api/inventory");
+
+app.use("/api/reports", reportsRoutes);
+console.log("✓ Reports routes registered at /api/reports");
+
+app.use("/api/organization", organizationRoutes);
+console.log("✓ Organization routes registered at /api/organization");
+
+app.use("/api/payment", paymentRoutes);
+console.log("✓ Payment routes registered at /api/payment");
 
 // Health check
 app.get("/api/health", (req, res) => {

@@ -9,22 +9,44 @@ export const useMenu = () => {
   const { restaurantSlug, restaurantId } = useRestaurant(); // CORE FIX: Get restaurantId
 
   const fetchMenu = async () => {
+    const CACHE_KEY = `menu_cache_${restaurantSlug || restaurantId || 'default'}`;
+
     try {
       setLoading(true);
       setError(null);
-      
+
+      // OPTIMISTIC: Load from cache first if available
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        setMenu(JSON.parse(cached));
+        setLoading(false); // Show cached data immediately
+      }
+
       // CORE FIX: Pass restaurantId as primary identifier, slug as fallback
       console.log('[USE MENU] Fetching menu - restaurantId:', restaurantId, 'slug:', restaurantSlug);
       const data = await menuService.getMenu(
-        restaurantSlug || undefined, 
+        restaurantSlug || undefined,
         restaurantId || undefined
       );
-      
+
       console.log('[USE MENU] Loaded', data.length, 'categories');
       setMenu(data);
+
+      // Update cache
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     } catch (err) {
       console.error('[USE MENU] Error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load menu');
+
+      // FALLBACK: If API fails and we haven't loaded cache yet, try to load it now
+      // (This handles the case where we didn't use the optimistic cache above or if network fails mid-request)
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        console.log('[USE MENU] Network failed, using cached menu');
+        setMenu(JSON.parse(cached));
+        // Don't set error if we have cached data
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to load menu');
+      }
     } finally {
       setLoading(false);
     }
@@ -36,14 +58,14 @@ export const useMenu = () => {
       console.log('[USE MENU] Triggering fetch - restaurantId:', restaurantId, 'slug:', restaurantSlug);
       fetchMenu();
     }
-    
+
     // Simulate real-time updates
     const interval = setInterval(() => {
       if (restaurantId || restaurantSlug) {
         fetchMenu();
       }
     }, 60000); // Refresh every minute
-    
+
     return () => clearInterval(interval);
   }, [restaurantSlug, restaurantId]); // CORE FIX: Re-fetch when restaurantId changes
 

@@ -119,7 +119,6 @@ export const FoodRating = ({
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
                   onClick={() => setRating(star)}
-                  whileHover={{ scale: 1.2 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: "spring", stiffness: 300 }}
                 >

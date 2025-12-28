@@ -8,7 +8,6 @@ import {
   Users,
   Package,
   TrendingUp,
-  Building2,
   Wallet,
   Tag,
   Utensils,
@@ -16,31 +15,42 @@ import {
   Bell,
   ChevronDown,
   LayoutDashboard,
-  Settings
+  Settings,
+  Store,
+  Receipt
 } from "lucide-react";
 import Dashboard from "../components/admin/Dashboard";
 import MenuManagement from "../components/admin/MenuManagement";
 import InventoryManagement from "../components/admin/InventoryManagement";
-import InventoryTracking from "../components/admin/InventoryTracking";
 import UserManagement from "../components/admin/UserManagement";
 import RestaurantInfo from "../components/admin/RestaurantInfo";
 import PaymentSettings from "../components/admin/PaymentSettings";
 import PromoCodeManagement from "../components/admin/PromoCodeManagement";
 import TableManagement from "../components/admin/TableManagement";
+import POSDashboard from "../components/admin/POSDashboard";
+import InventoryDashboard from "../components/admin/InventoryDashboard";
+import SalesDashboard from "../components/admin/SalesDashboard";
+import OrgDashboard from "../pages/OrgDashboard";
 import axios from "axios";
 
-type Tab = "dashboard" | "menu" | "inventory" | "tracking" | "users" | "info" | "payment" | "promos" | "tables";
+type Tab = "dashboard" | "menu" | "inventory" | "reports" | "users" | "info" | "payment" | "promos" | "tables" | "pos" | "organization";
 
 const AdminHome = () => {
   const { logout, user } = useAuth();
-  const { restaurantSlug } = useRestaurant();
+  const { restaurantSlug, enableInventory } = useRestaurant();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [activeTab, setActiveTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // We'll trust the Context for features, but can fallback to local state if needed.
+  // For now, enablePOS isn't in context, so we'll fetch or default to true/false.
+  // Ideally, add enablePOS to RestaurantContext, but for this fix, we will fetch it here
+  // or just default it to true since the feature is 'Foundation'.
+  const [enablePOS, setEnablePOS] = useState(false);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const apiUrl = import.meta.env.VITE_API_URL;
 
   const getAxiosConfig = () => {
     const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken');
@@ -54,6 +64,7 @@ const AdminHome = () => {
 
   useEffect(() => {
     fetchLowStockCount();
+    fetchSettings(); // Fetch POS setting
 
     // Check every minute
     const interval = setInterval(() => {
@@ -62,6 +73,17 @@ const AdminHome = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/restaurant/me`, getAxiosConfig());
+      if (res.data.success && res.data.data.settings?.enablePOS) {
+        setEnablePOS(true);
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings", err);
+    }
+  };
 
   const fetchLowStockCount = async () => {
     try {
@@ -82,10 +104,12 @@ const AdminHome = () => {
 
   const tabs = [
     { id: "dashboard" as Tab, name: "Dashboard", icon: LayoutDashboard },
+    { id: "organization" as Tab, name: "Organization", icon: Store },
+    { id: "pos" as Tab, name: "POS & Billing", icon: Receipt },
     { id: "menu" as Tab, name: "Menu", icon: MenuIcon },
     { id: "tables" as Tab, name: "Active Tables", icon: Utensils },
     { id: "inventory" as Tab, name: "Inventory", icon: Package },
-    { id: "tracking" as Tab, name: "Reports", icon: TrendingUp },
+    { id: "reports" as Tab, name: "Sales Reports", icon: TrendingUp },
     { id: "users" as Tab, name: "Users", icon: Users },
     { id: "promos" as Tab, name: "Promo Codes", icon: Tag },
     { id: "payment" as Tab, name: "Payments", icon: Wallet },
@@ -129,7 +153,7 @@ const AdminHome = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group relative ${activeTab === tab.id
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                ? "bg-blue-600 text-white shadow-md"
                 : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }`}
             >
@@ -279,10 +303,12 @@ const AdminHome = () => {
           {/* Dynamic Content */}
           <div className="max-w-7xl mx-auto">
             {activeTab === "dashboard" && <Dashboard />}
+            {activeTab === "organization" && <OrgDashboard />}
+            {activeTab === "pos" && (enablePOS ? <POSDashboard /> : <div className="p-8 text-center text-gray-500">POS module is disabled for this restaurant.</div>)}
             {activeTab === "menu" && <MenuManagement />}
             {activeTab === "tables" && <TableManagement />}
-            {activeTab === "inventory" && <InventoryManagement />}
-            {activeTab === "tracking" && <InventoryTracking />}
+            {activeTab === "inventory" && (enableInventory ? <InventoryDashboard /> : <InventoryManagement />)}
+            {activeTab === "reports" && <SalesDashboard />}
             {activeTab === "users" && <UserManagement />}
             {activeTab === "promos" && <PromoCodeManagement />}
             {activeTab === "info" && <RestaurantInfo />}

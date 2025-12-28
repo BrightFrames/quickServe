@@ -46,45 +46,35 @@ const OrderQueue: React.FC<OrderQueueProps> = ({ orders, onStatusUpdate }) => {
     const activeList = getActiveList();
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Tabs */}
-            <div className="flex overflow-x-auto gap-2 p-4 bg-white border-b sticky top-16 z-10 no-scrollbar">
+        <div className="flex flex-col h-full bg-gray-100">
+            {/* Massive Filtering Tabs */}
+            <div className="grid grid-cols-4 gap-1 p-2 bg-white shadow-sm z-10">
                 {[
-                    { id: 'new', label: 'New', count: newOrders.length, color: 'text-blue-600 bg-blue-50' },
-                    { id: 'preparing', label: 'Preparing', count: preparingOrders.length, color: 'text-orange-600 bg-orange-50' },
-                    { id: 'ready', label: 'Ready', count: readyOrders.length, color: 'text-green-600 bg-green-50' },
-                    { id: 'served', label: 'Served', count: servedOrders.length, color: 'text-gray-600 bg-gray-50' },
+                    { id: 'new', label: 'NEW', count: newOrders.length, activeClass: 'bg-blue-600 text-white', inactiveClass: 'bg-gray-100 text-gray-600' },
+                    { id: 'preparing', label: 'PREP', count: preparingOrders.length, activeClass: 'bg-orange-500 text-white', inactiveClass: 'bg-gray-100 text-gray-600' },
+                    { id: 'ready', label: 'READY', count: readyOrders.length, activeClass: 'bg-green-600 text-white', inactiveClass: 'bg-gray-100 text-gray-600' },
+                    { id: 'served', label: 'DONE', count: servedOrders.length, activeClass: 'bg-gray-800 text-white', inactiveClass: 'bg-gray-100 text-gray-600' },
                 ].map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={`
-              flex-shrink-0 px-4 py-3 rounded-xl border-2 font-bold text-sm transition-all
-              ${activeTab === tab.id
-                                ? 'border-black bg-black text-white shadow-lg'
-                                : 'border-transparent bg-gray-100 text-gray-500 hover:bg-gray-200'}
-            `}
+                            flex flex-col items-center justify-center col-span-1 py-3 rounded-lg font-black text-xs transition-all active:scale-95
+                            ${activeTab === tab.id ? tab.activeClass : tab.inactiveClass}
+                        `}
                     >
-                        <div className="flex items-center gap-2">
-                            <span>{tab.label}</span>
-                            {tab.count > 0 && (
-                                <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-white text-black' : 'bg-gray-300 text-gray-700'}`}>
-                                    {tab.count}
-                                </span>
-                            )}
-                        </div>
+                        <span className="text-lg leading-none mb-1">{tab.count}</span>
+                        <span>{tab.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-24">
+            <div className="flex-1 overflow-y-auto p-2 space-y-3 pb-24">
                 {activeList.length === 0 ? (
-                    <div className="text-center py-12 opacity-50">
-                        <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Clock className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <p className="font-semibold text-gray-500">No {activeTab} orders</p>
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                        <CheckCircle className="w-12 h-12 mb-2 opacity-20" />
+                        <span className="font-bold uppercase tracking-widest text-sm opacity-50">No Orders</span>
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">
@@ -92,9 +82,10 @@ const OrderQueue: React.FC<OrderQueueProps> = ({ orders, onStatusUpdate }) => {
                             <motion.div
                                 key={order.id || order._id}
                                 layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.2 }}
                             >
                                 <CaptainOrderCard order={order} onAction={onStatusUpdate} />
                             </motion.div>
@@ -140,28 +131,33 @@ const CaptainOrderCard = ({ order, onAction }: { order: Order, onAction: (id: st
     const isUrgent = elapsed > 20;
 
     return (
-        <div className={`bg-white rounded-2xl border-2 shadow-sm p-4 ${isUrgent ? 'border-red-200 bg-red-50/10' : 'border-gray-100'}`}>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Table</span>
-                    <div className="text-4xl font-black text-gray-900 leading-none mt-1">
-                        {order.tableNumber}
-                    </div>
+        <div className={`bg-white rounded-xl shadow-sm overflow-hidden ${isUrgent ? 'ring-2 ring-red-500' : ''}`}>
+            {/* Card Header - Table & Time */}
+            <div className="flex items-stretch border-b border-gray-100">
+                <div className="bg-gray-900 text-white px-4 py-3 flex flex-col items-center justify-center min-w-[80px]">
+                    <span className="text-[10px] uppercase font-bold text-gray-400">TABLE</span>
+                    <span className="text-3xl font-black leading-none">{order.tableNumber}</span>
                 </div>
-                <div className={`px-3 py-1.5 rounded-lg font-mono font-bold text-sm flex items-center gap-2 ${isUrgent ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                    <Clock className="w-4 h-4" />
-                    {elapsed}m
+                <div className="flex-1 p-3 flex justify-between items-center bg-white">
+                    <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-400 uppercase">ORDER #{order.orderNumber?.slice(-4) || '....'}</span>
+                        <div className={`flex items-center gap-1 font-bold text-sm ${isUrgent ? 'text-red-600' : 'text-gray-600'}`}>
+                            <Clock className="w-3.5 h-3.5" />
+                            {elapsed} min ago
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="space-y-3 mb-4">
+            {/* Items List - Ultra Compact */}
+            <div className="p-3">
                 {order.items.map((item, i) => (
-                    <div key={i} className="flex gap-3 text-sm">
-                        <div className="font-bold text-gray-500 w-6">{item.quantity}x</div>
-                        <div className="flex-1 font-medium text-gray-900">
-                            {item.name}
+                    <div key={i} className="flex items-start gap-3 py-1.5 border-b border-gray-50 last:border-0">
+                        <div className="font-black text-gray-900 text-lg w-6 text-center bg-gray-100 rounded">{item.quantity}</div>
+                        <div className="flex-1 leading-snug">
+                            <div className="font-bold text-gray-800 text-base">{item.name}</div>
                             {item.specialInstructions && (
-                                <div className="text-orange-600 text-xs mt-0.5 flex items-center gap-1">
+                                <div className="text-red-500 text-xs font-bold mt-0.5 uppercase flex items-center gap-1 bg-red-50 inline-block px-1 rounded">
                                     <AlertCircle className="w-3 h-3" />
                                     {item.specialInstructions}
                                 </div>
@@ -171,23 +167,21 @@ const CaptainOrderCard = ({ order, onAction }: { order: Order, onAction: (id: st
                 ))}
             </div>
 
+            {/* Huge Action Button */}
             {action ? (
                 <button
                     onClick={() => onAction(orderId, action.status)}
-                    className={`w-full py-4 rounded-xl font-bold text-white shadow-md active:scale-95 transition-all flex items-center justify-center gap-3 ${action.color}`}
+                    className={`w-full py-4 text-white font-black uppercase tracking-widest text-lg flex items-center justify-center gap-2 active:opacity-90 ${action.color}`}
                 >
                     <action.icon className="w-6 h-6" />
                     {action.label}
                 </button>
             ) : (
-                <div className="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-bold text-center border-2 border-transparent">
-                    {order.status === 'preparing' ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <ChefHat className="w-5 h-5" /> In Kitchen
-                        </span>
-                    ) : (
-                        <span className="capitalize">{order.status}</span>
-                    )}
+                <div className="bg-gray-100 py-3 text-center border-t border-gray-200">
+                    <span className="text-gray-500 font-bold text-sm uppercase flex items-center justify-center gap-2">
+                        {order.status === 'preparing' ? <ChefHat className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        Status: {order.status}
+                    </span>
                 </div>
             )}
         </div>

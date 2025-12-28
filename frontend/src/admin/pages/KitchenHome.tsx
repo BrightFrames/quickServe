@@ -427,90 +427,93 @@ const OrderCard = ({ order, onStatusChange }: { order: Order; onStatusChange: (i
   }, [order.createdAt]);
 
   const isUrgent = elapsed > 20;
-  const isWarning = elapsed > 10;
+
+  // Define State Visuals Aggressively
+  const isNew = order.status === 'pending';
+  const isCooking = order.status === 'preparing';
+  const isReady = order.status === 'ready';
 
   const nextStatus =
-    order.status === "preparing" || order.status === "pending" ? "ready" :
-      order.status === "prepared" ? "ready" :
-        order.status === "ready" ? "served" : null;
+    isNew ? "preparing" :
+      isCooking ? "ready" :
+        isReady ? "served" : null;
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border h-full flex flex-col transition-shadow hover:shadow-md ${isUrgent ? 'border-red-200 ring-1 ring-red-100' : 'border-gray-200'
+    <div className={`bg-white rounded-xl shadow-md border-2 h-full flex flex-col overflow-hidden ${isUrgent ? 'border-red-500 shadow-red-100' : 'border-gray-200'
       }`}>
-      {/* Card Header */}
-      <div className={`p-4 border-b flex justify-between items-start rounded-t-xl ${isUrgent ? 'bg-red-50/50' : 'bg-gray-50/50'
+      {/* Massive Status Header */}
+      <div className={`p-4 text-white flex justify-between items-center ${isNew ? 'bg-blue-600 animate-pulse' :
+          isCooking ? 'bg-orange-500' :
+            isReady ? 'bg-green-600' : 'bg-gray-600'
         }`}>
         <div>
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1">
-            Table
-          </span>
-          <span className="text-3xl font-black text-gray-900 leading-none">
-            {order.tableNumber}
-          </span>
+          <h3 className="text-sm font-bold uppercase opacity-90 tracking-widest">
+            {isNew ? '⚠️ NEW ORDER' : isCooking ? '👨‍🍳 COOKING' : isReady ? '✅ READY' : 'COMPLETE'}
+          </h3>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-4xl font-black">{order.tableNumber}</span>
+            <span className="text-sm font-medium opacity-80">Table</span>
+          </div>
         </div>
         <div className="text-right">
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-bold ${isUrgent ? 'bg-red-100 text-red-700' :
-            isWarning ? 'bg-orange-100 text-orange-700' :
-              'bg-green-100 text-green-700'
+          <div className={`px-3 py-1 rounded-lg font-mono font-bold text-lg ${isUrgent ? 'bg-red-600 text-white' : 'bg-white/20 text-white'
             }`}>
-            <Clock className="w-3.5 h-3.5" />
-            <span>
-              {elapsed < 60
-                ? `${elapsed}m`
-                : `${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')} hrs`}
-            </span>
+            {elapsed}m
           </div>
-          <p className="text-[10px] text-gray-400 mt-1.5 font-medium font-mono">
-            #{order.orderNumber.slice(-6)}
-          </p>
+          <div className="text-[10px] font-mono mt-1 opacity-70">#{order.orderNumber.slice(-4)}</div>
         </div>
       </div>
 
-      {/* Items List */}
-      <div className="p-4 flex-1 space-y-4">
+      {/* Items List - Large & Clear */}
+      <div className="p-4 flex-1 space-y-3 bg-white">
         {order.items.map((item, idx) => (
-          <div key={idx} className="flex gap-3">
-            <div className="flex-shrink-0 w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center font-bold text-sm text-gray-700">
+          <div key={idx} className="flex gap-4 items-start border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+            <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-lg font-black text-gray-800">
               {item.quantity}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-gray-900 leading-snug">
+            <div className="flex-1">
+              <p className="text-lg font-bold text-gray-900 leading-tight">
                 {item.name}
               </p>
               {item.specialInstructions && (
-                <div className="mt-1.5 flex items-start gap-1.5 text-xs text-orange-700 bg-orange-50 px-2 py-1.5 rounded-md border border-orange-100">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                  <span className="font-medium">{item.specialInstructions}</span>
+                <div className="mt-1 inline-flex items-center gap-1.5 px-2 py-1 bg-red-50 text-red-700 text-xs font-bold uppercase rounded border border-red-100">
+                  <AlertCircle className="w-3 h-3" />
+                  {item.specialInstructions}
                 </div>
               )}
             </div>
-            {/* Checkbox for item completion could go here */}
           </div>
         ))}
       </div>
 
-      {/* Action Footer */}
+      {/* Action Footer - HUGE TARGETS */}
       {nextStatus && (
-        <div className="p-3 bg-gray-50 border-t border-gray-100 rounded-b-xl">
-          <button
-            onClick={() => onStatusChange(orderId, nextStatus)}
-            className={`w-full py-3.5 rounded-lg font-bold text-white shadow-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all ${nextStatus === 'ready'
-              ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200'
-              : 'bg-green-600 hover:bg-green-700 shadow-green-200'
-              }`}
-          >
-            {nextStatus === 'ready' ? (
-              <>
-                <CheckCircle className="w-5 h-5" />
-                <span>Mark Ready</span>
-              </>
-            ) : (
-              <>
-                <Truck className="w-5 h-5" />
-                <span>Mark Served</span>
-              </>
-            )}
-          </button>
+        <div className="p-3 bg-gray-50 border-t border-gray-200">
+          {isNew ? (
+            <button
+              onClick={() => onStatusChange(orderId, 'preparing')}
+              className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-black text-xl uppercase tracking-wider shadow-lg shadow-orange-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <ChefHat className="w-6 h-6" />
+              Start Cooking
+            </button>
+          ) : isCooking ? (
+            <button
+              onClick={() => onStatusChange(orderId, 'ready')}
+              className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-black text-xl uppercase tracking-wider shadow-lg shadow-green-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <CheckCircle className="w-6 h-6" />
+              Mark Ready
+            </button>
+          ) : (
+            <button
+              onClick={() => onStatusChange(orderId, 'served')}
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-xl uppercase tracking-wider shadow-lg shadow-blue-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              <Truck className="w-6 h-6" />
+              Served
+            </button>
+          )}
         </div>
       )}
     </div>

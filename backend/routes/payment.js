@@ -1,181 +1,73 @@
-import express from "express";
-import Order from "../models/Order.js";
-import { paymentRateLimiter } from "../utils/rateLimiter.js";
-import { validatePaymentStatus } from "../utils/validators.js";
+import express from 'express';
+import { authenticateRestaurant } from '../middleware/auth.js';
+import createPaymentAdapter from '../services/payment/factory.js';
+import Bill from '../models/Bill.js';
 
 const router = express.Router();
 
-// ============================
-// UPI Payment Intent
-// ============================
-// Get UPI payment details for initiating payment
-router.post("/upi/initiate", paymentRateLimiter, async (req, res) => {
+// Initialize Payment (Create Order)
+router.post('/initiate', authenticateRestaurant, async (req, res) => {
   try {
-    const { orderId, amount } = req.body;
+    const { billId, gateway = 'mock' } = req.body;
+    const restaurantId = req.restaurant.id;
 
-    if (!orderId || !amount) {
-      return res.status(400).json({ message: "Order ID and amount required" });
+    const bill = await Bill.findOne({ where: { id: billId, restaurantId } });
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
     }
 
-    // Get UPI details from environment variables
-    const upiId = process.env.UPI_ID || "test@upi";
-    const businessName = process.env.BUSINESS_NAME || "QuickServe";
+    if (bill.status === 'paid') {
+      return res.status(400).json({ success: false, message: 'Bill already paid' });
+    }
 
-    // Generate UPI deep link
-    const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(
-      businessName
-    )}&am=${amount}&cu=INR&tn=${encodeURIComponent(
-      `Order Payment - ${orderId}`
-    )}`;
+    // Amount in currency subunits (e.g. paise for INR). 
+    // Assuming database stores standard units (INR), so multiply by 100.
+    // For Mock, we just pass the value.
+    const amount = Math.round(parseFloat(bill.grandTotal) * 100);
 
-    console.log(
-      `[PAYMENT] UPI payment initiated for order: ${orderId}, amount: ${amount}`
-    );
+    const adapter = createPaymentAdapter(gateway);
+    const orderData = await adapter.createOrder(amount, 'INR', bill.billNumber);
 
-    res.json({
-      success: true,
-      upiLink,
-      upiId,
-      businessName,
-      amount,
-      orderId,
-    });
+    // Save gateway context if needed, for now just return to frontend
+    res.json({ success: true, order: orderData, gateway });
+
   } catch (error) {
-    console.error("[PAYMENT] Error initiating UPI payment:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Payment initiation error:', error);
+    res.status(500).json({ success: false, message: 'Payment init failed' });
   }
 });
 
-// ============================
-// Update Payment Status
-// ============================
-// Called after payment completion to update order status
-router.post("/status", paymentRateLimiter, validatePaymentStatus, async (req, res) => {
+// Verify Payment
+router.post('/verify', authenticateRestaurant, async (req, res) => {
   try {
-    const { orderId, paymentMethod, paymentStatus, transactionId } = req.body;
+    const { billId, gateway = 'mock', paymentDetails } = req.body;
+    const restaurantId = req.restaurant.id;
 
-    console.log(`[PAYMENT] Status update request:`, {
-      orderId,
-      paymentMethod,
-      paymentStatus,
-      transactionId,
-    });
-
-    if (!orderId || !paymentMethod || !paymentStatus) {
-      return res.status(400).json({
-        message: "Order ID, payment method, and payment status are required",
-      });
+    const bill = await Bill.findOne({ where: { id: billId, restaurantId } });
+    if (!bill) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
     }
 
-    // Validate payment status
-    const validStatuses = ["pending", "paid", "failed"];
-    if (!validStatuses.includes(paymentStatus)) {
-      return res.status(400).json({
-        message: `Invalid payment status. Must be one of: ${validStatuses.join(
-          ", "
-        )}`,
-      });
+    const adapter = createPaymentAdapter(gateway);
+    const isValid = await adapter.verifyPayment(paymentDetails);
+
+    if (isValid) {
+      // Update Bill
+      bill.status = 'paid';
+      bill.paymentMethod = gateway === 'mock' ? 'card' : 'upi'; // Map to closest enum or expand enum
+      bill.transactionId = paymentDetails.paymentId || 'mock_txn';
+      bill.gateway = gateway;
+      bill.gatewayResponse = paymentDetails;
+      await bill.save();
+
+      res.json({ success: true, message: 'Payment verified and Bill updated' });
+    } else {
+      res.status(400).json({ success: false, message: 'Payment verification failed' });
     }
 
-    // Validate payment method
-    const validMethods = ["cash", "card", "upi"];
-    if (!validMethods.includes(paymentMethod)) {
-      return res.status(400).json({
-        message: `Invalid payment method. Must be one of: ${validMethods.join(
-          ", "
-        )}`,
-      });
-    }
-
-    // Find and update the order
-    const order = await Order.findByPk(orderId);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    // Update payment details
-    const updateData = {
-      paymentMethod,
-      paymentStatus,
-    };
-    
-    if (transactionId) {
-      updateData.transactionId = transactionId;
-    }
-
-    // If payment is successful, update order status to preparing
-    if (paymentStatus === "paid" && order.status === "pending") {
-      updateData.status = "preparing";
-    }
-
-    await order.update(updateData);
-
-    console.log(`[PAYMENT] ✓ Payment status updated for order: ${orderId}`, {
-      paymentMethod,
-      paymentStatus,
-      transactionId: transactionId || "N/A",
-    });
-
-    // Emit socket event for payment update
-    const io = req.app.get("io");
-    if (io) {
-      io.emit("payment-updated", {
-        orderId: order.id,
-        paymentStatus: order.paymentStatus,
-        paymentMethod: order.paymentMethod,
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Payment status updated successfully",
-      order: {
-        id: order.id,
-        orderNumber: order.orderNumber,
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.paymentStatus,
-        transactionId: order.transactionId,
-        status: order.status,
-      },
-    });
   } catch (error) {
-    console.error("[PAYMENT] Error updating payment status:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
-
-// ============================
-// Verify Payment (Optional - for UPI callback)
-// ============================
-// This endpoint can be called by UPI gateway or polling from frontend
-router.get("/verify/:orderId", async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    const order = await Order.findByPk(orderId);
-
-    if (!order) {
-      return res.status(404).json({ message: "Order not found" });
-    }
-
-    console.log(`[PAYMENT] Payment verification check for order: ${orderId}`, {
-      paymentStatus: order.paymentStatus,
-      paymentMethod: order.paymentMethod,
-    });
-
-    res.json({
-      success: true,
-      orderId: order.id,
-      orderNumber: order.orderNumber,
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus,
-      transactionId: order.transactionId,
-      totalAmount: order.totalAmount,
-    });
-  } catch (error) {
-    console.error("[PAYMENT] Error verifying payment:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error('Payment verification error:', error);
+    res.status(500).json({ success: false, message: 'Verification error' });
   }
 });
 

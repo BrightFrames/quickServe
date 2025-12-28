@@ -45,27 +45,40 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedCart = localStorage.getItem('cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    } catch (e) {
+      console.error('Failed to parse cart from local storage', e);
+      return [];
+    }
+  });
+
   const [orderDetails, setOrderDetailsState] = useState<OrderDetails | null>(null);
   const [tableNumber, setTableNumberState] = useState<string | null>(() => {
-    // Initialize from localStorage
     return localStorage.getItem('tableNumber') || localStorage.getItem('tableId') || null;
   });
 
+  // Persist cart to local storage whenever it changes
+  React.useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
+
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((i) => 
-        i.id === item.id && 
-        i.variant === item.variant && 
+      const existingItem = prevCart.find((i) =>
+        i.id === item.id &&
+        i.variant === item.variant &&
         JSON.stringify(i.addOns) === JSON.stringify(item.addOns)
       );
-      
+
       if (existingItem) {
         return prevCart.map((i) =>
           i.id === existingItem.id ? { ...i, quantity: i.quantity + item.quantity } : i
         );
       }
-      
+
       return [...prevCart, item];
     });
   };
@@ -92,6 +105,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => {
     setCart([]);
+    localStorage.removeItem('cart');
   };
 
   const getCartTotal = () => {

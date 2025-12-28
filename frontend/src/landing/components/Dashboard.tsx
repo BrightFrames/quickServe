@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/shared/ui/button';
@@ -11,14 +11,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
   ChefHat,
-  BarChart3,
   Settings,
   ArrowRight,
   Building,
   Mail,
   Phone,
   MapPin,
-  UserPlus,
   Key,
   ShieldCheck,
   LayoutDashboard,
@@ -27,7 +25,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
-  const { restaurant, token, logout } = useAuth();
+  const { restaurant, logout } = useAuth();
   const navigate = useNavigate();
   const { restaurantSlug } = useParams();
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -204,7 +202,7 @@ const Dashboard: React.FC = () => {
         >
           {/* Welcome Section */}
           <motion.div variants={itemVariants} className="bg-white rounded-3xl p-8 border border-gray-100 shadow-xl shadow-gray-200/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-red-50 rounded-full blur-3xl -mr-32 -mt-32 opacity-50 z-0"></div>
+
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-2">
                 <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold tracking-wide uppercase">Dashboard</span>
@@ -229,10 +227,10 @@ const Dashboard: React.FC = () => {
               {/* Admin Panel Card */}
               <div
                 onClick={handleNavigateToAdmin}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-red-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Settings className="w-24 h-24 text-red-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                  <Settings className="w-24 h-24 text-red-600 translate-x-4 -translate-y-4" />
                 </div>
                 <div className="relative z-10 flex flex-col h-full">
                   <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-red-600 transition-colors duration-300">
@@ -249,10 +247,10 @@ const Dashboard: React.FC = () => {
               {/* Kitchen Panel Card */}
               <div
                 onClick={handleNavigateToKitchen}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-orange-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <UtensilsCrossed className="w-24 h-24 text-orange-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                  <UtensilsCrossed className="w-24 h-24 text-orange-600 translate-x-4 -translate-y-4" />
                 </div>
                 <div className="relative z-10 flex flex-col h-full">
                   <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-600 transition-colors duration-300">
@@ -269,10 +267,10 @@ const Dashboard: React.FC = () => {
               {/* Captain Panel Card */}
               <div
                 onClick={handleNavigateToCaptain}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-blue-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Users className="w-24 h-24 text-blue-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                  <Users className="w-24 h-24 text-blue-600 translate-x-4 -translate-y-4" />
                 </div>
                 <div className="relative z-10 flex flex-col h-full">
                   <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-600 transition-colors duration-300">
@@ -289,10 +287,10 @@ const Dashboard: React.FC = () => {
               {/* Customer App Card */}
               <div
                 onClick={handleNavigateToCustomer}
-                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-2xl hover:shadow-green-900/5 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group relative bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <QrCode className="w-24 h-24 text-green-600 transform rotate-12 translate-x-4 -translate-y-4" />
+                  <QrCode className="w-24 h-24 text-green-600 translate-x-4 -translate-y-4" />
                 </div>
                 <div className="relative z-10 flex flex-col h-full">
                   <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-600 transition-colors duration-300">

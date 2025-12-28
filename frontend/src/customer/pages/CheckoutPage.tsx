@@ -238,7 +238,7 @@ export const CheckoutPage = () => {
           </button>
 
           {showEmail && (
-            <div className="bg-white rounded-xl p-4 shadow-sm mt-2 animate-in slide-in-from-top-2">
+            <div className="bg-white rounded-xl p-4 shadow-sm mt-2 border border-gray-100">
               <Label htmlFor="email" className="text-xs font-bold text-gray-500 uppercase">Email Address</Label>
               <Input
                 id="email"
@@ -246,7 +246,7 @@ export const CheckoutPage = () => {
                 placeholder="name@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-2 h-11 bg-gray-50 border-0 focus-visible:ring-1 focus-visible:ring-blue-500"
+                className="mt-2 h-11 bg-white border-gray-200 focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
           )}
@@ -255,7 +255,7 @@ export const CheckoutPage = () => {
         {/* Bill Details */}
         <section>
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Bill Details</h3>
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
+          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3 border border-gray-100">
             <div className="flex justify-between text-gray-600 text-sm">
               <span>Item Total</span>
               <span>{formatCurrency(subtotal)}</span>
@@ -275,7 +275,7 @@ export const CheckoutPage = () => {
         {/* Payment Methods */}
         <section>
           <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Payment Method</h3>
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
             <PaymentMethodSelector
               selectedMethod={paymentMethod}
               onSelect={setPaymentMethod}
@@ -294,7 +294,7 @@ export const CheckoutPage = () => {
           <Button
             onClick={handlePlaceOrder}
             size="lg"
-            className="flex-[2] h-12 rounded-xl text-base font-bold shadow-lg shadow-primary/20"
+            className="flex-[2] h-12 rounded-xl text-base font-bold"
             disabled={loading || processingPayment || !paymentMethod}
           >
             {processingPayment ? "Placing Order..." : "Place Order"}

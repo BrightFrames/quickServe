@@ -5,8 +5,13 @@ import bcrypt from 'bcryptjs';
 const Restaurant = sequelize.define('Restaurant', {
   id: {
     type: DataTypes.INTEGER,
-    primaryKey: true,
+    primaryKey: true, // Primary Key for Restaurant
     autoIncrement: true,
+  },
+  organizationId: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // Allow null for migration, enforce later
+    comment: 'Link to parent Organization (Phase 4)',
   },
   name: {
     type: DataTypes.STRING,
@@ -79,7 +84,7 @@ const Restaurant = sequelize.define('Restaurant', {
   //     len: [4, 10], // 4-10 character code
   //   },
   // },
-  
+
   // Cashfree vendor ID for marketplace payments
   // This stores the Cashfree linked account/vendor ID for split settlements
   cashfreeVendorId: {
@@ -88,7 +93,7 @@ const Restaurant = sequelize.define('Restaurant', {
     defaultValue: null,
     comment: 'Cashfree marketplace vendor ID for split settlements',
   },
-  
+
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
