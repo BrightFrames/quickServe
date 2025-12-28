@@ -10,9 +10,17 @@ class PaymentService {
     }
     return 'http://localhost:3000';
   }
-  
+
   private get apiUrl() {
     return `${this.getBaseUrl()}/api/payment`;
+  }
+
+  private getHeaders() {
+    const token = localStorage.getItem('token') || localStorage.getItem('restaurantToken');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
   }
 
   /**
@@ -23,6 +31,8 @@ class PaymentService {
       const response = await axios.post(`${this.apiUrl}/upi/initiate`, {
         orderId,
         amount,
+      }, {
+        headers: this.getHeaders()
       });
       return response.data;
     } catch (error: any) {
@@ -48,6 +58,8 @@ class PaymentService {
         paymentMethod,
         paymentStatus,
         transactionId,
+      }, {
+        headers: this.getHeaders()
       });
       return response.data;
     } catch (error: any) {
@@ -63,7 +75,9 @@ class PaymentService {
    */
   async verifyPayment(orderId: string) {
     try {
-      const response = await axios.get(`${this.apiUrl}/verify/${orderId}`);
+      const response = await axios.get(`${this.apiUrl}/verify/${orderId}`, {
+        headers: this.getHeaders()
+      });
       return response.data;
     } catch (error: any) {
       console.error("Error verifying payment:", error);
