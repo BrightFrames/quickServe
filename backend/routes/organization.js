@@ -11,11 +11,25 @@ const router = express.Router();
 
 const authenticateOrganizationMember = async (req, res, next) => {
     // Requires authenticateRestaurant to run first
-    if (!req.restaurant || !req.restaurant.organizationId) {
-        return res.status(403).json({ message: 'Not part of an organization' });
+    try {
+        if (!req.restaurantId) {
+            return res.status(401).json({ message: 'Authentication required' });
+        }
+
+        const restaurant = await Restaurant.findByPk(req.restaurantId);
+
+        if (!restaurant || !restaurant.organizationId) {
+            return res.status(403).json({ message: 'Not part of an organization' });
+        }
+
+        req.organizationId = restaurant.organizationId;
+        // Also attach restaurant object for use in routes if needed
+        req.restaurant = restaurant;
+        next();
+    } catch (error) {
+        console.error("Auth Org Error:", error);
+        res.status(500).json({ message: "Server error during auth" });
     }
-    req.organizationId = req.restaurant.organizationId;
-    next();
 };
 
 // Get Organization Details + Restaurants

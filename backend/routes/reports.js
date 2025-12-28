@@ -10,7 +10,7 @@ const router = express.Router();
 router.get('/daily-sales', authenticateRestaurant, async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
-        const restaurantId = req.restaurant.id;
+        const restaurantId = req.restaurantId;
 
         // Date Handling
         const start = startDate ? new Date(startDate) : new Date();
@@ -70,7 +70,7 @@ router.get('/daily-sales', authenticateRestaurant, async (req, res) => {
 // Helper route for charts (last 7 days trend)
 router.get('/sales-trend', authenticateRestaurant, async (req, res) => {
     try {
-        const restaurantId = req.restaurant.id;
+        const restaurantId = req.restaurantId;
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 7);

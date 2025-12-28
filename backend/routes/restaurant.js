@@ -25,6 +25,7 @@ router.get("/info/code/:restaurantCode", restaurantController.getInfoByCode);
 router.put("/payment-accounts/:restaurantCode", restaurantController.updatePaymentAccounts);
 
 // Get Profile (Protected)
+router.get("/me", authenticateRestaurant, restaurantController.getProfile);
 router.get("/profile", authenticateRestaurant, restaurantController.getProfile);
 
 // Update Profile (Protected)

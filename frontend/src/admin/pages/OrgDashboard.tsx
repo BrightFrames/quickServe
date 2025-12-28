@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { DollarSign, Store, TrendingUp, Calendar } from 'lucide-react';
-import { useRestaurant } from '../../context/RestaurantContext';
-import { formatCurrency } from '../../lib/utils';
+import { DollarSign, Store, TrendingUp } from 'lucide-react';
+import { useRestaurant } from '../context/RestaurantContext';
+import { formatCurrency } from '../lib/utils';
 import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
     Tooltip,
     ResponsiveContainer,
     PieChart,
@@ -154,7 +149,7 @@ const OrgDashboard = () => {
                                     paddingAngle={5}
                                     dataKey="revenue"
                                 >
-                                    {data.breakdown.map((entry: any, index: number) => (
+                                    {data.breakdown.map((_: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
